@@ -81,11 +81,16 @@ if (typeof module !== "undefined" && module.exports) {
 
 if (typeof document !== "undefined") {
     (function () {
-        const ctx = mountChrome("dashboard", "Dashboard",
-            "Project / " + (getSession() || {}).name);
+        const ctx = mountChrome("dashboard", "Dashboard", "VO-AI / Dashboard");
         if (!ctx) return;
 
         const { session, project } = ctx;
+
+        /* The breadcrumb must name the project, not the user — mountChrome
+           resolves the project, so fill it in once we have it. */
+        const crumbEl = document.querySelector(".breadcrumb");
+        if (crumbEl) crumbEl.textContent = "Project / " + project.name;
+
         const stats = projectStats(project);
 
         document.getElementById("greeting").textContent =
