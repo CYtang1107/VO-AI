@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VO-AI | VO Report</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar"></aside>
+
+<main class="main">
+    <header class="topbar"></header>
+
+    <section class="welcome">
+        <div>
+            <h2>VO Report</h2>
+            <p>Stage 5 — a draft report assembled from the register.</p>
+        </div>
+        <div class="page-actions" style="margin:0">
+            <select id="voPicker" style="padding:11px;border-radius:8px;border:1px solid #dfe3e8"></select>
+            <button class="primary-button" id="printBtn">Print / Save as PDF</button>
+        </div>
+    </section>
+
+    <div id="reportHost"></div>
+</main>
+
+<script src="js/calc.js"></script>
+<script src="js/clauses.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/permissions.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/page-report.js"></script>
+
+</body>
+</html>

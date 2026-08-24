@@ -1103,3 +1103,39 @@ td.owned-col { background: #fffdf2; }
     width: 14px; height: 14px; border-radius: 3px;
     background: #fdf6dd; border: 1px solid #f0d98a;
 }
+
+.report-sheet {
+    background: white; border: 1px solid #e8ebf0; border-radius: 12px;
+    padding: 38px; font-size: 12px; line-height: 1.7;
+}
+.report-sheet h1 { font-size: 22px; margin-bottom: 8px; }
+.report-sheet h3 {
+    font-size: 13px; margin: 26px 0 9px;
+    padding-bottom: 6px; border-bottom: 2px solid #2563eb;
+}
+.report-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding-bottom: 20px; border-bottom: 2px solid #111827; margin-bottom: 10px;
+}
+.report-head p { font-size: 11px; color: #687386; }
+.report-ref { text-align: right; }
+.report-ref strong { display: block; font-size: 20px; color: #2563eb; }
+.report-ref span { font-size: 10px; color: #8992a3; }
+.report-totals {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    margin-top: 18px; padding: 16px; background: #f8fafc; border-radius: 9px;
+}
+.report-totals small { display: block; font-size: 9px; color: #8992a3; margin-bottom: 4px; }
+.report-totals strong { font-size: 15px; }
+.signatures {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 45px;
+}
+.signatures span {
+    display: block; border-bottom: 1px solid #172033; height: 46px; margin-bottom: 7px;
+}
+.signatures small { font-size: 10px; color: #687386; }
+
+@media print {
+    .report-sheet { border: none; padding: 0; }
+    .report-totals { background: none; border: 1px solid #ccc; }
+}
