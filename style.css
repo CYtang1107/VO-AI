@@ -1091,3 +1091,15 @@ input.owned, select.owned, textarea.owned {
     .main { margin-left: 0; padding: 0; }
     .card { border: 1px solid #ccc; break-inside: avoid; }
 }
+th.owned-col { background: #fdf6dd; color: #92400e; }
+td.owned-col { background: #fffdf2; }
+.legend-bar {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 10px; color: #92400e;
+    background: #fffbeb; border: 1px solid #fef3c7;
+    border-radius: 8px; padding: 10px 13px; margin-bottom: 16px;
+}
+.legend-swatch {
+    width: 14px; height: 14px; border-radius: 3px;
+    background: #fdf6dd; border: 1px solid #f0d98a;
+}
