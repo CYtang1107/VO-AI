@@ -46,3 +46,12 @@ test("project card escapes a name containing markup", () => {
     assert.ok(!html.includes("<img src=x"));
     assert.match(html, /&lt;img/);
 });
+
+test("parseBqPaste keeps a comma inside a description intact", () => {
+    const rows = parseBqPaste("B/4.1, Ceramic floor tiles 600x600mm, laid to falls, m2, 85");
+    assert.strictEqual(rows.length, 1);
+    assert.strictEqual(rows[0].code, "B/4.1");
+    assert.strictEqual(rows[0].description, "Ceramic floor tiles 600x600mm, laid to falls");
+    assert.strictEqual(rows[0].unit, "m2");
+    assert.strictEqual(rows[0].rate, 85);
+});

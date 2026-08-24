@@ -16,9 +16,9 @@ function parseBqPaste(text) {
         .filter(cells => cells.length >= 4)
         .map(cells => ({
             code: cells[0],
-            description: cells[1],
-            unit: cells[2],
-            rate: Number(cells[3]) || 0
+            description: cells.slice(1, cells.length - 2).join(", "),
+            unit: cells[cells.length - 2],
+            rate: Number(cells[cells.length - 1]) || 0
         }));
 }
 
