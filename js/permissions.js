@@ -8,7 +8,10 @@ const ROLE_LABEL = {
     client: "Client / Developer"
 };
 
-const FIELD_OWNER = {
+/* `var`, not `const`: js/page-register.js re-declares this name in a parse-time-hoisted
+   guarded `var` for its Node import. `const` here would be a SyntaxError in the
+   browser, where both files share one global scope. */
+var FIELD_OWNER = {
     /* contractor's columns */
     description: "contractor",
     dateIssued: "contractor",

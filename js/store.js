@@ -9,7 +9,10 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 const DB_KEY = "voai.db.v1";
 const SESSION_KEY = "voai.session.v1";
 
-const ROLES = {
+/* `var`, not `const`: js/ui.js re-declares this name in a parse-time-hoisted
+   guarded `var` for its Node import. `const` here would be a SyntaxError in the
+   browser, where both files share one global scope. */
+var ROLES = {
     contractor: {
         id: "contractor",
         label: "Contractor QS",
