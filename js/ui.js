@@ -42,7 +42,11 @@ function statusPill(status) {
 function renderSidebar(active, session, project) {
     const role = ROLES[session.role] || ROLES.contractor;
 
-    const items = NAV.map(n =>
+    /* Stage 1 sign-in -> Stage 2/3 choose a project -> Stage 4 work the register.
+       Until a project is chosen, only "Projects" makes sense; the rest are dead ends. */
+    const visibleNav = project ? NAV : NAV.filter(n => n.id === "projects");
+
+    const items = visibleNav.map(n =>
         '<a href="' + n.href + '" class="nav-item' +
         (n.id === active ? " active" : "") + '">' +
         "<span>" + n.icon + "</span>" + n.label + "</a>"

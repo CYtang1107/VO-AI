@@ -6,11 +6,11 @@
     const grid = document.getElementById("roleGrid");
     const nameInput = document.getElementById("userName");
 
-    /* Suggested names make the demo faster to walk through. */
+    /* Suggested ids make the demo faster to walk through. */
     const SUGGESTED = {
-        contractor: "Ong Wei Han",
-        consultant: "Serena Wong",
-        client: "Tan Zi Qian"
+        contractor: "ong.weihan",
+        consultant: "serena.wong",
+        client: "tan.ziqian"
     };
 
     grid.innerHTML = Object.values(ROLES).map(r =>
@@ -32,7 +32,7 @@
 
     document.getElementById("signInBtn").addEventListener("click", () => {
         const name = nameInput.value.trim();
-        if (!name) { toast("Enter your name to continue.", "warn"); nameInput.focus(); return; }
+        if (!name) { toast("Enter your user ID to continue.", "warn"); nameInput.focus(); return; }
         if (!selectedRole) { toast("Choose the role you are acting as.", "warn"); return; }
 
         setSession({ name: name, role: selectedRole, projectId: null });

@@ -38,8 +38,26 @@ test("the sidebar names the signed-in user and their role", () => {
 
 test("the sidebar marks the active page", () => {
     const html = renderSidebar("register",
-        { name: "Serena Wong", role: "consultant" }, null);
+        { name: "Serena Wong", role: "consultant" },
+        { name: "ABC Residence" });
     assert.match(html, /nav-item active[^>]*>[\s\S]{0,80}VO Register/);
+});
+
+test("the sidebar hides the working pages until a project is chosen", () => {
+    const html = renderSidebar("projects", { name: "serena.wong", role: "consultant" }, null);
+    assert.match(html, /Projects/);
+    assert.ok(!/VO Register/.test(html), "VO Register must be hidden with no project");
+    assert.ok(!/Dashboard/.test(html), "Dashboard must be hidden with no project");
+    assert.ok(!/VO Reports/.test(html), "VO Reports must be hidden with no project");
+});
+
+test("the sidebar shows every page once a project is chosen", () => {
+    const html = renderSidebar("dashboard", { name: "serena.wong", role: "consultant" },
+        { name: "ABC Residence" });
+    assert.match(html, /Dashboard/);
+    assert.match(html, /VO Register/);
+    assert.match(html, /VO Reports/);
+    assert.match(html, /ABC Residence/);
 });
 
 test("the sidebar names the current project, per the template rule", () => {
