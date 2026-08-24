@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VO-AI | Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar"></aside>
+
+<main class="main">
+    <header class="topbar"></header>
+
+    <section class="welcome">
+        <div>
+            <h2 id="greeting"></h2>
+            <p id="greetingSub"></p>
+        </div>
+        <button class="primary-button" id="newVoBtn">+ New Variation Order</button>
+    </section>
+
+    <section class="stats" id="statCards"></section>
+
+    <section class="dashboard-grid">
+        <div class="card recent-card">
+            <div class="card-header">
+                <div>
+                    <h3>Recent Variation Orders</h3>
+                    <p>Click a row to open it</p>
+                </div>
+                <button class="view-button" onclick="location.href='register.html'">
+                    View register →
+                </button>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>VO REF</th><th>DESCRIPTION</th><th>DATE ISSUED</th>
+                            <th>VALUE</th><th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card ai-card">
+            <div class="ai-header">
+                <div class="ai-logo">✦</div>
+                <div>
+                    <h3>Needs your attention</h3>
+                    <p>Based on your role in this project</p>
+                </div>
+            </div>
+            <div id="actionList"></div>
+        </div>
+    </section>
+
+    <div class="disclaimer">
+        <strong>⚠ Professional Review Required</strong>
+        <span>
+            AI-generated results are decision-support outputs. Final variation assessment,
+            certification and approval must be reviewed by the appropriate construction professional.
+        </span>
+    </div>
+</main>
+
+<script src="js/calc.js"></script>
+<script src="js/clauses.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/permissions.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script>mountChrome("dashboard", "Dashboard", "VO-AI / Dashboard");</script>
+<script src="js/page-dashboard.js"></script>
+
+</body>
+</html>
