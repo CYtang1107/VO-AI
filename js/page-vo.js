@@ -16,8 +16,14 @@ function field(spec) {
 
     let control;
     if (spec.type === "select") {
+        const options = spec.options || [];
+        const currentMissing = spec.value && !options.includes(spec.value);
         control = '<select data-field="' + spec.field + '"' + dis + ">" +
-            (spec.options || []).map(o =>
+            (currentMissing
+                ? '<option value="' + escapeHtml(spec.value) + '" selected disabled>' +
+                  escapeHtml(spec.value) + "</option>"
+                : "") +
+            options.map(o =>
                 '<option value="' + escapeHtml(o) + '"' +
                 (String(o) === String(spec.value) ? " selected" : "") + ">" +
                 escapeHtml(o) + "</option>").join("") +

@@ -19,6 +19,20 @@ const CLAUSES = [
             "and a measurement showing what was omitted and what was added."
     },
     {
+        id: "pam-11-2",
+        form: "PAM 2018",
+        ref: "Clause 11.2",
+        title: "Provisional and Approximate Quantities",
+        appliesTo: ["quantity"],
+        entitlement:
+            "Where the quantity executed differs from the quantity in the Contract " +
+            "Bills, the work is remeasured and valued at the Contract Bills rate. A " +
+            "substantial change in quantity may justify a rate review.",
+        evidence:
+            "The remeasurement, site records supporting the measured quantity, and the " +
+            "original Bills item for comparison."
+    },
+    {
         id: "pam-11-6",
         form: "PAM 2018",
         ref: "Clause 11.6",
@@ -61,20 +75,6 @@ const CLAUSES = [
             "The S.O. Instruction, the measured quantities, and the Schedule of Rates " +
             "item relied upon for each rate."
     },
-    {
-        id: "pam-11-2",
-        form: "PAM 2018",
-        ref: "Clause 11.2",
-        title: "Provisional and Approximate Quantities",
-        appliesTo: ["quantity"],
-        entitlement:
-            "Where the quantity executed differs from the quantity in the Contract " +
-            "Bills, the work is remeasured and valued at the Contract Bills rate. A " +
-            "substantial change in quantity may justify a rate review.",
-        evidence:
-            "The remeasurement, site records supporting the measured quantity, and the " +
-            "original Bills item for comparison."
-    }
 ];
 
 function clausesFor(classification) {

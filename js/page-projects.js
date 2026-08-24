@@ -14,11 +14,15 @@ function parseBqPaste(text) {
         .filter(Boolean)
         .map(line => line.split(line.includes("\t") ? "\t" : ",").map(c => c.trim()))
         .filter(cells => cells.length >= 4)
+        .filter(cells => {
+            const last = cells[cells.length - 1];
+            return last !== "" && !Number.isNaN(Number(last));
+        })
         .map(cells => ({
             code: cells[0],
             description: cells.slice(1, cells.length - 2).join(", "),
             unit: cells[cells.length - 2],
-            rate: Number(cells[cells.length - 1]) || 0
+            rate: Number(cells[cells.length - 1])
         }));
 }
 

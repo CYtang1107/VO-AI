@@ -21,9 +21,22 @@ test("parseBqPaste skips blank lines and malformed rows", () => {
     assert.strictEqual(rows.length, 2);
 });
 
-test("parseBqPaste treats an unparseable rate as zero rather than NaN", () => {
+test("parseBqPaste skips a row whose rate cell is not a parseable number", () => {
     const rows = parseBqPaste("B/1\tItem\tm\tabc");
+    assert.strictEqual(rows.length, 0);
+});
+
+test("parseBqPaste keeps a genuine zero rate rather than dropping it", () => {
+    const rows = parseBqPaste("B/1\tItem\tm\t0");
+    assert.strictEqual(rows.length, 1);
     assert.strictEqual(rows[0].rate, 0);
+});
+
+test("parseBqPaste skips a pasted BQ header row", () => {
+    const rows = parseBqPaste("Code\tDescription\tUnit\tRate\nB/4.1\tCeramic floor tiles\tm2\t85");
+    assert.strictEqual(rows.length, 1);
+    assert.deepStrictEqual(rows[0],
+        { code: "B/4.1", description: "Ceramic floor tiles", unit: "m2", rate: 85 });
 });
 
 test("a project card shows the name, contract number and VO count", () => {

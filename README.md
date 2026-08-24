@@ -31,7 +31,7 @@ There are no passwords — pick a name and a role:
 ## Tests
 
 ```bash
-node --test test/
+node --test
 ```
 
 ## How it works

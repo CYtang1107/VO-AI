@@ -39,6 +39,14 @@ test("select fields render their options and mark the current one", () => {
     assert.match(html, /<option value="Approved" selected/);
 });
 
+test("a Draft VO's evaluate status select shows Draft as selected, not Pending", () => {
+    const html = field({ field: "evaluateStatus", label: "Evaluate status", type: "select",
+                         options: ["Pending", "Under Review", "Approved", "Rejected"],
+                         value: vo3.evaluateStatus, vo: vo3, role: "consultant" });
+    assert.match(html, /<option value="Draft" selected disabled>/);
+    assert.ok(!/<option value="Pending" selected/.test(html));
+});
+
 test("field values are escaped", () => {
     const html = field({ field: "description", label: "D", type: "text",
                          value: '"><script>x</script>', vo: vo3, role: "contractor" });

@@ -16,6 +16,10 @@ function docList(files, label) {
 
 function renderReport(vo, project) {
     const a = analyse(vo, project);
+    const certifiedCell = (vo.certifiedStatus === "Approved" &&
+        vo.finalPrice !== null && vo.finalPrice !== undefined && vo.finalPrice !== "")
+        ? rm(vo.finalPrice)
+        : "—";
 
     const rows = (vo.measurement || []).map((row, i) => {
         const check = checkRate(row, project.bq || []);
@@ -75,7 +79,7 @@ function renderReport(vo, project) {
         "<div><small>Contractor claimed</small><strong>" + rm(a.contractorTotal) + "</strong></div>" +
         "<div><small>Consultant assessed</small><strong>" + rm(a.assessedTotal) + "</strong></div>" +
         "<div><small>Variance</small><strong>" + rm(a.variance) + "</strong></div>" +
-        "<div><small>Certified value</small><strong>" + rm(voValue(vo)) + "</strong></div>" +
+        "<div><small>Certified value</small><strong>" + certifiedCell + "</strong></div>" +
       "</div>" +
 
       "<h3>5. Findings</h3>" +

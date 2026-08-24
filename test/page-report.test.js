@@ -5,6 +5,7 @@ const { seedDB } = require("../js/store.js");
 
 const project = seedDB().projects[0];
 const vo1 = project.vos[0];
+const vo2 = project.vos[1];
 
 test("the report names the project and contract, per the template rule", () => {
     const html = renderReport(vo1, project);
@@ -45,6 +46,17 @@ test("the report lists supporting documents", () => {
 
 test("the report always carries the professional review disclaimer", () => {
     assert.match(renderReport(vo1, project), /Professional Review Required/);
+});
+
+test("the certified value is only shown for a VO that is actually certified", () => {
+    const html2 = renderReport(vo2, project);
+    const totalsBlock = html2.slice(html2.indexOf("Certified value"), html2.indexOf("Certified value") + 200);
+    assert.ok(!/RM [\d,]+\.\d{2}/.test(totalsBlock),
+        "an uncertified VO must not show a ringgit figure under Certified value");
+    assert.match(totalsBlock, /—/);
+
+    const html1 = renderReport(vo1, project);
+    assert.match(html1, /RM 55,856\.00/);
 });
 
 test("a report for an empty VO renders without throwing", () => {
