@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VO-AI | Projects</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .project-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-bottom: 28px; }
+        .project-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .project-meta small { display: block; font-size: 9px; color: #8992a3; margin-bottom: 4px; }
+        .project-meta strong { font-size: 13px; }
+        .create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        @media (max-width: 900px) {
+            .project-list, .create-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar"></aside>
+
+<main class="main">
+    <header class="topbar"></header>
+
+    <section class="welcome">
+        <div>
+            <h2>Choose a project</h2>
+            <p>Every variation order belongs to a project. Open one to continue.</p>
+        </div>
+        <button class="secondary-button" id="resetBtn">Restore demo data</button>
+    </section>
+
+    <div class="project-list" id="projectList"></div>
+
+    <div class="card" id="createBox">
+        <div class="card-header">
+            <div>
+                <h3>Create a new project</h3>
+                <p>Stage 2 — the Consultant QS sets up the project and uploads the contract and BQ.</p>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="create-grid">
+                <div>
+                    <div class="field">
+                        <label for="pName">Project name</label>
+                        <input type="text" id="pName" placeholder="Cadangan Pembangunan ...">
+                    </div>
+                    <div class="field">
+                        <label for="pClient">Client</label>
+                        <input type="text" id="pClient" placeholder="ABC Development Sdn Bhd">
+                    </div>
+                    <div class="field">
+                        <label for="pContractNo">Contract number</label>
+                        <input type="text" id="pContractNo" placeholder="ABC/2026/014">
+                    </div>
+                    <div class="field">
+                        <label for="pSum">Contract sum (RM)</label>
+                        <input type="number" id="pSum" placeholder="12500000">
+                    </div>
+                    <div class="field">
+                        <label for="pContractFile">Contract document</label>
+                        <input type="text" id="pContractFile" placeholder="Contract Agreement - PAM 2018.pdf">
+                        <span class="hint">
+                            Record the document name. This prototype does not read file
+                            contents — see the technical solution section of the proposal.
+                        </span>
+                    </div>
+                </div>
+                <div>
+                    <div class="field">
+                        <label for="pBq">Priced Bills of Quantities</label>
+                        <textarea id="pBq" style="min-height:260px" placeholder="Paste from Excel — four columns: code, description, unit, rate
+
+B/4.1&#9;Ceramic floor tiles 600x600mm&#9;m2&#9;85
+B/4.2&#9;Skirting to match floor finish&#9;m&#9;22"></textarea>
+                        <span class="hint">
+                            These rates are what VO-AI cross-checks the contractor's
+                            measurement against.
+                        </span>
+                    </div>
+                    <button class="primary-button" id="createBtn" style="width:100%">
+                        Create project
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="disclaimer">
+        <strong>⚠ Professional Review Required</strong>
+        <span>
+            AI-generated results are decision-support outputs. Final variation assessment,
+            certification and approval must be reviewed by the appropriate construction professional.
+        </span>
+    </div>
+</main>
+
+<script src="js/calc.js"></script>
+<script src="js/clauses.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/permissions.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script>mountChrome("projects", "Projects", "VO-AI / Projects", { projectOptional: true });</script>
+<script src="js/page-projects.js"></script>
+
+</body>
+</html>
