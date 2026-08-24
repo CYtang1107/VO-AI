@@ -3,454 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>VO-AI | Variation Order Management</title>
-
+    <title>VO-AI | Sign in</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
+<div class="login-page">
+    <div class="login-card">
 
         <div class="logo">
             <div class="logo-icon">V</div>
-
             <div>
                 <h2>VO-AI</h2>
                 <span>Variation Intelligence</span>
             </div>
         </div>
 
-        <nav>
+        <h1>Sign in to VO-AI</h1>
+        <p class="lead">
+            Choose the role you are acting as. Each role can only edit its own
+            columns of the variation order register.
+        </p>
 
-            <a href="#" class="nav-item active">
-                <span>⌂</span>
-                Dashboard
-            </a>
-
-            <a href="#" class="nav-item">
-                <span>▣</span>
-                Projects
-            </a>
-
-            <a href="#" class="nav-item">
-                <span>▤</span>
-                Documents
-            </a>
-
-            <a href="#" class="nav-item">
-                <span>✦</span>
-                AI Analysis
-            </a>
-
-            <a href="#" class="nav-item">
-                <span>＄</span>
-                Cost Impact
-            </a>
-
-            <a href="#" class="nav-item">
-                <span>▧</span>
-                VO Reports
-            </a>
-
-            <a href="#" class="nav-item">
-                <span>◉</span>
-                VO Tracking
-            </a>
-
-        </nav>
-
-        <div class="sidebar-bottom">
-
-            <div class="help-box">
-                <strong>Need help?</strong>
-                <p>Ask VO-AI Assistant</p>
-                <button>Open Assistant</button>
-            </div>
-
-            <div class="user-profile">
-                <div class="avatar">S</div>
-
-                <div>
-                    <strong>Serena Wong</strong>
-                    <span>Consultant QS</span>
-                </div>
-            </div>
-
+        <div class="field">
+            <label for="userName">Your name</label>
+            <input type="text" id="userName" placeholder="e.g. Serena Wong" autocomplete="name">
         </div>
 
-    </aside>
-
-
-    <!-- Main Content -->
-    <main class="main">
-
-        <!-- Top bar -->
-        <header class="topbar">
-
-            <div>
-                <p class="breadcrumb">Project / ABC Residence</p>
-                <h1>Dashboard</h1>
-            </div>
-
-            <div class="top-actions">
-
-                <button class="notification">
-                    🔔
-                    <span></span>
-                </button>
-
-                <div class="role">
-                    Consultant QS
-                    <span>⌄</span>
-                </div>
-
-            </div>
-
-        </header>
-
-
-        <!-- Welcome -->
-        <section class="welcome">
-
-            <div>
-                <h2>Good evening, Serena 👋</h2>
-
-                <p>
-                    Here's an overview of your Variation Orders
-                    for <strong>ABC Residence</strong>.
-                </p>
-            </div>
-
-            <button class="primary-button">
-                + New Variation Order
-            </button>
-
-        </section>
-
-
-        <!-- Statistics -->
-        <section class="stats">
-
-            <div class="stat-card">
-
-                <div class="stat-icon blue">
-                    ▧
-                </div>
-
-                <div>
-                    <p>Total VOs</p>
-                    <h2>28</h2>
-                    <small>↑ 12.4% from last month</small>
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-icon orange">
-                    ◷
-                </div>
-
-                <div>
-                    <p>Pending Review</p>
-                    <h2>8</h2>
-                    <small class="warning">Requires attention</small>
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-icon green">
-                    ✓
-                </div>
-
-                <div>
-                    <p>Approved</p>
-                    <h2>15</h2>
-                    <small>53.6% of total VOs</small>
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-icon purple">
-                    RM
-                </div>
-
-                <div>
-                    <p>Total VO Value</p>
-                    <h2>245.8K</h2>
-                    <small>Estimated project impact</small>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- Main dashboard grid -->
-        <section class="dashboard-grid">
-
-
-            <!-- Recent VOs -->
-            <div class="card recent-card">
-
-                <div class="card-header">
-
-                    <div>
-                        <h3>Recent Variation Orders</h3>
-                        <p>Latest activity in this project</p>
-                    </div>
-
-                    <button class="view-button">
-                        View All →
-                    </button>
-
-                </div>
-
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-                            <th>VO REF</th>
-                            <th>DESCRIPTION</th>
-                            <th>VALUE</th>
-                            <th>STATUS</th>
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-                        <tr>
-
-                            <td>
-                                <strong>VO-025</strong>
-                            </td>
-
-                            <td>
-                                Marble Tile Replacement
-                            </td>
-
-                            <td>
-                                RM 32,500
-                            </td>
-
-                            <td>
-                                <span class="status pending">
-                                    Pending
-                                </span>
-                            </td>
-
-                        </tr>
-
-
-                        <tr>
-
-                            <td>
-                                <strong>VO-024</strong>
-                            </td>
-
-                            <td>
-                                Door Specification Change
-                            </td>
-
-                            <td>
-                                RM 18,200
-                            </td>
-
-                            <td>
-                                <span class="status approved">
-                                    Approved
-                                </span>
-                            </td>
-
-                        </tr>
-
-
-                        <tr>
-
-                            <td>
-                                <strong>VO-023</strong>
-                            </td>
-
-                            <td>
-                                Ceiling Design Revision
-                            </td>
-
-                            <td>
-                                RM 12,800
-                            </td>
-
-                            <td>
-                                <span class="status approved">
-                                    Approved
-                                </span>
-                            </td>
-
-                        </tr>
-
-
-                        <tr>
-
-                            <td>
-                                <strong>VO-022</strong>
-                            </td>
-
-                            <td>
-                                Additional Drainage Works
-                            </td>
-
-                            <td>
-                                RM 24,600
-                            </td>
-
-                            <td>
-                                <span class="status review">
-                                    Under Review
-                                </span>
-                            </td>
-
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-
-            <!-- AI Assistant -->
-            <div class="card ai-card">
-
-                <div class="ai-header">
-
-                    <div class="ai-logo">
-                        ✦
-                    </div>
-
-                    <div>
-                        <h3>VO-AI Assistant</h3>
-                        <p>AI-powered decision support</p>
-                    </div>
-
-                    <span class="online">
-                        ●
-                    </span>
-
-                </div>
-
-
-                <div class="ai-message">
-
-                    <div class="ai-avatar">
-                        AI
-                    </div>
-
-                    <div class="message">
-
-                        <strong>VO-AI</strong>
-
-                        <p>
-                            I can help you identify potential variations,
-                            analyse contract clauses and estimate cost impacts.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div class="suggestions">
-
-                    <button>
-                        Analyse a variation
-                    </button>
-
-                    <button>
-                        Check contract clause
-                    </button>
-
-                    <button>
-                        Calculate cost impact
-                    </button>
-
-                </div>
-
-
-                <div class="chat-input">
-
-                    <input
-                        type="text"
-                        placeholder="Ask VO-AI anything..."
-                    >
-
-                    <button>
-                        ➤
-                    </button>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- AI Analysis Banner -->
-        <section class="ai-banner">
-
-            <div class="banner-icon">
-                ✦
-            </div>
-
-            <div>
-
-                <h3>
-                    Ready to analyse a new Variation Order?
-                </h3>
-
-                <p>
-                    Upload your contract, BOQ, drawings or site instruction
-                    and let VO-AI identify potential variations.
-                </p>
-
-            </div>
-
-            <button class="banner-button">
-                Start AI Analysis →
-            </button>
-
-        </section>
-
-
-        <!-- Disclaimer -->
-        <div class="disclaimer">
-
-            <strong>⚠ Professional Review Required</strong>
-
-            <span>
-                AI-generated results are decision-support outputs.
-                Final variation assessment, certification and approval
-                must be reviewed by the appropriate construction professional.
-            </span>
-
-        </div>
-
-    </main>
-
-
-    <script src="script.js"></script>
+        <label style="display:block;font-size:11px;font-weight:bold;margin-bottom:8px">
+            Your role
+        </label>
+        <div class="role-grid" id="roleGrid"></div>
+
+        <button class="primary-button" id="signInBtn" style="width:100%">
+            Continue →
+        </button>
+
+        <p class="lead" style="margin:18px 0 0;font-size:10px">
+            This is a demonstration prototype. No password is used and no data leaves
+            your browser — everything is stored locally on this computer.
+        </p>
+
+    </div>
+</div>
+
+<script src="js/calc.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/page-login.js"></script>
 
 </body>
 </html>
