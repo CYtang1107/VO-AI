@@ -13,8 +13,12 @@ test("rm formats ringgit with two decimals and thousands separators", () => {
     assert.strictEqual(rm(null), "RM 0.00");
 });
 
-test("today returns an ISO date string", () => {
+test("today returns the local calendar date, not the UTC date", () => {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const expected = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
     assert.match(today(), /^\d{4}-\d{2}-\d{2}$/);
+    assert.strictEqual(today(), expected);
 });
 
 test("prettyDate renders a readable date and an em dash for empty", () => {
