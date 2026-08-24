@@ -30,3 +30,13 @@ test("clausesFor returns every applicable clause", () => {
     assert.ok(list.length >= 1);
     assert.ok(list.every(c => c.appliesTo.includes("addition")));
 });
+
+test("the governing clause for each classification is pinned by id and ref", () => {
+    assert.strictEqual(matchClause("specification").id, "pam-11-1");
+    assert.strictEqual(matchClause("specification").ref, "Clause 11.1");
+    assert.strictEqual(matchClause("quantity").id, "pam-11-6");
+    assert.strictEqual(matchClause("quantity").ref, "Clause 11.6");
+    assert.strictEqual(matchClause("omission").id, "pam-11-1");
+    assert.strictEqual(matchClause("addition").id, "pam-11-1");
+    assert.strictEqual(matchClause("design").id, "pam-11-1");
+});
