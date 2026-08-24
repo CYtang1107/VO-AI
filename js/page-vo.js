@@ -43,6 +43,43 @@ function field(spec) {
     "</div>";
 }
 
+/* A document-control block: the attached files (name + date added) for one
+   contractor-owned document field, plus a file picker when the field is
+   editable for the signed-in role. Records file METADATA only — never the
+   file body. */
+function renderDocList(vo, fieldName, label, role) {
+    const editable = canEdit(fieldName, vo, role);
+    const reason = editable ? "" : lockReason(fieldName, vo, role);
+    const docs = vo[fieldName] || [];
+
+    const list = docs.length === 0
+        ? '<div class="empty-state">No documents attached.</div>'
+        : '<ul class="doc-list">' + docs.map(d =>
+            '<li class="file-item" data-doc-id="' + escapeHtml(d.id) + '">' +
+                '<span class="file-name">' + escapeHtml(d.name) + "</span>" +
+                '<span class="file-date">' + escapeHtml(prettyDate(d.at)) + "</span>" +
+                (editable
+                    ? '<button type="button" class="file-remove" data-field="' +
+                      escapeHtml(fieldName) + '" data-doc-id="' + escapeHtml(d.id) +
+                      '">Remove</button>'
+                    : "") +
+            "</li>").join("") + "</ul>";
+
+    const picker = editable
+        ? '<input type="file" multiple class="doc-picker" data-field="' +
+          escapeHtml(fieldName) + '">' +
+          '<span class="hint">This prototype records the document\'s name and size ' +
+          "for the register — it does not store or analyse the file's contents.</span>"
+        : "";
+
+    return '<div class="field doc-field ' + (editable ? "owned" : "locked") + '">' +
+        "<label>" + escapeHtml(label) + "</label>" +
+        list +
+        picker +
+        (reason ? '<span class="lock-note">🔒 ' + escapeHtml(reason) + "</span>" : "") +
+    "</div>";
+}
+
 function bqOptions(project, selectedId) {
     const opts = ['<option value="">— no comparable BQ item (star rate) —</option>'];
     (project.bq || []).forEach(b => {
@@ -138,7 +175,7 @@ function renderHistory(vo) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { field, renderMeasurementRows, renderAssessmentPanel, renderHistory };
+    module.exports = { field, renderDocList, renderMeasurementRows, renderAssessmentPanel, renderHistory };
 }
 
 if (typeof document !== "undefined") {
@@ -174,7 +211,10 @@ if (typeof document !== "undefined") {
                 field({ field: "instructionNo", label: "Instruction no.", type: "text",
                         value: v.instructionNo, vo: v, role: role }) +
                 field({ field: "contractorRemark", label: "Contractor's remark",
-                        type: "textarea", value: v.contractorRemark, vo: v, role: role });
+                        type: "textarea", value: v.contractorRemark, vo: v, role: role }) +
+                renderDocList(v, "revisedDrawing", "Revised drawing", role) +
+                renderDocList(v, "oldDrawing", "Old drawing", role) +
+                renderDocList(v, "supportingDocs", "Supporting documents", role);
 
             document.getElementById("consultantPanel").innerHTML =
                 field({ field: "dueDate", label: "VO due date", type: "date",
@@ -214,6 +254,26 @@ if (typeof document !== "undefined") {
         /* Persist any panel field on change. */
         document.querySelectorAll(".role-panel").forEach(panel => {
             panel.addEventListener("change", e => {
+                const picker = e.target.closest(".doc-picker");
+                if (picker) {
+                    const fieldName = picker.dataset.field;
+                    const files = Array.from(picker.files || []);
+                    if (files.length === 0) return;
+                    updateVO(project.id, voId, v => {
+                        v[fieldName] = v[fieldName] || [];
+                        files.forEach(f => {
+                            v[fieldName].push({
+                                id: uid("DOC"), name: f.name, size: f.size,
+                                uploadedBy: session.name, at: today()
+                            });
+                            logHistory(v, session, "Attached " + f.name + " to " + fieldName);
+                        });
+                    });
+                    toast(files.length > 1 ? "Documents attached." : "Document attached.");
+                    draw();
+                    return;
+                }
+
                 const el = e.target.closest("[data-field]");
                 if (!el || el.disabled) return;
                 const name = el.dataset.field;
@@ -224,6 +284,22 @@ if (typeof document !== "undefined") {
                     logHistory(v, session, "Updated " + name);
                 });
                 toast("Saved.");
+                draw();
+            });
+
+            panel.addEventListener("click", e => {
+                const btn = e.target.closest(".file-remove");
+                if (!btn) return;
+                const fieldName = btn.dataset.field;
+                const docId = btn.dataset.docId;
+                let removedName = "";
+                updateVO(project.id, voId, v => {
+                    const doc = (v[fieldName] || []).find(d => d.id === docId);
+                    removedName = doc ? doc.name : "document";
+                    v[fieldName] = (v[fieldName] || []).filter(d => d.id !== docId);
+                    logHistory(v, session, "Removed " + removedName + " from " + fieldName);
+                });
+                toast("Document removed.");
                 draw();
             });
         });

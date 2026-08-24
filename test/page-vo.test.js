@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { field, renderMeasurementRows, renderHistory } = require("../js/page-vo.js");
+const { field, renderDocList, renderMeasurementRows, renderHistory } = require("../js/page-vo.js");
 const { seedDB } = require("../js/store.js");
 
 const project = seedDB().projects[0];
@@ -78,4 +78,44 @@ test("history renders every recorded action, newest last", () => {
 
 test("a VO with no history renders an empty state", () => {
     assert.match(renderHistory({ history: [] }), /empty-state/);
+});
+
+test("a contractor on a Draft VO gets a file picker and remove controls", () => {
+    const html = renderDocList(vo3, "revisedDrawing", "Revised drawing", "contractor");
+    assert.match(html, /class="field doc-field owned"/);
+    assert.match(html, /<input type="file" multiple/);
+    assert.ok(!/lock-note/.test(html));
+});
+
+test("a consultant on the same VO gets the list read-only, with a lock note and no picker", () => {
+    const html = renderDocList(vo3, "revisedDrawing", "Revised drawing", "consultant");
+    assert.match(html, /class="field doc-field locked"/);
+    assert.match(html, /lock-note/);
+    assert.ok(!/<input type="file"/.test(html));
+});
+
+test("a contractor on an Approved VO gets it read-only with a lock note", () => {
+    const html = renderDocList(vo1, "revisedDrawing", "Revised drawing", "contractor");
+    assert.match(html, /class="field doc-field locked"/);
+    assert.match(html, /lock-note/);
+    assert.match(html, /already assessed/i);
+    assert.ok(!/<input type="file"/.test(html));
+});
+
+test("seeded VO-001's revised drawing renders its actual file name", () => {
+    const html = renderDocList(vo1, "revisedDrawing", "Revised drawing", "consultant");
+    assert.match(html, /A-201 Rev C - Floor Finishes\.pdf/);
+});
+
+test("a field with no documents renders an empty state rather than a broken list", () => {
+    const html = renderDocList(vo3, "supportingDocs", "Supporting documents", "contractor");
+    assert.match(html, /empty-state/);
+    assert.ok(!/<ul class="doc-list">/.test(html));
+});
+
+test("a document name containing markup is escaped", () => {
+    const dirty = { revisedDrawing: [{ id: "F9", name: '<img src=x onerror=alert(1)>.pdf',
+                                        size: 100, uploadedBy: "x", at: "2026-08-01" }] };
+    const html = renderDocList(dirty, "revisedDrawing", "Revised drawing", "contractor");
+    assert.ok(!html.includes("<img src=x onerror=alert(1)>.pdf"));
 });
