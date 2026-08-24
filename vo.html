@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VO-AI | Variation Order</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar"></aside>
+
+<main class="main">
+    <header class="topbar"></header>
+
+    <section class="welcome">
+        <div>
+            <h2 id="voTitle"></h2>
+            <p id="voStatus"></p>
+        </div>
+        <div class="page-actions" style="margin:0">
+            <button class="secondary-button" id="reportBtn">Generate VO report</button>
+            <button class="primary-button" id="submitBtn">Submit to consultant</button>
+        </div>
+    </section>
+
+    <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+            <div>
+                <h3>Measurement and rate cross-check</h3>
+                <p>Each rate is compared against the priced contract BQ</p>
+            </div>
+            <button class="secondary-button" id="addRowBtn">+ Add row</button>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>DESCRIPTION</th><th>CONTRACT BQ ITEM</th><th>UNIT</th>
+                        <th>QTY</th><th>RATE</th><th>CLAIMED</th>
+                        <th>ASSESSED QTY / RATE</th><th>RATE CHECK</th>
+                    </tr>
+                </thead>
+                <tbody id="measurementBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <section class="dashboard-grid" style="margin-bottom:20px">
+        <div class="card">
+            <div class="card-header"><div><h3>VO-AI assessment</h3>
+                <p>Derived from the contract BQ and the measurement above</p></div></div>
+            <div class="card-body" id="assessmentPanel"></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div><h3>Activity</h3><p>Who changed what</p></div></div>
+            <div class="card-body" id="historyPanel"></div>
+        </div>
+    </section>
+
+    <section class="dashboard-grid" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="card role-panel">
+            <div class="card-header"><div><h3>▲ Contractor</h3>
+                <p>Contractor QS columns</p></div></div>
+            <div class="card-body" id="contractorPanel"></div>
+        </div>
+        <div class="card role-panel">
+            <div class="card-header"><div><h3>✦ Consultant</h3>
+                <p>Consultant QS columns</p></div></div>
+            <div class="card-body" id="consultantPanel"></div>
+        </div>
+        <div class="card role-panel">
+            <div class="card-header"><div><h3>◉ Client</h3>
+                <p>Client columns</p></div></div>
+            <div class="card-body" id="clientPanel"></div>
+        </div>
+    </section>
+
+    <div class="disclaimer">
+        <strong>⚠ Professional Review Required</strong>
+        <span>
+            AI-generated results are decision-support outputs. Final variation assessment,
+            certification and approval must be reviewed by the appropriate construction professional.
+        </span>
+    </div>
+</main>
+
+<script src="js/calc.js"></script>
+<script src="js/clauses.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/permissions.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/page-vo.js"></script>
+
+</body>
+</html>
