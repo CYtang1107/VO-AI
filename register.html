@@ -26,6 +26,36 @@
     </div>
 
     <div class="card">
+        <div class="card-body register-filter-bar">
+            <label class="register-filter-search">
+                <span data-i18n="register.filter.search">Search</span>
+                <input type="text" id="registerSearch" data-i18n-placeholder="register.filter.searchPlaceholder"
+                       placeholder="Search VO number, description or instruction reference">
+            </label>
+            <label>
+                <span data-i18n="register.filter.evaluateStatus">Evaluate status</span>
+                <select id="registerEvalFilter">
+                    <option value="all" data-i18n="register.filter.all">All</option>
+                    <option value="Draft" data-i18n="status.Draft">Draft</option>
+                    <option value="Pending" data-i18n="status.Pending">Pending</option>
+                    <option value="Under Review" data-i18n="status.Under Review">Under Review</option>
+                    <option value="Approved" data-i18n="status.Approved">Approved</option>
+                    <option value="Rejected" data-i18n="status.Rejected">Rejected</option>
+                </select>
+            </label>
+            <label>
+                <span data-i18n="register.filter.certifiedStatus">Certified status</span>
+                <select id="registerCertFilter">
+                    <option value="all" data-i18n="register.filter.all">All</option>
+                    <option value="Pending" data-i18n="status.Pending">Pending</option>
+                    <option value="Approved" data-i18n="status.Approved">Approved</option>
+                    <option value="Rejected" data-i18n="status.Rejected">Rejected</option>
+                </select>
+            </label>
+            <button type="button" class="link-button" id="registerClearFilters" hidden
+                    data-i18n="register.filter.clear">Clear filters</button>
+            <span class="register-result-count" id="registerResultCount"></span>
+        </div>
         <div class="table-scroll register-scroll">
             <table>
                 <thead id="registerHead"></thead>
