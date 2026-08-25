@@ -1222,3 +1222,57 @@ td.owned-col { background: #fffdf2; }
     .report-sheet { border: none; padding: 0; }
     .report-totals { background: none; border: 1px solid #ccc; }
 }
+
+/* =========================
+   RESULT ROWS (AI Assessment panels: VO detail + AI Analysis)
+   A label/value pair sits on opposite sides of a row with a separating
+   rule, matching the rest of the app's key/value presentation.
+========================= */
+
+.result-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid #eef0f3;
+    font-size: 12px;
+}
+.result-row:last-child { border-bottom: none; }
+
+.result-label { color: #687386; }
+
+.result-value {
+    color: #172033;
+    font-weight: bold;
+    text-align: right;
+}
+
+/* A group of related result rows under a small heading, so a panel of
+   many rows reads as sections rather than one undifferentiated list. */
+.result-group { margin-bottom: 22px; }
+.result-group:last-child { margin-bottom: 0; }
+
+.result-group-title {
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #8992a3;
+    margin: 0 0 8px;
+}
+
+/* The one figure a QS looks for first: additional cost, called out. */
+.cost-highlight {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 15px;
+    margin: 6px 0;
+    background: #f5f8ff;
+    border: 1px solid #dbe6fb;
+    border-radius: 9px;
+}
+.cost-highlight .result-label { color: #2563eb; font-weight: bold; font-size: 11px; }
+.cost-highlight .result-value { color: #1d4ed8; font-size: 19px; }

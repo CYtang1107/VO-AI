@@ -59,7 +59,8 @@ function renderForm(project) {
         '<div class="field"><label>Revised rate, RM per unit</label>' +
         '<input type="number" id="vaRate" min="0" step="any"></div>' +
 
-        '<button type="button" class="primary-button" id="analyseBtn">Analyse</button>';
+        '<button type="button" class="primary-button" id="analyseBtn" ' +
+        'style="margin-top:4px">Analyse</button>';
 }
 
 function renderAssessmentEmpty() {
@@ -116,43 +117,55 @@ function renderClassificationBlock(a, basis) {
     const signalsHtml = basis.signals.length === 0 ? "" :
         basis.signals.map(s => '<div class="finding"><span>' + escapeHtml(s) + "</span></div>")
             .join("");
-    return '<div class="result-row"><span class="result-label">Classification</span>' +
+    return '<div class="result-group">' +
+        '<h4 class="result-group-title">Classification</h4>' +
+        '<div class="result-row"><span class="result-label">Classification</span>' +
         '<span class="result-value">' + escapeHtml(a.classification.label) + "</span></div>" +
         '<div class="result-row"><span class="result-label">Affected work</span>' +
         '<span class="result-value">' + escapeHtml(a.classification.affectedWork) + "</span></div>" +
-        '<h4 style="font-size:12px;margin:18px 0 10px">Basis for classification</h4>' +
+        '<p class="rate-detail" style="margin-top:10px"><strong>Basis for classification' +
+        "</strong></p>" +
         signalsHtml +
-        '<p class="rate-detail">' + escapeHtml(basis.summary) + "</p>";
+        '<p class="rate-detail">' + escapeHtml(basis.summary) + "</p>" +
+        "</div>";
 }
 
 function renderClauseBlock(a) {
     if (!a.clause) {
-        return '<p class="rate-detail">The change could not be classified from the ' +
+        return '<div class="result-group">' +
+               '<h4 class="result-group-title">Contractual basis</h4>' +
+               '<p class="rate-detail">The change could not be classified from the ' +
                "description, so no governing contract clause can be identified. Enter a " +
-               "clearer description and analyse again.</p>";
+               "clearer description and analyse again.</p></div>";
     }
-    return '<div class="result-row"><span class="result-label">Governing clause</span>' +
+    return '<div class="result-group">' +
+        '<h4 class="result-group-title">Contractual basis</h4>' +
+        '<div class="result-row"><span class="result-label">Governing clause</span>' +
         '<span class="result-value">' + escapeHtml(a.clause.form + " " + a.clause.ref) +
         "</span></div>" +
         '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
         escapeHtml(a.clause.entitlement) + "</p>" +
         '<p class="rate-detail"><strong>Evidence required:</strong> ' +
-        escapeHtml(a.clause.evidence) + "</p>";
+        escapeHtml(a.clause.evidence) + "</p></div>";
 }
 
+/* Cost impact: the additional cost is what a QS looks for first, so it
+   gets the .cost-highlight treatment; the rest are plain result rows. */
 function renderCostBlock(costs) {
-    let html = '<div class="result-row"><span class="result-label">Original cost</span>' +
+    let html = '<div class="result-group">' +
+        '<h4 class="result-group-title">Cost impact</h4>' +
+        '<div class="result-row"><span class="result-label">Original cost</span>' +
         '<span class="result-value">' + rm(costs.originalCost) + "</span></div>" +
         '<div class="result-row"><span class="result-label">Revised cost</span>' +
         '<span class="result-value">' + rm(costs.revisedCost) + "</span></div>" +
-        '<div class="result-row"><span class="result-label">Additional cost</span>' +
+        '<div class="cost-highlight"><span class="result-label">Additional cost</span>' +
         '<span class="result-value">' + rm(costs.additionalCost) + "</span></div>";
     if (costs.pct !== null) {
         html += '<div class="result-row"><span class="result-label">Change vs. original rate</span>' +
             '<span class="result-value">' + (costs.pct >= 0 ? "+" : "") + costs.pct.toFixed(1) +
             "%</span></div>";
     }
-    return html;
+    return html + "</div>";
 }
 
 function renderRateRows(a) {
@@ -172,21 +185,27 @@ function renderFindings(a) {
                               "</span></div>").join("");
 }
 
-/* The full right-column render. No confidence score, no invented number —
-   everything traces to `a` (from analyse()), `basis` (from
-   classificationBasis()) or `costs` (computed from the raw inputs). */
+/* The full right-column render, grouped into the four blocks a QS reads
+   in order: classification, contractual basis, cost impact, rate
+   cross-check. No confidence score, no invented number — everything
+   traces to `a` (from analyse()), `basis` (from classificationBasis())
+   or `costs` (computed from the raw inputs). */
 function renderAssessmentResult(a, basis, costs, showCreateButton) {
     return '' +
         renderClassificationBlock(a, basis) +
         renderClauseBlock(a) +
         renderCostBlock(costs) +
-        '<h4 style="font-size:12px;margin:18px 0 10px">Rate cross-check</h4>' +
+        '<div class="result-group">' +
+        '<h4 class="result-group-title">Rate cross-check</h4>' +
         renderRateRows(a) +
-        '<h4 style="font-size:12px;margin:18px 0 10px">Findings</h4>' +
+        "</div>" +
+        '<div class="result-group">' +
+        '<h4 class="result-group-title">Findings</h4>' +
         renderFindings(a) +
+        "</div>" +
         (showCreateButton
             ? '<button type="button" class="primary-button" id="createVoBtn" ' +
-              'style="margin-top:16px">Create this as a Variation Order</button>'
+              'style="margin-top:4px">Create this as a Variation Order</button>'
             : "");
 }
 
