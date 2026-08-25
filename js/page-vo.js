@@ -4,6 +4,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
     var { canEdit, lockReason } = require("./permissions.js");
     var { checkRate, analyse } = require("./analysis.js");
+    var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill } = require("./ui.js");
 }
 
@@ -209,6 +210,50 @@ function renderAssessmentPanel(vo, project, role) {
                                   "</span></div>").join(""));
 }
 
+/* -----------------------------------------------------------
+   Assistant panel — a structured helper, not a chat bubble. Suggested
+   questions are the primary interaction; typed input is matched against
+   the same fixed set of intents by keyword. See js/assistant.js: this
+   file only renders and wires up what that pure module returns.
+----------------------------------------------------------- */
+
+function renderAssistantSuggestions(context) {
+    const list = suggestions(context);
+    if (list.length === 0) {
+        return '<div class="empty-state">No assistant questions available for this variation yet.</div>';
+    }
+    return list.map(s =>
+        '<button type="button" class="assistant-suggestion-btn" data-question="' +
+        escapeHtml(s.id) + '">' + escapeHtml(s.label) + "</button>").join("");
+}
+
+function renderAssistantAnswer(result) {
+    if (!result) {
+        return '<div class="empty-state">Click a suggested question, or type your own, to get ' +
+            "an answer grounded in this variation's real data.</div>";
+    }
+    const lines = result.lines.map(l =>
+        '<div class="finding"><span>' + escapeHtml(l) + "</span></div>").join("");
+    return '<div class="' + (result.unmatched ? "assistant-unmatched" : "") + '">' +
+        '<p class="assistant-answer-title">' + escapeHtml(result.title) + "</p>" +
+        lines +
+    "</div>";
+}
+
+function renderAssistantPanel(context) {
+    return '' +
+        '<p class="assistant-note">Answers are computed from this project\'s stored data and ' +
+        "the bundled clause and element knowledge bases. This is not a general chat assistant " +
+        "— it can only answer the questions below.</p>" +
+        '<div class="assistant-suggestions" id="assistantSuggestions">' +
+        renderAssistantSuggestions(context) + "</div>" +
+        '<div class="assistant-ask-row">' +
+        '<input type="text" id="assistantInput" placeholder="Ask about this variation or the contract position...">' +
+        '<button type="button" class="secondary-button" id="assistantAskBtn">Ask</button>' +
+        "</div>" +
+        '<div id="assistantAnswer">' + renderAssistantAnswer(null) + "</div>";
+}
+
 function renderHistory(vo) {
     const h = vo.history || [];
     if (h.length === 0) return '<div class="empty-state">No activity recorded.</div>';
@@ -220,7 +265,10 @@ function renderHistory(vo) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { field, renderDocList, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel, renderHistory };
+    module.exports = {
+        field, renderDocList, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel,
+        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory
+    };
 }
 
 if (typeof document !== "undefined") {
@@ -289,6 +337,9 @@ if (typeof document !== "undefined") {
             document.getElementById("assessmentPanel").innerHTML =
                 renderAssessmentPanel(v, fresh, role);
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
+
+            document.getElementById("assistantPanel").innerHTML =
+                renderAssistantPanel({ vo: v, project: fresh, role: role, session: session });
 
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
@@ -404,6 +455,34 @@ if (typeof document !== "undefined") {
 
         document.getElementById("reportBtn").addEventListener("click", () => {
             location.href = "report.html?id=" + encodeURIComponent(voId);
+        });
+
+        /* Assistant: suggested-question clicks and typed input both route
+           through the same answer() call. Delegated on the panel element
+           itself (which persists across draw()'s innerHTML updates), so
+           it only needs wiring once. */
+        function askAssistant(question) {
+            const fresh = getProject(project.id);
+            const v = fresh.vos.find(x => x.id === voId);
+            const result = answer(question, { vo: v, project: fresh, role: role, session: session });
+            document.getElementById("assistantAnswer").innerHTML = renderAssistantAnswer(result);
+        }
+
+        document.getElementById("assistantPanel").addEventListener("click", e => {
+            const btn = e.target.closest(".assistant-suggestion-btn");
+            if (!btn) return;
+            askAssistant(btn.dataset.question);
+        });
+
+        document.getElementById("assistantPanel").addEventListener("click", e => {
+            if (e.target.id !== "assistantAskBtn") return;
+            const input = document.getElementById("assistantInput");
+            askAssistant(input.value);
+        });
+
+        document.getElementById("assistantPanel").addEventListener("keydown", e => {
+            if (e.target.id !== "assistantInput" || e.key !== "Enter") return;
+            askAssistant(e.target.value);
         });
 
         draw();

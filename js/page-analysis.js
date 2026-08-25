@@ -6,6 +6,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm } = require("./calc.js");
     var { analyse, classificationBasis } = require("./analysis.js");
+    var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml } = require("./ui.js");
 }
 
@@ -250,12 +251,58 @@ function renderAssessmentResult(a, basis, costs, showCreateButton) {
             : "");
 }
 
+/* -----------------------------------------------------------
+   Assistant panel — same rendering as js/page-vo.js's, duplicated here
+   rather than shared across a <script> boundary (this codebase's usual
+   pattern — see renderElementsBlock above). Grounded in the synthetic
+   VO built from the analysis form once Analyse has been run; before
+   that there is nothing real to answer questions about.
+----------------------------------------------------------- */
+
+function renderAssistantSuggestions(context) {
+    const list = suggestions(context);
+    if (list.length === 0) {
+        return '<div class="empty-state">Run an analysis above to ask the assistant about it.</div>';
+    }
+    return list.map(s =>
+        '<button type="button" class="assistant-suggestion-btn" data-question="' +
+        escapeHtml(s.id) + '">' + escapeHtml(s.label) + "</button>").join("");
+}
+
+function renderAssistantAnswer(result) {
+    if (!result) {
+        return '<div class="empty-state">Click a suggested question, or type your own, to get ' +
+            "an answer grounded in the analysis above.</div>";
+    }
+    const lines = result.lines.map(l =>
+        '<div class="finding"><span>' + escapeHtml(l) + "</span></div>").join("");
+    return '<div class="' + (result.unmatched ? "assistant-unmatched" : "") + '">' +
+        '<p class="assistant-answer-title">' + escapeHtml(result.title) + "</p>" +
+        lines +
+    "</div>";
+}
+
+function renderAssistantPanel(context) {
+    return '' +
+        '<p class="assistant-note">Answers are computed from this project\'s stored data and ' +
+        "the bundled clause and element knowledge bases. This is not a general chat assistant " +
+        "— it can only answer the questions below.</p>" +
+        '<div class="assistant-suggestions" id="assistantSuggestions">' +
+        renderAssistantSuggestions(context) + "</div>" +
+        '<div class="assistant-ask-row">' +
+        '<input type="text" id="assistantInput" placeholder="Ask about this variation or the contract position...">' +
+        '<button type="button" class="secondary-button" id="assistantAskBtn">Ask</button>' +
+        "</div>" +
+        '<div id="assistantAnswer">' + renderAssistantAnswer(null) + "</div>";
+}
+
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         bqOptions, renderOriginalItemField, renderForm, renderAssessmentEmpty,
         buildSyntheticVO, computeCosts,
         renderClassificationBlock, renderElementsBlock, renderClauseBlock, renderCostBlock,
-        renderRateRows, renderFindings, renderAssessmentResult
+        renderRateRows, renderFindings, renderAssessmentResult,
+        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel
     };
 }
 
@@ -271,6 +318,35 @@ if (typeof document !== "undefined") {
         document.getElementById("assessmentResult").innerHTML = renderAssessmentEmpty();
 
         let lastVO = null; /* the synthetic VO from the most recent analysis */
+
+        function assistantContext() {
+            return { vo: lastVO, project: project, role: session.role, session: session };
+        }
+
+        function drawAssistant() {
+            document.getElementById("assistantPanel").innerHTML = renderAssistantPanel(assistantContext());
+            document.getElementById("assistantAnswer").innerHTML = renderAssistantAnswer(null);
+        }
+
+        function askAssistant(question) {
+            const result = answer(question, assistantContext());
+            document.getElementById("assistantAnswer").innerHTML = renderAssistantAnswer(result);
+        }
+
+        document.getElementById("assistantPanel").addEventListener("click", e => {
+            const suggestBtn = e.target.closest(".assistant-suggestion-btn");
+            if (suggestBtn) { askAssistant(suggestBtn.dataset.question); return; }
+            if (e.target.id === "assistantAskBtn") {
+                askAssistant(document.getElementById("assistantInput").value);
+            }
+        });
+
+        document.getElementById("assistantPanel").addEventListener("keydown", e => {
+            if (e.target.id !== "assistantInput" || e.key !== "Enter") return;
+            askAssistant(e.target.value);
+        });
+
+        drawAssistant();
 
         function runAnalysis() {
             const bqSelect = document.getElementById("vaOriginalItem");
@@ -311,6 +387,7 @@ if (typeof document !== "undefined") {
             const costs = computeCosts(bqItem, qty, revisedRate);
 
             lastVO = vo;
+            drawAssistant();
 
             document.getElementById("assessmentResult").innerHTML =
                 renderAssessmentResult(a, basis, costs, session.role === "contractor");

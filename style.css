@@ -1361,3 +1361,62 @@ td.owned-col { background: #fffdf2; }
     .report-sheet tr { break-inside: avoid; }
 }
 .element-check input[type="checkbox"] { margin-top: 3px; }
+
+/* =========================
+   ASSISTANT — a structured helper, not a chat bubble. Clickable
+   suggested questions are the primary interaction; typed input is a
+   secondary path into the SAME fixed set of intents. Deliberately reuses
+   .card / .finding / .result-row so it reads as one more panel in the
+   app, never as a floating AI agent.
+========================= */
+
+.assistant-note {
+    font-size: 10px;
+    color: #8992a3;
+    margin: 0 0 14px;
+    line-height: 1.5;
+}
+
+.assistant-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.assistant-suggestion-btn {
+    padding: 8px 13px;
+    border: 1px solid #dce1e8;
+    background: #f8fafc;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 10.5px;
+    font-family: inherit;
+    color: #172033;
+    text-align: left;
+}
+.assistant-suggestion-btn:hover { border-color: #2563eb; color: #2563eb; background: #f5f8ff; }
+
+.assistant-ask-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.assistant-ask-row input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #dce1e8;
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: inherit;
+}
+
+.assistant-answer-title {
+    font-size: 11px;
+    font-weight: bold;
+    margin: 0 0 10px;
+    color: #172033;
+}
+
+.assistant-unmatched .assistant-answer-title { color: #b91c1c; }
+.assistant-unmatched .finding::before { color: #b91c1c; }
