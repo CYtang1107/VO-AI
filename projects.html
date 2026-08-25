@@ -86,7 +86,7 @@
                 <div>
                     <div class="field">
                         <label for="pBq">Priced Bills of Quantities</label>
-                        <textarea id="pBq" style="min-height:260px" placeholder="Paste from Excel — four columns: code, description, unit, rate
+                        <textarea id="pBq" style="min-height:180px" placeholder="Paste from Excel — four columns: code, description, unit, rate
 
 B/4.1&#9;Ceramic floor tiles 600x600mm&#9;m2&#9;85
 B/4.2&#9;Skirting to match floor finish&#9;m&#9;22"></textarea>
@@ -95,6 +95,17 @@ B/4.2&#9;Skirting to match floor finish&#9;m&#9;22"></textarea>
                             measurement against.
                         </span>
                     </div>
+                    <div class="field">
+                        <label for="pBqFile">Or upload a priced BQ file (.csv or .xlsx)</label>
+                        <input type="file" id="pBqFile" accept=".csv,.xlsx">
+                        <span class="hint">
+                            Unlike the documents below, this file's contents are actually
+                            read: columns are matched to Code / Description / Unit / Rate
+                            automatically, and you confirm the result before anything is
+                            imported.
+                        </span>
+                    </div>
+                    <div id="bqPreview" class="bq-preview" hidden></div>
                     <button class="primary-button" id="createBtn" style="width:100%">
                         Create project
                     </button>
@@ -120,6 +131,7 @@ B/4.2&#9;Skirting to match floor finish&#9;m&#9;22"></textarea>
 <script src="js/store.js"></script>
 <script src="js/ui.js"></script>
 <script>mountChrome("projects", "Projects", "VO-AI / Projects", { projectOptional: true });</script>
+<script src="js/bqimport.js"></script>
 <script src="js/page-projects.js"></script>
 
 </body>

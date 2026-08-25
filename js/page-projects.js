@@ -127,6 +127,113 @@ if (typeof document !== "undefined") {
 
         const isConsultant = session.role === "consultant";
 
+        /* State for an uploaded BQ file awaiting confirmation. Nothing
+           from it enters the project until `confirmed` is true — see
+           renderBqPreview() and the "Confirm" button it wires up. */
+        let bqFileState = null;
+
+        /* First non-empty sample value in a column, for the mapping
+           dropdown labels — read-only display, always escaped. */
+        function bqColumnSample(rows, col) {
+            for (let i = 0; i < rows.length; i++) {
+                const v = rows[i][col];
+                if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+            }
+            return "";
+        }
+
+        /* Renders (or clears) the BQ import confirmation panel from
+           `bqFileState`, re-deriving items/skipped from the CURRENT
+           mapping every time — including after the user corrects a
+           column dropdown, so the preview always reflects reality. */
+        function renderBqPreview() {
+            const host = document.getElementById("bqPreview");
+            if (!bqFileState) { host.hidden = true; host.innerHTML = ""; return; }
+
+            const result = extractItems(bqFileState.rows, bqFileState.mapping);
+            bqFileState.items = result.items;
+            bqFileState.skipped = result.skipped;
+
+            const maxCols = bqFileState.rows.reduce((m, r) => Math.max(m, r.length), 0);
+
+            function roleField(role, label) {
+                let opts = '<option value="">— none —</option>';
+                for (let c = 0; c < maxCols; c++) {
+                    const sample = bqColumnSample(bqFileState.rows, c);
+                    const selected = bqFileState.mapping[role] === c ? " selected" : "";
+                    opts += '<option value="' + c + '"' + selected + '>Column ' + (c + 1) +
+                        (sample ? " (" + escapeHtml(sample.slice(0, 24)) + ")" : "") + "</option>";
+                }
+                return '<div class="field"><label>' + escapeHtml(label) + '</label>' +
+                    '<select class="bq-map-select" data-role="' + role + '">' + opts + "</select></div>";
+            }
+
+            const skipCounts = {};
+            bqFileState.skipped.forEach(s => { skipCounts[s.reason] = (skipCounts[s.reason] || 0) + 1; });
+            const skipReasonKeys = Object.keys(skipCounts);
+            const skipSummary = skipReasonKeys.length === 0
+                ? "No rows skipped."
+                : skipReasonKeys.map(reason => skipCounts[reason] + " row(s): " + escapeHtml(reason)).join("; ");
+
+            const previewRows = bqFileState.items.slice(0, 8).map(it =>
+                "<tr><td>" + escapeHtml(it.code || "—") + "</td><td>" + escapeHtml(it.description) +
+                "</td><td>" + escapeHtml(it.unit || "—") + "</td><td>" + rm(it.rate) + "</td></tr>"
+            ).join("");
+
+            host.hidden = false;
+            host.innerHTML =
+                '<div class="bq-preview-header">' +
+                    "Detected columns for <strong>" + escapeHtml(bqFileState.fileName) + "</strong> — confidence " +
+                    '<span class="bq-confidence ' + (bqFileState.confidence === "high" ? "ok" : "warn") + '">' +
+                    escapeHtml(bqFileState.confidence) + "</span>" +
+                    (bqFileState.confirmed ? '<span class="bq-confidence ok">confirmed</span>' : "") +
+                "</div>" +
+                '<ul class="bq-reasons">' +
+                    bqFileState.reasons.map(r => "<li>" + escapeHtml(r) + "</li>").join("") +
+                "</ul>" +
+                '<div class="bq-map-grid">' +
+                    roleField("code", "Code column") +
+                    roleField("description", "Description column") +
+                    roleField("unit", "Unit column") +
+                    roleField("rate", "Rate column") +
+                "</div>" +
+                '<p class="hint">' + bqFileState.items.length + " item(s) will be imported. " + skipSummary + "</p>" +
+                '<div class="bq-preview-table-wrap"><table class="bq-preview-table">' +
+                    "<thead><tr><th>Code</th><th>Description</th><th>Unit</th><th>Rate</th></tr></thead>" +
+                    "<tbody>" + (previewRows || '<tr><td colspan="4">No items detected with this mapping.</td></tr>') +
+                    "</tbody></table></div>" +
+                (bqFileState.items.length > 8
+                    ? '<p class="hint">Showing the first 8 of ' + bqFileState.items.length + " item(s).</p>" : "") +
+                '<div class="bq-preview-actions">' +
+                    '<button type="button" class="primary-button" id="bqConfirmBtn"' +
+                        (bqFileState.items.length === 0 ? " disabled" : "") + ">" +
+                        "Confirm and use these " + bqFileState.items.length + " item(s)</button>" +
+                    '<button type="button" class="secondary-button" id="bqCancelBtn">Cancel import</button>' +
+                "</div>";
+
+            host.querySelectorAll(".bq-map-select").forEach(sel => {
+                sel.addEventListener("change", () => {
+                    const role = sel.dataset.role;
+                    const val = sel.value === "" ? null : Number(sel.value);
+                    bqFileState.mapping = Object.assign({}, bqFileState.mapping, { [role]: val });
+                    bqFileState.confirmed = false;
+                    renderBqPreview();
+                });
+            });
+
+            document.getElementById("bqConfirmBtn").addEventListener("click", () => {
+                bqFileState.confirmed = true;
+                toast("BQ file confirmed — " + bqFileState.items.length + " item(s) ready to import.");
+                renderBqPreview();
+            });
+
+            document.getElementById("bqCancelBtn").addEventListener("click", () => {
+                bqFileState = null;
+                document.getElementById("pBqFile").value = "";
+                renderBqPreview();
+            });
+        }
+
         function refresh() {
             const db = loadDB();
             const list = document.getElementById("projectList");
@@ -184,6 +291,11 @@ if (typeof document !== "undefined") {
                 const name = document.getElementById("pName").value.trim();
                 if (!name) { toast("Give the project a name.", "warn"); return; }
 
+                if (bqFileState && !bqFileState.confirmed) {
+                    toast("Confirm the uploaded BQ file's column mapping first, or cancel the import.", "warn");
+                    return;
+                }
+
                 const project = createProject({
                     name: name,
                     client: document.getElementById("pClient").value.trim(),
@@ -192,9 +304,11 @@ if (typeof document !== "undefined") {
                 }, session);
 
                 const bqRows = parseBqPaste(document.getElementById("pBq").value);
-                if (bqRows.length > 0) {
+                const fileItems = (bqFileState && bqFileState.confirmed) ? bqFileState.items : [];
+                const allBqRows = bqRows.concat(fileItems);
+                if (allBqRows.length > 0) {
                     updateProject(project.id, p => {
-                        bqRows.forEach(r => p.bq.push(Object.assign({ id: uid("BQ") }, r)));
+                        allBqRows.forEach(r => p.bq.push(Object.assign({ id: uid("BQ") }, r)));
                     });
                 }
 
@@ -209,10 +323,81 @@ if (typeof document !== "undefined") {
                     });
                 }
 
-                toast("Project created with " + bqRows.length + " BQ item(s).");
+                if (bqFileState && bqFileState.confirmed) {
+                    updateProject(project.id, p => {
+                        p.documents.push({
+                            id: uid("DOC"), name: bqFileState.fileName, size: bqFileState.fileSize,
+                            category: "bq", uploadedBy: session.name,
+                            role: session.role, at: new Date().toISOString()
+                        });
+                    });
+                }
+
+                toast("Project created with " + allBqRows.length + " BQ item(s).");
                 ["pName", "pClient", "pContractNo", "pSum", "pBq", "pContractFile"]
                     .forEach(id => { document.getElementById(id).value = ""; });
+                document.getElementById("pBqFile").value = "";
+                bqFileState = null;
+                renderBqPreview();
                 refresh();
+            });
+
+            /* BQ file upload — reads the file's actual contents (unlike
+               the metadata-only document fields), detects columns, and
+               ALWAYS routes through the confirmation panel above; it
+               never enters the project on its own. */
+            const bqFileInput = document.getElementById("pBqFile");
+            bqFileInput.addEventListener("change", () => {
+                const file = (bqFileInput.files || [])[0];
+                if (!file) return;
+                const lower = file.name.toLowerCase();
+
+                function useRows(rows) {
+                    const detection = detectColumns(rows);
+                    bqFileState = {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        rows: rows,
+                        mapping: {
+                            code: detection.code, description: detection.description,
+                            unit: detection.unit, rate: detection.rate
+                        },
+                        confidence: detection.confidence,
+                        reasons: detection.reasons,
+                        confirmed: false,
+                        items: [],
+                        skipped: []
+                    };
+                    renderBqPreview();
+                }
+
+                if (lower.endsWith(".csv")) {
+                    const reader = new FileReader();
+                    reader.onload = () => { useRows(parseCsv(String(reader.result || ""))); };
+                    reader.onerror = () => {
+                        toast("Could not read that file.", "error");
+                        bqFileInput.value = "";
+                    };
+                    reader.readAsText(file);
+                } else if (lower.endsWith(".xlsx")) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        parseXlsx(reader.result).then(useRows).catch(err => {
+                            toast("Could not read that .xlsx file — " + err.message, "error");
+                            bqFileState = null;
+                            bqFileInput.value = "";
+                            renderBqPreview();
+                        });
+                    };
+                    reader.onerror = () => {
+                        toast("Could not read that file.", "error");
+                        bqFileInput.value = "";
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    toast("Only .csv and .xlsx files are supported for the BQ upload.", "error");
+                    bqFileInput.value = "";
+                }
             });
         }
 
