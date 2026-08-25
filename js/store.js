@@ -64,6 +64,8 @@ function newVO(seq) {
         timeImpact: 0,
         evaluateStatus: "Draft",
         consultantRemark: "",
+        infoRequestedAt: null,
+        infoRequestNote: "",
 
         /* client's columns */
         certifiedStatus: "Pending",
@@ -248,6 +250,8 @@ function seedDB() {
                     timeImpact: 7,
                     evaluateStatus: "Approved",
                     consultantRemark: "Recommend approval at the assessed value.",
+                    infoRequestedAt: null,
+                    infoRequestNote: "",
                     certifiedStatus: "Approved",
                     finalPrice: 55856,
                     clientRemark: "Certified for payment in interim certificate no. 8.",
@@ -262,31 +266,37 @@ function seedDB() {
                     id: "VO-SEED-2",
                     no: "VO-002",
                     description: "Additional external drainage works to rear boundary",
-                    dateIssued: "2026-08-03",
+                    /* Issued well over EVALUATION_DAYS/INFO_REQUEST_DAYS ago and still
+                       Pending — this VO exists in the seed data specifically to
+                       demonstrate an overdue evaluation clock (and an overdue
+                       information-request clock) on the deadlines panel. */
+                    dateIssued: "2026-07-15",
                     typeOfInstruction: "Engineer's instruction (EI)",
                     instructionNo: "EI-008",
-                    revisedDrawing: [{ id: "F5", name: "C-104 Rev A - External Drainage.pdf", size: 990000, uploadedBy: "Ong Wei Han", at: "2026-08-03" }],
+                    revisedDrawing: [{ id: "F5", name: "C-104 Rev A - External Drainage.pdf", size: 990000, uploadedBy: "Ong Wei Han", at: "2026-07-15" }],
                     oldDrawing: [],
-                    supportingDocs: [{ id: "F6", name: "Site instruction EI-008.pdf", size: 260000, uploadedBy: "Ong Wei Han", at: "2026-08-03" }],
+                    supportingDocs: [{ id: "F6", name: "Site instruction EI-008.pdf", size: 260000, uploadedBy: "Ong Wei Han", at: "2026-07-15" }],
                     measurement: [
                         { id: "M4", bqItemId: "BQ5", description: "100mm dia uPVC drainage pipe laid in trench to rear boundary",
                           unit: "m", qty: 142, rate: 62, assessedQty: "", assessedRate: "" },
                         { id: "M5", bqItemId: null, description: "Precast concrete sump 600x600mm with cover",
                           unit: "no", qty: 4, rate: 1250, assessedQty: "", assessedRate: "" }
                     ],
-                    contractorRemark: "Works instructed on site by the C&S engineer on 03/08/2026.",
+                    contractorRemark: "Works instructed on site by the C&S engineer on 15/07/2026.",
                     submitted: true,
                     dueDate: "2026-08-31",
                     assessmentNote: "",
                     timeImpact: 0,
                     evaluateStatus: "Pending",
                     consultantRemark: "",
+                    infoRequestedAt: null,
+                    infoRequestNote: "",
                     certifiedStatus: "Pending",
                     finalPrice: null,
                     clientRemark: "",
                     history: [
-                        { at: "2026-08-03T08:30:00Z", by: "Ong Wei Han", role: "contractor", action: "VO created" },
-                        { at: "2026-08-04T14:02:00Z", by: "Ong Wei Han", role: "contractor", action: "Submitted to consultant" }
+                        { at: "2026-07-15T08:30:00Z", by: "Ong Wei Han", role: "contractor", action: "VO created" },
+                        { at: "2026-07-16T14:02:00Z", by: "Ong Wei Han", role: "contractor", action: "Submitted to consultant" }
                     ]
                 },
                 {
@@ -308,6 +318,8 @@ function seedDB() {
                     timeImpact: 0,
                     evaluateStatus: "Draft",
                     consultantRemark: "",
+                    infoRequestedAt: null,
+                    infoRequestNote: "",
                     certifiedStatus: "Pending",
                     finalPrice: null,
                     clientRemark: "",

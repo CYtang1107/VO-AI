@@ -30,6 +30,8 @@ var FIELD_OWNER = {
     timeImpact: "consultant",
     evaluateStatus: "consultant",
     consultantRemark: "consultant",
+    infoRequestedAt: "consultant",
+    infoRequestNote: "consultant",
 
     /* client's columns */
     certifiedStatus: "client",

@@ -1,8 +1,23 @@
 /* VO-AI | page-dashboard.js — Stage 4 landing screen, per role. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { rm, prettyDate, voValue, projectStats } = require("./calc.js");
+    var { rm, prettyDate, voValue, projectStats, today } = require("./calc.js");
     var { statusPill, escapeHtml } = require("./ui.js");
+    var { deadlineSummary } = require("./deadlines.js");
+}
+
+/* A one-line "where do my contractual deadlines stand" summary for the
+   signed-in role, e.g. "2 VOs awaiting evaluation, 1 overdue." Built
+   from deadlineSummary() — the client owns none of the three clocks,
+   so its summary text is intentionally the empty string. */
+function deadlinePositionText(project, role, todayIso) {
+    const summary = deadlineSummary(project, role, todayIso);
+    const outstanding = summary.items.filter(i => !i.satisfied && i.state !== "not-started");
+    if (outstanding.length === 0) return "";
+    const bits = [outstanding.length + " deadline(s) outstanding"];
+    if (summary.overdue > 0) bits.push(summary.overdue + " overdue");
+    if (summary.dueSoon > 0) bits.push(summary.dueSoon + " due within 7 days");
+    return bits.join(", ") + ".";
 }
 
 /* What does this role have to do next? */
@@ -74,7 +89,7 @@ function renderRecentRows(vos) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { actionItems, renderStatCards, renderRecentRows };
+    module.exports = { actionItems, renderStatCards, renderRecentRows, deadlinePositionText };
 }
 
 /* ---------- browser wiring ---------- */
@@ -100,6 +115,15 @@ if (typeof document !== "undefined") {
 
         document.getElementById("statCards").innerHTML = renderStatCards(stats, session.role);
         document.getElementById("recentBody").innerHTML = renderRecentRows(project.vos);
+
+        const deadlineText = deadlinePositionText(project, session.role, today());
+        const deadlineEl = document.getElementById("deadlineSummary");
+        if (deadlineText) {
+            deadlineEl.textContent = deadlineText;
+            deadlineEl.style.display = "";
+        } else {
+            deadlineEl.style.display = "none";
+        }
 
         document.querySelectorAll(".vo-row").forEach(row => {
             row.addEventListener("click", () => {

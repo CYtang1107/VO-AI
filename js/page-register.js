@@ -1,10 +1,25 @@
 /* VO-AI | page-register.js — the VO register, in the template's column order. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { rm, prettyDate, contractorTotal, assessedTotal, voValue } = require("./calc.js");
+    var { rm, prettyDate, contractorTotal, assessedTotal, voValue, today } = require("./calc.js");
     var { statusPill, escapeHtml } = require("./ui.js");
     var { FIELD_OWNER } = require("./permissions.js");
     var { rateSummary } = require("./analysis.js");
+    var { deadlinesFor } = require("./deadlines.js");
+}
+
+/* The VO DUE DATE column: if the consultant has entered a due date by
+   hand, show that (marked manual). Otherwise fall back to the computed
+   evaluation deadline from js/deadlines.js, with its state. */
+function dueDateCell(vo, todayIso) {
+    if (vo.dueDate) {
+        return prettyDate(vo.dueDate) + ' <span class="rate-flag manual-due">manual</span>';
+    }
+    const evalClock = deadlinesFor(vo, todayIso)[0]; /* "evaluation" is always item 0 */
+    if (!evalClock.dueDate) return "—";
+    return prettyDate(evalClock.dueDate) +
+        ' <span class="rate-flag deadline-' + evalClock.state + '">' +
+        escapeHtml(evalClock.state) + "</span>";
 }
 
 function rateFlags(vo, project) {
@@ -20,7 +35,7 @@ const COLUMNS = [
     { field: "no",                label: "VO NO.",           render: v => "<strong>" + escapeHtml(v.no) + "</strong>" },
     { field: "description",       label: "DESCRIPTION",      render: v => escapeHtml(v.description || "—") },
     { field: "dateIssued",        label: "DATE ISSUED",      render: v => prettyDate(v.dateIssued) },
-    { field: "dueDate",           label: "VO DUE DATE",      render: v => prettyDate(v.dueDate) },
+    { field: "dueDate",           label: "VO DUE DATE",      render: v => dueDateCell(v, today()) },
     { field: "typeOfInstruction", label: "TYPE",             render: v => escapeHtml(v.typeOfInstruction || "—") },
     { field: "measurement",       label: "CONTRACTOR'S MEASUREMENT", render: v => rm(contractorTotal(v)) },
     { field: "assessment",        label: "CONSULTANT'S ASSESSMENT",  render: v => rm(assessedTotal(v)) },
@@ -61,7 +76,7 @@ function renderRegisterBody(project, role) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { COLUMNS, columnsForRole, renderRegisterHead, renderRegisterBody };
+    module.exports = { COLUMNS, columnsForRole, renderRegisterHead, renderRegisterBody, dueDateCell };
 }
 
 if (typeof document !== "undefined") {

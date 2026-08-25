@@ -1420,3 +1420,75 @@ td.owned-col { background: #fffdf2; }
 
 .assistant-unmatched .assistant-answer-title { color: #b91c1c; }
 .assistant-unmatched .finding::before { color: #b91c1c; }
+
+/* =========================
+   CONTRACTUAL DEADLINES
+========================= */
+
+.deadline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.deadline-item {
+    border: 1px solid #dce1e8;
+    border-left-width: 4px;
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: #f8fafc;
+}
+
+.deadline-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.deadline-label { font-size: 12px; font-weight: bold; color: #172033; }
+
+.deadline-flag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.deadline-detail { font-size: 10.5px; color: #687386; margin-top: 4px; }
+.deadline-note { font-size: 10.5px; color: #687386; margin-top: 4px; font-style: italic; }
+
+.deadline-overdue    { border-left-color: #b91c1c; }
+.deadline-overdue .deadline-flag    { background: #fdeaea; color: #b91c1c; }
+
+.deadline-due-soon    { border-left-color: #b45309; }
+.deadline-due-soon .deadline-flag    { background: #fff7e6; color: #b45309; }
+
+.deadline-open        { border-left-color: #2563eb; }
+.deadline-open .deadline-flag        { background: #eaf1ff; color: #2563eb; }
+
+.deadline-satisfied   { border-left-color: #15803d; }
+.deadline-satisfied .deadline-flag   { background: #e7f8ef; color: #15803d; }
+
+.deadline-not-started { border-left-color: #8992a3; }
+.deadline-not-started .deadline-flag { background: #eef1f5; color: #687386; }
+
+/* Register's VO DUE DATE column reuses .rate-flag's pill shape for the
+   "manual" tag and the computed deadline's state tag. */
+.rate-flag.manual-due            { background: #eef1f5; color: #687386; }
+.rate-flag.deadline-overdue      { background: #fdeaea; color: #b91c1c; }
+.rate-flag.deadline-due-soon     { background: #fff7e6; color: #b45309; }
+.rate-flag.deadline-open         { background: #eaf1ff; color: #2563eb; }
+.rate-flag.deadline-satisfied    { background: #e7f8ef; color: #15803d; }
+.rate-flag.deadline-not-started  { background: #eef1f5; color: #687386; }
+
+.deadline-summary {
+    font-size: 11px;
+    color: #b45309;
+    background: #fff7e6;
+    border-radius: 8px;
+    padding: 9px 12px;
+    margin: 0 0 12px;
+}

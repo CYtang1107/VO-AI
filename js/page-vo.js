@@ -6,6 +6,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { checkRate, analyse } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill } = require("./ui.js");
+    var { deadlinesFor, INFO_RESPONSE_DAYS } = require("./deadlines.js");
 }
 
 /* One labelled control. Editable => .owned (yellow). Locked => .locked + reason. */
@@ -254,6 +255,76 @@ function renderAssistantPanel(context) {
         '<div id="assistantAnswer">' + renderAssistantAnswer(null) + "</div>";
 }
 
+/* -----------------------------------------------------------
+   Contractual time bars — three clocks computed by js/deadlines.js.
+   Shown to every role (everyone can see the position); the "record a
+   request" control below is consultant-only and drives the second and
+   third clocks.
+----------------------------------------------------------- */
+
+const DEADLINE_STATE_LABEL = {
+    "overdue": "Overdue",
+    "due-soon": "Due soon",
+    "open": "Open",
+    "satisfied": "Satisfied",
+    "not-started": "Not started"
+};
+
+/* Not named ROLE_LABEL — permissions.js already declares that name with
+   `const` at (effectively) global scope, and a same-named `var` guard
+   here would be hoisted at parse time and collide. */
+const DEADLINE_OWNER_LABEL = {
+    contractor: "Contractor QS",
+    consultant: "Consultant QS",
+    client: "Client / Developer"
+};
+
+function renderDeadlinesPanel(vo, todayIso) {
+    const items = deadlinesFor(vo, todayIso);
+    return '<div class="deadline-list">' + items.map(d => {
+        const daysText = d.daysRemaining === null ? ""
+            : d.daysRemaining < 0
+                ? Math.abs(d.daysRemaining) + " day(s) overdue"
+                : d.daysRemaining + " day(s) remaining";
+        return '<div class="deadline-item deadline-' + d.state + '">' +
+            '<div class="deadline-head">' +
+                '<span class="deadline-label">' + escapeHtml(d.label) + "</span>" +
+                '<span class="deadline-flag">' + escapeHtml(DEADLINE_STATE_LABEL[d.state] || d.state) + "</span>" +
+            "</div>" +
+            '<div class="deadline-detail">' +
+                "Owner: " + escapeHtml(DEADLINE_OWNER_LABEL[d.owner] || d.owner) +
+                (d.dueDate ? " · Due " + escapeHtml(prettyDate(d.dueDate)) : "") +
+                (daysText ? " · " + escapeHtml(daysText) : "") +
+            "</div>" +
+            (d.note ? '<div class="deadline-note">' + escapeHtml(d.note) + "</div>" : "") +
+        "</div>";
+    }).join("") + "</div>";
+}
+
+/* The consultant-only control that starts the contractor's response
+   clock. A dedicated button rather than a raw date field — the date is
+   always "today", never backdated or postdated by hand. */
+function renderInfoRequestControl(vo, role) {
+    if (vo.infoRequestedAt) {
+        return '<div class="field locked"><label>Request for further information</label>' +
+            '<span class="hint">Requested ' + escapeHtml(prettyDate(vo.infoRequestedAt)) + "." +
+            (vo.infoRequestNote ? " " + escapeHtml(vo.infoRequestNote) : "") + "</span></div>";
+    }
+
+    const editable = canEdit("infoRequestedAt", vo, role);
+    if (!editable) {
+        return '<div class="field locked"><label>Request for further information</label>' +
+            '<span class="lock-note">🔒 ' + escapeHtml(lockReason("infoRequestedAt", vo, role)) + "</span></div>";
+    }
+
+    return '<div class="field owned"><label>Request for further information</label>' +
+        '<input type="text" id="infoRequestNoteInput" placeholder="What information is requested? (optional note)">' +
+        '<button type="button" class="secondary-button" id="recordInfoRequestBtn">' +
+        "Record request for further information</button>" +
+        '<span class="hint">Sets today\'s date and starts the contractor\'s ' +
+        INFO_RESPONSE_DAYS + "-day response clock.</span></div>";
+}
+
 function renderHistory(vo) {
     const h = vo.history || [];
     if (h.length === 0) return '<div class="empty-state">No activity recorded.</div>';
@@ -267,7 +338,8 @@ function renderHistory(vo) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         field, renderDocList, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel,
-        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory
+        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory,
+        renderDeadlinesPanel, renderInfoRequestControl
     };
 }
 
@@ -320,7 +392,11 @@ if (typeof document !== "undefined") {
                         options: ["Pending", "Under Review", "Approved", "Rejected"],
                         value: v.evaluateStatus, vo: v, role: role }) +
                 field({ field: "consultantRemark", label: "Consultant's remark",
-                        type: "textarea", value: v.consultantRemark, vo: v, role: role });
+                        type: "textarea", value: v.consultantRemark, vo: v, role: role }) +
+                renderInfoRequestControl(v, role);
+
+            document.getElementById("deadlinesPanel").innerHTML =
+                renderDeadlinesPanel(v, today());
 
             document.getElementById("clientPanel").innerHTML =
                 field({ field: "certifiedStatus", label: "Certified status", type: "select",
@@ -440,6 +516,20 @@ if (typeof document !== "undefined") {
                 v.measurement.push({ id: uid("M"), bqItemId: null, description: "",
                     unit: "", qty: 0, rate: 0, assessedQty: "", assessedRate: "" });
             });
+            draw();
+        });
+
+        document.getElementById("consultantPanel").addEventListener("click", e => {
+            if (e.target.id !== "recordInfoRequestBtn") return;
+            const noteInput = document.getElementById("infoRequestNoteInput");
+            const note = noteInput ? noteInput.value : "";
+            updateVO(project.id, voId, v => {
+                v.infoRequestedAt = today();
+                v.infoRequestNote = note;
+                logHistory(v, session, "Requested further information" +
+                    (note ? ": " + note : ""));
+            });
+            toast("Information request recorded.");
             draw();
         });
 
