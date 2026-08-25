@@ -6,7 +6,6 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 
 const NAV = [
     { id: "dashboard", href: "dashboard.html", icon: "⌂", label: "Dashboard" },
-    { id: "projects",  href: "projects.html",  icon: "▣", label: "Projects" },
     { id: "register",  href: "register.html",  icon: "▤", label: "VO Register" },
     { id: "report",    href: "report.html",    icon: "▧", label: "VO Reports" }
 ];
@@ -43,20 +42,35 @@ function renderSidebar(active, session, project) {
     const role = ROLES[session.role] || ROLES.contractor;
 
     /* Stage 1 sign-in -> Stage 2/3 choose a project -> Stage 4 work the register.
-       Until a project is chosen, only "Projects" makes sense; the rest are dead ends. */
-    const visibleNav = project ? NAV : NAV.filter(n => n.id === "projects");
-
-    const items = visibleNav.map(n =>
-        '<a href="' + n.href + '" class="nav-item' +
-        (n.id === active ? " active" : "") + '">' +
-        "<span>" + n.icon + "</span>" + n.label + "</a>"
-    ).join("");
-
-    /* template.xlsx: "Each sheet need to mention what project at the above" */
-    const projectBox = project
-        ? '<div class="project-chip"><small>CURRENT PROJECT</small><strong>' +
-          escapeHtml(project.name) + "</strong></div>"
+       Until a project is chosen, the working pages are dead ends; the project chip
+       itself (see projectBox below) is the only place to go, and it is on projects.html. */
+    const items = project
+        ? NAV.map(n =>
+            '<a href="' + n.href + '" class="nav-item' +
+            (n.id === active ? " active" : "") + '">' +
+            "<span>" + n.icon + "</span>" + n.label + "</a>"
+          ).join("")
         : "";
+
+    /* template.xlsx: "Each sheet need to mention what project at the above".
+       The chip is now also the project switcher (mirrors Bentley Infrastructure Cloud):
+       click it to see client / contract context and jump to projects.html. */
+    const projectBox = project
+        ? '<div class="project-chip-wrap">' +
+              '<button type="button" class="project-chip clickable" id="projectChipBtn">' +
+                  '<small>CURRENT PROJECT</small>' +
+                  '<strong>' + escapeHtml(project.name) + ' <span class="chip-caret">&#9662;</span></strong>' +
+              '</button>' +
+              '<div class="project-chip-menu" id="projectChipMenu" hidden>' +
+                  '<div class="project-chip-menu-info">' +
+                      '<strong>' + escapeHtml(project.name) + '</strong>' +
+                      '<span>' + escapeHtml(project.client || '—') + '</span>' +
+                      '<span>Contract ' + escapeHtml(project.contractNo || '—') + '</span>' +
+                  '</div>' +
+                  '<a href="projects.html" class="project-chip-menu-action" id="switchProjectBtn">Switch project</a>' +
+              '</div>' +
+          '</div>'
+        : '<div class="project-chip-empty">Select a project to begin</div>';
 
     return '' +
         '<div class="logo">' +
@@ -141,6 +155,17 @@ function mountChrome(active, title, crumb, opts) {
         clearSession();
         window.location.href = "index.html";
     });
+
+    const chipBtn = document.getElementById("projectChipBtn");
+    const chipMenu = document.getElementById("projectChipMenu");
+    if (chipBtn && chipMenu) {
+        chipBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            chipMenu.hidden = !chipMenu.hidden;
+        });
+        document.addEventListener("click", () => { chipMenu.hidden = true; });
+    }
+
     return ctx;
 }
 

@@ -1001,6 +1001,62 @@ input.owned, select.owned, textarea.owned {
 .project-chip small { display: block; font-size: 8px; color: #6b7280; letter-spacing: .08em; }
 .project-chip strong { display: block; font-size: 11px; color: white; margin-top: 5px; line-height: 1.4; }
 
+/* =========================
+   PROJECT CHIP AS SWITCHER
+========================= */
+
+.project-chip-wrap { position: relative; margin-bottom: 18px; }
+
+.project-chip.clickable {
+    display: block;
+    width: 100%;
+    border: none;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+.project-chip.clickable:hover { background: #26313f; }
+
+.chip-caret { float: right; color: #6b7280; font-size: 10px; }
+
+.project-chip-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 6px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 9px;
+    padding: 10px;
+    z-index: 20;
+}
+.project-chip-menu[hidden] { display: none; }
+
+.project-chip-menu-info strong { display: block; font-size: 11px; color: white; margin-bottom: 4px; }
+.project-chip-menu-info span { display: block; font-size: 10px; color: #9ca3af; margin-top: 2px; }
+
+.project-chip-menu-action {
+    display: block;
+    text-align: center;
+    background: #2563eb;
+    color: white;
+    text-decoration: none;
+    padding: 8px;
+    border-radius: 7px;
+    font-size: 11px;
+    margin-top: 8px;
+}
+.project-chip-menu-action:hover { background: #1d4ed8; }
+
+.project-chip-empty {
+    font-size: 11px;
+    color: #6b7280;
+    padding: 12px;
+    margin-bottom: 18px;
+}
+
 .signout-button {
     width: 100%;
     border: 1px solid #374151;
