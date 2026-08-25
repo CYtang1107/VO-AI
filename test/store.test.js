@@ -1,8 +1,25 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { ROLES, newVO, seedDB } = require("../js/store.js");
+const {
+    ROLES, newVO, seedDB, PASSCODE_KEY,
+    hasPasscode, setPasscode, verifyPasscode, clearPasscode
+} = require("../js/store.js");
 const { projectStats } = require("../js/calc.js");
 const { rateSummary, classifyVariation } = require("../js/analysis.js");
+
+/* store.js guards every localStorage access, so the rest of this file's
+   tests run fine without one. The passcode functions persist through
+   localStorage though, so give this process a minimal in-memory stand-in
+   (node:test runs each file in its own process, so this never leaks). */
+if (typeof globalThis.localStorage === "undefined" ||
+    typeof globalThis.localStorage.getItem !== "function") {
+    const backing = new Map();
+    globalThis.localStorage = {
+        getItem: k => (backing.has(k) ? backing.get(k) : null),
+        setItem: (k, v) => backing.set(k, String(v)),
+        removeItem: k => backing.delete(k)
+    };
+}
 
 test("there are exactly three roles", () => {
     assert.deepStrictEqual(Object.keys(ROLES).sort(),
@@ -79,4 +96,74 @@ test("the seed project produces sensible dashboard statistics", () => {
     assert.strictEqual(s.draft, 1);
     assert.strictEqual(s.approved, 1);
     assert.ok(s.value > 0);
+});
+
+/* ---------- device-local passcode ---------- */
+
+test.afterEach(() => clearPasscode());
+
+test("hasPasscode is false before setting one and true after", async () => {
+    assert.strictEqual(hasPasscode(), false);
+    await setPasscode("hunter2");
+    assert.strictEqual(hasPasscode(), true);
+});
+
+test("verifying the correct passcode succeeds", async () => {
+    await setPasscode("hunter2");
+    assert.strictEqual(await verifyPasscode("hunter2"), true);
+});
+
+test("verifying a wrong passcode fails", async () => {
+    await setPasscode("hunter2");
+    assert.strictEqual(await verifyPasscode("wrong-guess"), false);
+});
+
+test("clearing removes the passcode", async () => {
+    await setPasscode("hunter2");
+    clearPasscode();
+    assert.strictEqual(hasPasscode(), false);
+    assert.strictEqual(await verifyPasscode("hunter2"), false);
+});
+
+test("the stored value never contains the plain passcode text", async () => {
+    const plain = "correct-horse-battery-staple";
+    await setPasscode(plain);
+    const raw = localStorage.getItem(PASSCODE_KEY);
+    assert.ok(raw, "expected a passcode record to be stored");
+    assert.ok(!raw.includes(plain), "the serialised store must not contain the plain passcode");
+});
+
+test("two different passcodes with the same salt produce different digests", async () => {
+    /* Inject a fixed salt via a digest function so both hashes are computed
+       against the identical salt string, isolating the passcode as the
+       only variable. */
+    const fixedSaltDigest = text => {
+        const forced = "fixed-salt:" + text.split(":").slice(1).join(":");
+        return require("node:crypto").createHash("sha256").update(forced).digest();
+    };
+    await setPasscode("passcodeA", fixedSaltDigest);
+    const hashA = JSON.parse(localStorage.getItem(PASSCODE_KEY)).hash;
+    await setPasscode("passcodeB", fixedSaltDigest);
+    const hashB = JSON.parse(localStorage.getItem(PASSCODE_KEY)).hash;
+    assert.notStrictEqual(hashA, hashB);
+});
+
+test("the same passcode with the same salt produces the same digest", async () => {
+    const digestFn = text => require("node:crypto").createHash("sha256").update(text).digest();
+    await setPasscode("repeat-me", digestFn);
+    const record1 = JSON.parse(localStorage.getItem(PASSCODE_KEY));
+    /* Re-hash the same salt + passcode text directly and compare, proving
+       the digest is a pure function of (salt, passcode). */
+    const again = digestFn(record1.salt + ":repeat-me");
+    const hex = Array.from(new Uint8Array(again)).map(b => b.toString(16).padStart(2, "0")).join("");
+    assert.strictEqual(record1.hash, hex);
+});
+
+test("setPasscode uses real Web Crypto SHA-256 by default", async () => {
+    await setPasscode("web-crypto-check");
+    const record = JSON.parse(localStorage.getItem(PASSCODE_KEY));
+    const expected = await crypto.subtle.digest("SHA-256",
+        new TextEncoder().encode(record.salt + ":web-crypto-check"));
+    const hex = Array.from(new Uint8Array(expected)).map(b => b.toString(16).padStart(2, "0")).join("");
+    assert.strictEqual(record.hash, hex);
 });

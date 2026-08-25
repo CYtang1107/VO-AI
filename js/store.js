@@ -9,6 +9,10 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 const DB_KEY = "voai.db.v1";
 const SESSION_KEY = "voai.session.v1";
 
+/* `var`, not `const`: same parse-time-hoisting hazard as ROLES below —
+   ui.js/page-login.js share this global scope in the browser. */
+var PASSCODE_KEY = "voai.passcode.v1";
+
 /* `var`, not `const`: js/ui.js re-declares this name in a parse-time-hoisted
    guarded `var` for its Node import. `const` here would be a SyntaxError in the
    browser, where both files share one global scope. */
@@ -120,6 +124,102 @@ function setSession(session) {
 
 function clearSession() {
     localStorage.removeItem(SESSION_KEY);
+}
+
+/* ---------- device-local passcode ----------
+   Optional, off by default. Hashed with Web Crypto SHA-256 plus a
+   per-install random salt: only the salt and the hex digest are ever
+   stored, never the plain passcode. This locks the app on THIS device
+   and browser only — it does not encrypt the project data, which stays
+   readable in this browser's localStorage regardless. See the honesty
+   note next to the passcode control on the sign-in page. */
+
+function getCrypto() {
+    return (typeof globalThis !== "undefined" && globalThis.crypto) || null;
+}
+
+/* crypto.subtle needs a secure context (HTTPS or localhost). When it is
+   missing we must not throw or silently accept any input — callers use
+   this to skip the passcode feature entirely and say so. */
+function passcodeSupported() {
+    const c = getCrypto();
+    return !!(c && c.subtle && typeof c.subtle.digest === "function");
+}
+
+function bufToHex(buf) {
+    return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+}
+
+function randomSalt() {
+    const c = getCrypto();
+    const bytes = new Uint8Array(16);
+    if (c && typeof c.getRandomValues === "function") {
+        c.getRandomValues(bytes);
+    } else {
+        for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    return bufToHex(bytes.buffer);
+}
+
+async function defaultDigest(text) {
+    const c = getCrypto();
+    const data = new TextEncoder().encode(text);
+    return c.subtle.digest("SHA-256", data);
+}
+
+/* digestFn is injectable so tests can substitute a small digest without
+   depending on Web Crypto's actual availability. */
+async function digestHex(text, digestFn) {
+    const fn = digestFn || defaultDigest;
+    const buf = await fn(text);
+    return bufToHex(buf);
+}
+
+function loadPasscodeRecord() {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(PASSCODE_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (e) { return null; }
+}
+
+function savePasscodeRecord(record) {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(PASSCODE_KEY, JSON.stringify(record));
+}
+
+function hasPasscode() {
+    return !!loadPasscodeRecord();
+}
+
+async function setPasscode(plain, digestFn) {
+    if (!passcodeSupported() && !digestFn) return false;
+    try {
+        const salt = randomSalt();
+        const hash = await digestHex(salt + ":" + plain, digestFn);
+        savePasscodeRecord({ salt: salt, hash: hash });
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function verifyPasscode(plain, digestFn) {
+    const record = loadPasscodeRecord();
+    if (!record) return false;
+    if (!passcodeSupported() && !digestFn) return false;
+    try {
+        const hash = await digestHex(record.salt + ":" + plain, digestFn);
+        return hash === record.hash;
+    } catch (e) {
+        return false;
+    }
+}
+
+function clearPasscode() {
+    if (typeof localStorage === "undefined") return;
+    localStorage.removeItem(PASSCODE_KEY);
 }
 
 /* ---------- projects ---------- */
@@ -334,9 +434,10 @@ function seedDB() {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        DB_KEY, SESSION_KEY, ROLES, uid, newVO,
+        DB_KEY, SESSION_KEY, PASSCODE_KEY, ROLES, uid, newVO,
         loadDB, saveDB, resetDB,
         getSession, setSession, clearSession,
+        passcodeSupported, hasPasscode, setPasscode, verifyPasscode, clearPasscode,
         createProject, getProject, updateProject,
         createVO, updateVO, logHistory, seedDB
     };

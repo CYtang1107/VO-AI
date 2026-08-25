@@ -35,13 +35,21 @@
         </label>
         <div class="role-grid" id="roleGrid"></div>
 
+        <div class="field" id="passcodeField" hidden>
+            <label for="passcodeInput">Device passcode</label>
+            <input type="password" id="passcodeInput" placeholder="Enter this device's passcode"
+                   autocomplete="current-password">
+        </div>
+
         <button class="primary-button" id="signInBtn" style="width:100%">
             Continue →
         </button>
 
+        <div class="passcode-panel" id="passcodePanel"></div>
+
         <p class="lead" style="margin:18px 0 0;font-size:10px">
-            This is a demonstration prototype. No password is used and no data leaves
-            your browser — everything is stored locally on this computer.
+            This is a demonstration prototype. No data leaves your browser — everything
+            is stored locally on this computer.
         </p>
 
     </div>
