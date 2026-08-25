@@ -15,8 +15,8 @@
 
     <section class="welcome">
         <div>
-            <h2>Documents</h2>
-            <p>Every document recorded against this project, in one place — the contract and
+            <h2 data-i18n="documents.title">Documents</h2>
+            <p data-i18n="documents.sub">Every document recorded against this project, in one place — the contract and
                priced BQ, and every drawing and supporting document attached to a variation order.</p>
         </div>
     </section>
@@ -26,15 +26,15 @@
             <div class="doc-summary-bar" id="docSummary"></div>
 
             <div class="doc-filters">
-                <label>Kind
+                <label><span data-i18n="documents.kind">Kind</span>
                     <select id="kindFilter">
-                        <option value="all">All documents</option>
-                        <option value="drawings">Drawings</option>
-                        <option value="supporting">Supporting documents</option>
-                        <option value="project">Project documents</option>
+                        <option value="all" data-i18n="documents.kind.all">All documents</option>
+                        <option value="drawings" data-i18n="documents.kind.drawings">Drawings</option>
+                        <option value="supporting" data-i18n="documents.kind.supporting">Supporting documents</option>
+                        <option value="project" data-i18n="documents.kind.project">Project documents</option>
                     </select>
                 </label>
-                <label>Variation order
+                <label><span data-i18n="documents.voLabel">Variation order</span>
                     <select id="voFilter"></select>
                 </label>
             </div>
@@ -44,14 +44,15 @@
     <div id="docGroups"></div>
 
     <div class="disclaimer">
-        <strong>⚠ Professional Review Required</strong>
-        <span>
+        <strong data-i18n="disclaimer.title">⚠ Professional Review Required</strong>
+        <span data-i18n="disclaimer.body">
             AI-generated results are decision-support outputs. Final variation assessment,
             certification and approval must be reviewed by the appropriate construction professional.
         </span>
     </div>
 </main>
 
+<script src="js/i18n.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/clauses.js"></script>
 <script src="js/elements.js"></script>

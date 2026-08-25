@@ -18,7 +18,7 @@
             <h2 id="greeting"></h2>
             <p id="greetingSub"></p>
         </div>
-        <button class="primary-button" id="newVoBtn">+ New Variation Order</button>
+        <button class="primary-button" id="newVoBtn" data-i18n="dashboard.newVo">+ New Variation Order</button>
     </section>
 
     <section class="stats" id="statCards"></section>
@@ -27,10 +27,10 @@
         <div class="card recent-card">
             <div class="card-header">
                 <div>
-                    <h3>Recent Variation Orders</h3>
-                    <p>Click a row to open it</p>
+                    <h3 data-i18n="dashboard.recentTitle">Recent Variation Orders</h3>
+                    <p data-i18n="dashboard.recentSub">Click a row to open it</p>
                 </div>
-                <button class="view-button" onclick="location.href='register.html'">
+                <button class="view-button" data-i18n="dashboard.viewRegister" onclick="location.href='register.html'">
                     View register →
                 </button>
             </div>
@@ -38,8 +38,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>VO REF</th><th>DESCRIPTION</th><th>DATE ISSUED</th>
-                            <th>VALUE</th><th>STATUS</th>
+                            <th data-i18n="dashboard.col.voRef">VO REF</th><th data-i18n="dashboard.col.description">DESCRIPTION</th><th data-i18n="dashboard.col.dateIssued">DATE ISSUED</th>
+                            <th data-i18n="dashboard.col.value">VALUE</th><th data-i18n="dashboard.col.status">STATUS</th>
                         </tr>
                     </thead>
                     <tbody id="recentBody"></tbody>
@@ -51,8 +51,8 @@
             <div class="ai-header">
                 <div class="ai-logo">✦</div>
                 <div>
-                    <h3>Needs your attention</h3>
-                    <p>Based on your role in this project</p>
+                    <h3 data-i18n="dashboard.attentionTitle">Needs your attention</h3>
+                    <p data-i18n="dashboard.attentionSub">Based on your role in this project</p>
                 </div>
             </div>
             <p id="deadlineSummary" class="deadline-summary"></p>
@@ -61,14 +61,15 @@
     </section>
 
     <div class="disclaimer">
-        <strong>⚠ Professional Review Required</strong>
-        <span>
+        <strong data-i18n="disclaimer.title">⚠ Professional Review Required</strong>
+        <span data-i18n="disclaimer.body">
             AI-generated results are decision-support outputs. Final variation assessment,
             certification and approval must be reviewed by the appropriate construction professional.
         </span>
     </div>
 </main>
 
+<script src="js/i18n.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/clauses.js"></script>
 <script src="js/elements.js"></script>

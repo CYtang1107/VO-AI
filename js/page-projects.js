@@ -4,6 +4,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, today, projectStats } = require("./calc.js");
     var { escapeHtml } = require("./ui.js");
     var { uid } = require("./store.js");
+    var { t } = require("./i18n.js");
 }
 
 /* Accepts a BQ pasted straight out of Excel (tab separated) or a CSV.
@@ -34,20 +35,18 @@ function renderProjectCard(project, session) {
           '<div class="card-body">' +
             "<h3>" + escapeHtml(project.name) + "</h3>" +
             '<p class="lead" style="font-size:11px;margin:6px 0 14px">' +
-                escapeHtml(project.client || "—") + " · Contract " +
-                escapeHtml(project.contractNo || "—") + "</p>" +
+                escapeHtml(project.client || "—") + " · " + escapeHtml(t("sidebar.contract", { no: project.contractNo || "—" })) + "</p>" +
             '<div class="project-meta">' +
-                "<div><small>VOs</small><strong>" + s.total + "</strong></div>" +
-                "<div><small>Pending</small><strong>" + s.pending + "</strong></div>" +
-                "<div><small>VO value</small><strong>" + rm(s.value) + "</strong></div>" +
-                "<div><small>BQ items</small><strong>" + (project.bq || []).length + "</strong></div>" +
+                "<div><small>" + escapeHtml(t("projects.card.vos")) + "</small><strong>" + s.total + "</strong></div>" +
+                "<div><small>" + escapeHtml(t("status.Pending")) + "</small><strong>" + s.pending + "</strong></div>" +
+                "<div><small>" + escapeHtml(t("projects.card.voValue")) + "</small><strong>" + rm(s.value) + "</strong></div>" +
+                "<div><small>" + escapeHtml(t("projects.card.bqItems")) + "</small><strong>" + (project.bq || []).length + "</strong></div>" +
             "</div>" +
             '<button class="primary-button open-project" style="width:100%;margin-top:16px">' +
-                "Open as " + escapeHtml(session.role === "contractor" ? "Contractor QS" :
-                    session.role === "consultant" ? "Consultant QS" : "Client") +
-            " →</button>" +
+                escapeHtml(t("projects.openAs", { role: t("role." + session.role + ".label", {}) })) +
+            "</button>" +
             '<button type="button" class="secondary-button export-project" ' +
-                'style="width:100%;margin-top:8px">Export project (.json)</button>' +
+                'style="width:100%;margin-top:8px">' + escapeHtml(t("projects.exportBtn")) + '</button>' +
           "</div>" +
         "</div>";
 }
@@ -66,7 +65,12 @@ function exportProject(project) {
 
 /* Rejects anything that is not a plain object with at least a `name`
    string and array fields for bq, vos and documents. Never throws —
-   a malformed or hostile file gets a clear, itemised reason instead. */
+   a malformed or hostile file gets a clear, itemised reason instead.
+   Deliberately kept in English: these are technical, machine-shape
+   diagnostics about a raw imported JSON file (a power-user recovery
+   path), tested with exact string equality (test/page-projects.test.js),
+   and the toast that surfaces them (toast.importFailed) already carries
+   a translated prefix — see the browser wiring below. */
 function validateImport(parsed) {
     const errors = [];
 
@@ -157,11 +161,11 @@ if (typeof document !== "undefined") {
             const maxCols = bqFileState.rows.reduce((m, r) => Math.max(m, r.length), 0);
 
             function roleField(role, label) {
-                let opts = '<option value="">— none —</option>';
+                let opts = '<option value="">' + escapeHtml(t("projects.bq.noneOption")) + '</option>';
                 for (let c = 0; c < maxCols; c++) {
                     const sample = bqColumnSample(bqFileState.rows, c);
                     const selected = bqFileState.mapping[role] === c ? " selected" : "";
-                    opts += '<option value="' + c + '"' + selected + '>Column ' + (c + 1) +
+                    opts += '<option value="' + c + '"' + selected + '>' + escapeHtml(t("projects.bq.column", { n: c + 1 })) +
                         (sample ? " (" + escapeHtml(sample.slice(0, 24)) + ")" : "") + "</option>";
                 }
                 return '<div class="field"><label>' + escapeHtml(label) + '</label>' +
@@ -172,43 +176,49 @@ if (typeof document !== "undefined") {
             bqFileState.skipped.forEach(s => { skipCounts[s.reason] = (skipCounts[s.reason] || 0) + 1; });
             const skipReasonKeys = Object.keys(skipCounts);
             const skipSummary = skipReasonKeys.length === 0
-                ? "No rows skipped."
-                : skipReasonKeys.map(reason => skipCounts[reason] + " row(s): " + escapeHtml(reason)).join("; ");
+                ? t("projects.bq.noRowsSkipped")
+                : skipReasonKeys.map(reason => t("projects.bq.skippedSummary", { n: skipCounts[reason], reason: escapeHtml(reason) })).join("; ");
 
             const previewRows = bqFileState.items.slice(0, 8).map(it =>
                 "<tr><td>" + escapeHtml(it.code || "—") + "</td><td>" + escapeHtml(it.description) +
                 "</td><td>" + escapeHtml(it.unit || "—") + "</td><td>" + rm(it.rate) + "</td></tr>"
             ).join("");
 
+            const confidenceLabel = bqFileState.confidence === "high"
+                ? t("projects.bq.confidenceHigh") : t("projects.bq.confidenceNeedsReview");
+
             host.hidden = false;
             host.innerHTML =
                 '<div class="bq-preview-header">' +
-                    "Detected columns for <strong>" + escapeHtml(bqFileState.fileName) + "</strong> — confidence " +
-                    '<span class="bq-confidence ' + (bqFileState.confidence === "high" ? "ok" : "warn") + '">' +
-                    escapeHtml(bqFileState.confidence) + "</span>" +
-                    (bqFileState.confirmed ? '<span class="bq-confidence ok">confirmed</span>' : "") +
+                    t("projects.bq.detectedFor", {
+                        file: "<strong>" + escapeHtml(bqFileState.fileName) + "</strong>",
+                        confidence: '<span class="bq-confidence ' + (bqFileState.confidence === "high" ? "ok" : "warn") + '">' +
+                            escapeHtml(confidenceLabel) + "</span>"
+                    }) +
+                    (bqFileState.confirmed ? '<span class="bq-confidence ok">' + escapeHtml(t("projects.bq.confirmed")) + '</span>' : "") +
                 "</div>" +
                 '<ul class="bq-reasons">' +
                     bqFileState.reasons.map(r => "<li>" + escapeHtml(r) + "</li>").join("") +
                 "</ul>" +
                 '<div class="bq-map-grid">' +
-                    roleField("code", "Code column") +
-                    roleField("description", "Description column") +
-                    roleField("unit", "Unit column") +
-                    roleField("rate", "Rate column") +
+                    roleField("code", t("projects.bq.codeColumn")) +
+                    roleField("description", t("projects.bq.descColumn")) +
+                    roleField("unit", t("projects.bq.unitColumn")) +
+                    roleField("rate", t("projects.bq.rateColumn")) +
                 "</div>" +
-                '<p class="hint">' + bqFileState.items.length + " item(s) will be imported. " + skipSummary + "</p>" +
+                '<p class="hint">' + t("projects.bq.itemsWillImport", { n: bqFileState.items.length, summary: skipSummary }) + "</p>" +
                 '<div class="bq-preview-table-wrap"><table class="bq-preview-table">' +
-                    "<thead><tr><th>Code</th><th>Description</th><th>Unit</th><th>Rate</th></tr></thead>" +
-                    "<tbody>" + (previewRows || '<tr><td colspan="4">No items detected with this mapping.</td></tr>') +
+                    "<thead><tr><th>" + escapeHtml(t("projects.bq.col.code")) + "</th><th>" + escapeHtml(t("projects.bq.col.description")) +
+                    "</th><th>" + escapeHtml(t("projects.bq.col.unit")) + "</th><th>" + escapeHtml(t("projects.bq.col.rate")) + "</th></tr></thead>" +
+                    "<tbody>" + (previewRows || '<tr><td colspan="4">' + escapeHtml(t("projects.bq.noItemsDetected")) + '</td></tr>') +
                     "</tbody></table></div>" +
                 (bqFileState.items.length > 8
-                    ? '<p class="hint">Showing the first 8 of ' + bqFileState.items.length + " item(s).</p>" : "") +
+                    ? '<p class="hint">' + escapeHtml(t("projects.bq.showingFirst8", { n: bqFileState.items.length })) + "</p>" : "") +
                 '<div class="bq-preview-actions">' +
                     '<button type="button" class="primary-button" id="bqConfirmBtn"' +
                         (bqFileState.items.length === 0 ? " disabled" : "") + ">" +
-                        "Confirm and use these " + bqFileState.items.length + " item(s)</button>" +
-                    '<button type="button" class="secondary-button" id="bqCancelBtn">Cancel import</button>' +
+                        escapeHtml(t("projects.bq.confirmUse", { n: bqFileState.items.length })) + "</button>" +
+                    '<button type="button" class="secondary-button" id="bqCancelBtn">' + escapeHtml(t("projects.bq.cancelImport")) + '</button>' +
                 "</div>";
 
             host.querySelectorAll(".bq-map-select").forEach(sel => {
@@ -223,7 +233,7 @@ if (typeof document !== "undefined") {
 
             document.getElementById("bqConfirmBtn").addEventListener("click", () => {
                 bqFileState.confirmed = true;
-                toast("BQ file confirmed — " + bqFileState.items.length + " item(s) ready to import.");
+                toast(t("toast.bqConfirmed", { n: bqFileState.items.length }));
                 renderBqPreview();
             });
 
@@ -239,9 +249,9 @@ if (typeof document !== "undefined") {
             const list = document.getElementById("projectList");
 
             list.innerHTML = db.projects.length === 0
-                ? '<div class="empty-state">No projects yet. ' +
-                  (isConsultant ? "Create one below to get started."
-                                : "Ask the Consultant QS to create the project first.") +
+                ? '<div class="empty-state">' + t("projects.empty", {
+                    sub: escapeHtml(isConsultant ? t("projects.emptyConsultant") : t("projects.emptyOther"))
+                  }) +
                   "</div>"
                 : db.projects.map(p => renderProjectCard(p, session)).join("");
 
@@ -256,7 +266,7 @@ if (typeof document !== "undefined") {
                     const project = db.projects.find(p => p.id === card.dataset.project);
                     if (!project) return;
                     downloadProjectJson(exportProject(project));
-                    toast("Project exported.");
+                    toast(t("toast.projectExported"));
                 });
             });
         }
@@ -284,15 +294,14 @@ if (typeof document !== "undefined") {
         const createBox = document.getElementById("createBox");
         if (!isConsultant) {
             createBox.innerHTML =
-                '<div class="empty-state">Only the Consultant QS creates projects and ' +
-                "uploads the contract and BQ. Choose an existing project above.</div>";
+                '<div class="empty-state">' + escapeHtml(t("projects.consultantOnly")) + '</div>';
         } else {
             document.getElementById("createBtn").addEventListener("click", () => {
                 const name = document.getElementById("pName").value.trim();
-                if (!name) { toast("Give the project a name.", "warn"); return; }
+                if (!name) { toast(t("toast.giveProjectName"), "warn"); return; }
 
                 if (bqFileState && !bqFileState.confirmed) {
-                    toast("Confirm the uploaded BQ file's column mapping first, or cancel the import.", "warn");
+                    toast(t("toast.confirmBqFileFirst"), "warn");
                     return;
                 }
 
@@ -333,7 +342,7 @@ if (typeof document !== "undefined") {
                     });
                 }
 
-                toast("Project created with " + allBqRows.length + " BQ item(s).");
+                toast(t("toast.projectCreated", { n: allBqRows.length }));
                 ["pName", "pClient", "pContractNo", "pSum", "pBq", "pContractFile"]
                     .forEach(id => { document.getElementById(id).value = ""; });
                 document.getElementById("pBqFile").value = "";
@@ -375,7 +384,7 @@ if (typeof document !== "undefined") {
                     const reader = new FileReader();
                     reader.onload = () => { useRows(parseCsv(String(reader.result || ""))); };
                     reader.onerror = () => {
-                        toast("Could not read that file.", "error");
+                        toast(t("toast.couldNotReadFile"), "error");
                         bqFileInput.value = "";
                     };
                     reader.readAsText(file);
@@ -383,19 +392,19 @@ if (typeof document !== "undefined") {
                     const reader = new FileReader();
                     reader.onload = () => {
                         parseXlsx(reader.result).then(useRows).catch(err => {
-                            toast("Could not read that .xlsx file — " + err.message, "error");
+                            toast(t("toast.couldNotReadXlsx", { msg: err.message }), "error");
                             bqFileState = null;
                             bqFileInput.value = "";
                             renderBqPreview();
                         });
                     };
                     reader.onerror = () => {
-                        toast("Could not read that file.", "error");
+                        toast(t("toast.couldNotReadFile"), "error");
                         bqFileInput.value = "";
                     };
                     reader.readAsArrayBuffer(file);
                 } else {
-                    toast("Only .csv and .xlsx files are supported for the BQ upload.", "error");
+                    toast(t("toast.onlyCsvXlsx"), "error");
                     bqFileInput.value = "";
                 }
             });
@@ -403,7 +412,7 @@ if (typeof document !== "undefined") {
 
         document.getElementById("resetBtn").addEventListener("click", () => {
             resetDB();
-            toast("Demo data restored.");
+            toast(t("toast.demoDataRestored"));
             refresh();
         });
 
@@ -424,22 +433,22 @@ if (typeof document !== "undefined") {
                     try {
                         parsed = JSON.parse(String(reader.result || ""));
                     } catch (e) {
-                        toast("That file is not valid JSON.", "error");
+                        toast(t("toast.importNotJson"), "error");
                         return;
                     }
                     const result = validateImport(parsed);
                     if (!result.ok) {
-                        toast("Import failed — " + result.errors.join(" "), "error");
+                        toast(t("toast.importFailed", { reasons: result.errors.join(" ") }), "error");
                         return;
                     }
                     const db = loadDB();
                     const project = importProject(parsed, db);
                     saveDB(db);
-                    toast('Imported "' + project.name + '" as a copy in this browser.');
+                    toast(t("toast.importedAs", { name: project.name }));
                     refresh();
                 };
                 reader.onerror = () => {
-                    toast("Could not read that file.", "error");
+                    toast(t("toast.couldNotReadFile"), "error");
                 };
                 reader.readAsText(file);
             });

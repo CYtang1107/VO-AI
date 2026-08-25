@@ -28,19 +28,19 @@
 
     <section class="welcome">
         <div>
-            <h2>Choose a project</h2>
-            <p>Every variation order belongs to a project. Open one to continue.</p>
+            <h2 data-i18n="projects.title">Choose a project</h2>
+            <p data-i18n="projects.sub">Every variation order belongs to a project. Open one to continue.</p>
         </div>
         <div class="projects-toolbar">
-            <label class="secondary-button import-project-label" for="importFileInput">
+            <label class="secondary-button import-project-label" for="importFileInput" data-i18n="projects.import">
                 Import project (.json)
             </label>
             <input type="file" id="importFileInput" accept="application/json,.json" hidden>
-            <button class="secondary-button" id="resetBtn">Restore demo data</button>
+            <button class="secondary-button" id="resetBtn" data-i18n="projects.restoreDemoData">Restore demo data</button>
         </div>
     </section>
 
-    <p class="hint import-hint">
+    <p class="hint import-hint" data-i18n="projects.importHint">
         Import adds a copy of the project to this browser only — it does not sync with
         anyone else's copy. Use export on a project card to hand a teammate a file they
         can import to get an identical copy of the register.
@@ -51,33 +51,33 @@
     <div class="card" id="createBox">
         <div class="card-header">
             <div>
-                <h3>Create a new project</h3>
-                <p>Stage 2 — the Consultant QS sets up the project and uploads the contract and BQ.</p>
+                <h3 data-i18n="projects.createTitle">Create a new project</h3>
+                <p data-i18n="projects.createSub">Stage 2 — the Consultant QS sets up the project and uploads the contract and BQ.</p>
             </div>
         </div>
         <div class="card-body">
             <div class="create-grid">
                 <div>
                     <div class="field">
-                        <label for="pName">Project name</label>
-                        <input type="text" id="pName" placeholder="Cadangan Pembangunan ...">
+                        <label for="pName" data-i18n="projects.field.name">Project name</label>
+                        <input type="text" id="pName" placeholder="Cadangan Pembangunan ..." data-i18n-placeholder="projects.field.namePlaceholder">
                     </div>
                     <div class="field">
-                        <label for="pClient">Client</label>
+                        <label for="pClient" data-i18n="projects.field.client">Client</label>
                         <input type="text" id="pClient" placeholder="ABC Development Sdn Bhd">
                     </div>
                     <div class="field">
-                        <label for="pContractNo">Contract number</label>
+                        <label for="pContractNo" data-i18n="projects.field.contractNo">Contract number</label>
                         <input type="text" id="pContractNo" placeholder="ABC/2026/014">
                     </div>
                     <div class="field">
-                        <label for="pSum">Contract sum (RM)</label>
+                        <label for="pSum" data-i18n="projects.field.contractSum">Contract sum (RM)</label>
                         <input type="number" id="pSum" placeholder="12500000">
                     </div>
                     <div class="field">
-                        <label for="pContractFile">Contract document</label>
-                        <input type="text" id="pContractFile" placeholder="Contract Agreement - PAM 2018.pdf">
-                        <span class="hint">
+                        <label for="pContractFile" data-i18n="projects.field.contractDoc">Contract document</label>
+                        <input type="text" id="pContractFile" placeholder="Contract Agreement - PAM 2018.pdf" data-i18n-placeholder="projects.field.contractDocPlaceholder">
+                        <span class="hint" data-i18n="projects.field.contractDocHint">
                             Record the document name. This prototype does not read file
                             contents — see the technical solution section of the proposal.
                         </span>
@@ -85,20 +85,20 @@
                 </div>
                 <div>
                     <div class="field">
-                        <label for="pBq">Priced Bills of Quantities</label>
+                        <label for="pBq" data-i18n="projects.field.bq">Priced Bills of Quantities</label>
                         <textarea id="pBq" style="min-height:180px" placeholder="Paste from Excel — four columns: code, description, unit, rate
 
 B/4.1&#9;Ceramic floor tiles 600x600mm&#9;m2&#9;85
 B/4.2&#9;Skirting to match floor finish&#9;m&#9;22"></textarea>
-                        <span class="hint">
+                        <span class="hint" data-i18n="projects.field.bqHint">
                             These rates are what VO-AI cross-checks the contractor's
                             measurement against.
                         </span>
                     </div>
                     <div class="field">
-                        <label for="pBqFile">Or upload a priced BQ file (.csv or .xlsx)</label>
+                        <label for="pBqFile" data-i18n="projects.field.bqFile">Or upload a priced BQ file (.csv or .xlsx)</label>
                         <input type="file" id="pBqFile" accept=".csv,.xlsx">
-                        <span class="hint">
+                        <span class="hint" data-i18n="projects.field.bqFileHint">
                             Unlike the documents below, this file's contents are actually
                             read: columns are matched to Code / Description / Unit / Rate
                             automatically, and you confirm the result before anything is
@@ -106,7 +106,7 @@ B/4.2&#9;Skirting to match floor finish&#9;m&#9;22"></textarea>
                         </span>
                     </div>
                     <div id="bqPreview" class="bq-preview" hidden></div>
-                    <button class="primary-button" id="createBtn" style="width:100%">
+                    <button class="primary-button" id="createBtn" style="width:100%" data-i18n="projects.createBtn">
                         Create project
                     </button>
                 </div>
@@ -115,14 +115,15 @@ B/4.2&#9;Skirting to match floor finish&#9;m&#9;22"></textarea>
     </div>
 
     <div class="disclaimer">
-        <strong>⚠ Professional Review Required</strong>
-        <span>
+        <strong data-i18n="disclaimer.title">⚠ Professional Review Required</strong>
+        <span data-i18n="disclaimer.body">
             AI-generated results are decision-support outputs. Final variation assessment,
             certification and approval must be reviewed by the appropriate construction professional.
         </span>
     </div>
 </main>
 
+<script src="js/i18n.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/clauses.js"></script>
 <script src="js/elements.js"></script>
@@ -130,7 +131,7 @@ B/4.2&#9;Skirting to match floor finish&#9;m&#9;22"></textarea>
 <script src="js/permissions.js"></script>
 <script src="js/store.js"></script>
 <script src="js/ui.js"></script>
-<script>mountChrome("projects", "Projects", "VO-AI / Projects", { projectOptional: true });</script>
+<script>mountChrome("projects", t("projects.title"), t("crumb.projects"), { projectOptional: true });</script>
 <script src="js/bqimport.js"></script>
 <script src="js/page-projects.js"></script>
 

@@ -19,16 +19,16 @@
             <p id="voStatus"></p>
         </div>
         <div class="page-actions" style="margin:0">
-            <button class="secondary-button" id="reportBtn">Generate VO report</button>
-            <button class="primary-button" id="submitBtn">Submit to consultant</button>
+            <button class="secondary-button" id="reportBtn" data-i18n="vo.reportBtn">Generate VO report</button>
+            <button class="primary-button" id="submitBtn" data-i18n="vo.submitBtn">Submit to consultant</button>
         </div>
     </section>
 
     <div class="card" style="margin-bottom:20px">
         <div class="card-header">
             <div>
-                <h3>Contractual deadlines</h3>
-                <p>Evaluation, information request and response clocks for this VO</p>
+                <h3 data-i18n="vo.deadlinesTitle">Contractual deadlines</h3>
+                <p data-i18n="vo.deadlinesSub">Evaluation, information request and response clocks for this VO</p>
             </div>
         </div>
         <div class="card-body" id="deadlinesPanel"></div>
@@ -37,18 +37,18 @@
     <div class="card" style="margin-bottom:20px">
         <div class="card-header">
             <div>
-                <h3>Measurement and rate cross-check</h3>
-                <p>Each rate is compared against the priced contract BQ</p>
+                <h3 data-i18n="vo.measurementTitle">Measurement and rate cross-check</h3>
+                <p data-i18n="vo.measurementSub">Each rate is compared against the priced contract BQ</p>
             </div>
-            <button class="secondary-button" id="addRowBtn">+ Add row</button>
+            <button class="secondary-button" id="addRowBtn" data-i18n="vo.addRow">+ Add row</button>
         </div>
         <div class="table-scroll">
             <table>
                 <thead>
                     <tr>
-                        <th>DESCRIPTION</th><th>CONTRACT BQ ITEM</th><th>UNIT</th>
-                        <th>QTY</th><th>RATE</th><th>CLAIMED</th>
-                        <th>ASSESSED QTY / RATE</th><th>RATE CHECK</th>
+                        <th data-i18n="vo.col.description">DESCRIPTION</th><th data-i18n="vo.col.bqItem">CONTRACT BQ ITEM</th><th data-i18n="vo.col.unit">UNIT</th>
+                        <th data-i18n="vo.col.qty">QTY</th><th data-i18n="vo.col.rate">RATE</th><th data-i18n="vo.col.claimed">CLAIMED</th>
+                        <th data-i18n="vo.col.assessedQtyRate">ASSESSED QTY / RATE</th><th data-i18n="vo.col.rateCheck">RATE CHECK</th>
                     </tr>
                 </thead>
                 <tbody id="measurementBody"></tbody>
@@ -58,12 +58,12 @@
 
     <section class="dashboard-grid" style="margin-bottom:20px">
         <div class="card">
-            <div class="card-header"><div><h3>VO-AI assessment</h3>
-                <p>Derived from the contract BQ and the measurement above</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.assessmentTitle">VO-AI assessment</h3>
+                <p data-i18n="vo.assessmentSub">Derived from the contract BQ and the measurement above</p></div></div>
             <div class="card-body" id="assessmentPanel"></div>
         </div>
         <div class="card">
-            <div class="card-header"><div><h3>Activity</h3><p>Who changed what</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.activityTitle">Activity</h3><p data-i18n="vo.activitySub">Who changed what</p></div></div>
             <div class="card-body" id="historyPanel"></div>
         </div>
     </section>
@@ -71,8 +71,8 @@
     <div class="card" style="margin-bottom:20px">
         <div class="card-header">
             <div>
-                <h3>Ask about this variation</h3>
-                <p>A structured helper answering from this VO's real data — not a chat assistant</p>
+                <h3 data-i18n="vo.askTitle">Ask about this variation</h3>
+                <p data-i18n="vo.askSub">A structured helper answering from this VO's real data — not a chat assistant</p>
             </div>
         </div>
         <div class="card-body" id="assistantPanel"></div>
@@ -80,31 +80,32 @@
 
     <section class="dashboard-grid" style="grid-template-columns:1fr 1fr 1fr">
         <div class="card role-panel">
-            <div class="card-header"><div><h3>▲ Contractor</h3>
-                <p>Contractor QS columns</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.panel.contractor">▲ Contractor</h3>
+                <p data-i18n="vo.panel.contractorSub">Contractor QS columns</p></div></div>
             <div class="card-body" id="contractorPanel"></div>
         </div>
         <div class="card role-panel">
-            <div class="card-header"><div><h3>✦ Consultant</h3>
-                <p>Consultant QS columns</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.panel.consultant">✦ Consultant</h3>
+                <p data-i18n="vo.panel.consultantSub">Consultant QS columns</p></div></div>
             <div class="card-body" id="consultantPanel"></div>
         </div>
         <div class="card role-panel">
-            <div class="card-header"><div><h3>◉ Client</h3>
-                <p>Client columns</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.panel.client">◉ Client</h3>
+                <p data-i18n="vo.panel.clientSub">Client columns</p></div></div>
             <div class="card-body" id="clientPanel"></div>
         </div>
     </section>
 
     <div class="disclaimer">
-        <strong>⚠ Professional Review Required</strong>
-        <span>
+        <strong data-i18n="disclaimer.title">⚠ Professional Review Required</strong>
+        <span data-i18n="disclaimer.body">
             AI-generated results are decision-support outputs. Final variation assessment,
             certification and approval must be reviewed by the appropriate construction professional.
         </span>
     </div>
 </main>
 
+<script src="js/i18n.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/clauses.js"></script>
 <script src="js/elements.js"></script>

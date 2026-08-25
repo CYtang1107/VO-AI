@@ -7,7 +7,13 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, contractorTotal, assessedTotal } = require("./calc.js");
     var { matchClause } = require("./clauses.js");
     var { detectElements, relatedElements } = require("./elements.js");
+    var { t, joinList } = require("./i18n.js");
 }
+
+/* Every element in js/elements.js is translated by id through
+   "element.<id>.name" / "element.<id>.note" — see js/i18n.js. */
+function elementName(el) { return t("element." + el.id + ".name"); }
+function elementNote(el) { return t("element." + el.id + ".note"); }
 
 const RATE_TOLERANCE = 0.005;   /* half a sen */
 
@@ -133,7 +139,7 @@ function matchBqItem(row, bq) {
     if (codeItem) {
         return {
             item: codeItem,
-            basis: "matched BQ code " + codeItem.code + " in the description",
+            basis: t("match.byCode", { code: codeItem.code }),
             score: 1
         };
     }
@@ -178,11 +184,10 @@ function matchBqItem(row, bq) {
         if (score < BQ_MATCH_THRESHOLD) return;
         if (best && score <= best.score) return;
 
-        const basisParts = ["matched on description (" + overlap + " of " +
-            rowWords.length + " significant words)"];
-        if (unitsMatch) basisParts.push("and unit " + item.unit);
+        let basis = t("match.byDescription", { overlap: overlap, total: rowWords.length });
+        if (unitsMatch) basis += t("match.andUnit", { unit: item.unit });
 
-        best = { item: item, basis: basisParts.join(" "), score: score };
+        best = { item: item, basis: basis, score: score };
     });
 
     return best;
@@ -213,10 +218,8 @@ function checkRate(row, bq) {
     if (!item) {
         return {
             state: "star",
-            label: "Star rate",
-            detail: "No matching contract BQ item. This is a star rate and must be " +
-                    "agreed separately, supported by a quotation or rate build-up, " +
-                    "before certification."
+            label: t("rate.star.label"),
+            detail: t("rate.star.detail")
         };
     }
 
@@ -225,14 +228,15 @@ function checkRate(row, bq) {
     const autoFields = auto
         ? { autoMatched: true, matchBasis: auto.basis, matchScore: auto.score, matchedItem: item }
         : {};
-    const autoNote = auto ? " (Automatically matched — " + auto.basis + ".)" : "";
+    const autoNote = auto ? t("rate.autoNote", { basis: auto.basis }) : "";
 
     if (Math.abs(diff) < RATE_TOLERANCE) {
         return Object.assign({
             state: "same",
-            label: "Same rate",
-            detail: "Matches contract BQ item " + item.code + " at " +
-                    rm(contractRate) + " per " + item.unit + "." + autoNote,
+            label: t("rate.same.label"),
+            detail: t("rate.same.detail", {
+                code: item.code, rate: rm(contractRate), unit: item.unit, autoNote: autoNote
+            }),
             contractRate: contractRate,
             diff: 0
         }, autoFields);
@@ -242,12 +246,14 @@ function checkRate(row, bq) {
 
     return Object.assign({
         state: "different",
-        label: "Different rate",
-        detail: "Contractor claimed " + rm(claimed) + " but contract BQ item " +
-                item.code + " is " + rm(contractRate) + " per " + item.unit + ". " +
-                "The contract BQ rate governs — the contractor's rate is " +
-                (diff > 0 ? "overstated" : "understated") + " by " + rm(Math.abs(diff)) +
-                (pct === null ? "" : " (" + Math.abs(pct).toFixed(1) + "%)") + "." + autoNote,
+        label: t("rate.different.label"),
+        detail: t("rate.different.detail", {
+            claimed: rm(claimed), code: item.code, rate: rm(contractRate), unit: item.unit,
+            word: t(diff > 0 ? "rate.overstated" : "rate.understated"),
+            diff: rm(Math.abs(diff)),
+            pct: pct === null ? "" : " (" + Math.abs(pct).toFixed(1) + "%)",
+            autoNote: autoNote
+        }),
         contractRate: contractRate,
         diff: diff,
         pct: pct
@@ -284,21 +290,21 @@ const WORK_SECTIONS = [
 
 function affectedWork(text) {
     const hit = WORK_SECTIONS.find(s => s.key.test(text || ""));
-    return hit ? hit.name : "General Works";
+    return t("work." + (hit ? hit.name : "General Works"));
 }
 
 function classifyVariation(vo) {
     const text = (vo.description || "");
     const rows = vo.measurement || [];
 
-    const label = (id, name) => ({
+    const label = (id, key) => ({
         id: id,
-        label: name,
+        label: t(key),
         affectedWork: affectedWork(text)
     });
 
     if (!text.trim() && rows.length === 0) {
-        return label("unclassified", "Not yet classified");
+        return label("unclassified", "classification.unclassified");
     }
 
     /* A substitution shows up as an omission and an addition together,
@@ -308,19 +314,19 @@ function classifyVariation(vo) {
 
     if (/\bfrom\b.+\bto\b|substitut|replace|change of|upgrade/i.test(text) ||
         (hasNegative && hasPositive)) {
-        return label("specification", "Material / specification change");
+        return label("specification", "classification.specification");
     }
 
     if (/remeasure|remeasurement|quantity variation|approximate quantit|provisional quantit/i.test(text)) {
-        return label("quantity", "Quantity variation / remeasurement");
+        return label("quantity", "classification.quantity");
     }
 
     if (/\bomit|omission|delete|remove\b/i.test(text) || (hasNegative && !hasPositive)) {
-        return label("omission", "Omission of work");
+        return label("omission", "classification.omission");
     }
 
     if (/redesign|design revision|revised design|revision to/i.test(text)) {
-        return label("design", "Design revision");
+        return label("design", "classification.design");
     }
 
     if (/additional|extra work|add\b|new\b/i.test(text) || hasPositive) {
@@ -328,11 +334,11 @@ function classifyVariation(vo) {
            not new work. */
         const allLinked = rows.length > 0 && rows.every(r => r.bqItemId);
         return allLinked
-            ? label("quantity", "Quantity variation / remeasurement")
-            : label("addition", "Additional work");
+            ? label("quantity", "classification.quantity")
+            : label("addition", "classification.addition");
     }
 
-    return label("unclassified", "Not yet classified");
+    return label("unclassified", "classification.unclassified");
 }
 
 /* -----------------------------------------------------------
@@ -345,8 +351,7 @@ function classifyVariation(vo) {
 function classificationBasis(vo) {
     const text = (vo.description || "");
     const rows = vo.measurement || [];
-    const vague = { signals: [], summary: "The description was too vague to classify — " +
-                    "enter more detail about what is changing." };
+    const vague = { signals: [], summary: t("basis.summary.vague") };
 
     if (!text.trim() && rows.length === 0) {
         return vague;
@@ -359,46 +364,42 @@ function classificationBasis(vo) {
     const wordingSubstitution = /\bfrom\b.+\bto\b|substitut|replace|change of|upgrade/i.test(text);
     if (wordingSubstitution || (hasNegative && hasPositive)) {
         const signals = [];
-        if (wordingSubstitution) signals.push("instruction wording (substitution / change-of phrasing)");
-        if (hasNegative && hasPositive) signals.push("measurement shape (omission and addition)");
+        if (wordingSubstitution) signals.push(t("basis.signal.wordingSubstitution"));
+        if (hasNegative && hasPositive) signals.push(t("basis.signal.shapeOmissionAddition"));
         return { signals: signals,
-                 summary: "Classified as a material / specification change because of " +
-                          signals.join(" and ") + "." };
+                 summary: t("basis.summary.substitution", { signals: joinList(signals) }) };
     }
 
     const wordingQuantity = /remeasure|remeasurement|quantity variation|approximate quantit|provisional quantit/i.test(text);
     if (wordingQuantity) {
-        return { signals: ["instruction wording (remeasurement / quantity-variation phrasing)"],
-                 summary: "Classified as a quantity variation because the description used " +
-                          "remeasurement wording." };
+        return { signals: [t("basis.signal.wordingQuantity")],
+                 summary: t("basis.summary.quantity") };
     }
 
     const wordingOmission = /\bomit|omission|delete|remove\b/i.test(text);
     if (wordingOmission || (hasNegative && !hasPositive)) {
         const signals = [];
-        if (wordingOmission) signals.push("instruction wording (omission / deletion phrasing)");
-        if (hasNegative && !hasPositive) signals.push("measurement shape (negative quantity only)");
+        if (wordingOmission) signals.push(t("basis.signal.wordingOmission"));
+        if (hasNegative && !hasPositive) signals.push(t("basis.signal.shapeNegativeOnly"));
         return { signals: signals,
-                 summary: "Classified as an omission of work because of " +
-                          signals.join(" and ") + "." };
+                 summary: t("basis.summary.omission", { signals: joinList(signals) }) };
     }
 
     const wordingDesign = /redesign|design revision|revised design|revision to/i.test(text);
     if (wordingDesign) {
-        return { signals: ["instruction wording (design-revision phrasing)"],
-                 summary: "Classified as a design revision because the description used " +
-                          "design-revision wording." };
+        return { signals: [t("basis.signal.wordingDesign")],
+                 summary: t("basis.summary.design") };
     }
 
     const wordingAddition = /additional|extra work|add\b|new\b/i.test(text);
     if (wordingAddition || hasPositive) {
         const signals = [];
-        if (wordingAddition) signals.push("instruction wording (additional / extra-work phrasing)");
-        if (hasPositive) signals.push("measurement shape (positive quantity)");
-        if (allLinked) signals.push("measurement shape (all rows linked to existing BQ items)");
-        const label = allLinked ? "a quantity variation" : "additional work";
+        if (wordingAddition) signals.push(t("basis.signal.wordingAddition"));
+        if (hasPositive) signals.push(t("basis.signal.shapePositive"));
+        if (allLinked) signals.push(t("basis.signal.shapeAllLinked"));
+        const label = t(allLinked ? "basis.label.quantity" : "basis.label.addition");
         return { signals: signals,
-                 summary: "Classified as " + label + " because of " + signals.join(" and ") + "." };
+                 summary: t("basis.summary.addition", { label: label, signals: joinList(signals) }) };
     }
 
     return vague;
@@ -437,42 +438,35 @@ function analyse(vo, project) {
     const findings = [];
 
     if (rates.different > 0) {
-        findings.push(
-            rates.different + " row(s) use a rate that is different from the contract " +
-            "BQ. The contract BQ rate governs — correct the assessed rate before approval.");
+        findings.push(t("analysis.finding.rateDifferent", { n: rates.different }));
     }
     if (rates.star > 0) {
-        findings.push(
-            rates.star + " row(s) have no comparable contract BQ item and must be " +
-            "agreed as star rates, supported by a quotation or rate build-up.");
+        findings.push(t("analysis.finding.rateStar", { n: rates.star }));
     }
     if (rates.same > 0 && rates.different === 0 && rates.star === 0) {
-        findings.push("All rates match the contract BQ. No rate adjustment required.");
+        findings.push(t("analysis.finding.rateAllSame"));
     }
     if (Math.abs(assessed - claimed) >= 0.01) {
-        findings.push(
-            "Assessed value differs from the contractor's claim by " +
-            rm(Math.abs(assessed - claimed)) +
-            (assessed < claimed ? " (reduction)." : " (increase)."));
+        findings.push(t("analysis.finding.assessedDiffers", {
+            amount: rm(Math.abs(assessed - claimed)),
+            word: t(assessed < claimed ? "analysis.reduction" : "analysis.increase")
+        }));
     }
     if (!clause) {
-        findings.push(
-            "The change could not be classified from the description. Enter a clearer " +
-            "description so the governing contract clause can be identified.");
+        findings.push(t("analysis.finding.unclassified"));
     }
     if ((vo.measurement || []).length === 0) {
-        findings.push("No measurement has been entered, so no cost impact can be assessed.");
+        findings.push(t("analysis.finding.noMeasurement"));
     }
 
     elements.detected.forEach(el => {
         const relatedForThis = elements.related.filter(r => r.because === el.id);
         if (relatedForThis.length === 0) return;
-        const names = relatedForThis.map(r => r.element.name);
-        const list = names.length === 1 ? names[0] :
-            names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
-        findings.push(
-            "This change affects the " + el.name + ". Confirm whether " + list +
-            " also require measurement — " + relatedForThis[0].note);
+        const names = relatedForThis.map(r => elementName(r.element));
+        const list = joinList(names);
+        findings.push(t("analysis.finding.elementRelated", {
+            element: elementName(el), related: list, note: elementNote(el)
+        }));
     });
 
     return {

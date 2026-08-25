@@ -9,6 +9,17 @@
     const passcodeInput = document.getElementById("passcodeInput");
     const passcodePanel = document.getElementById("passcodePanel");
 
+    /* Every static [data-i18n*] element on the sign-in page (there is no
+       sidebar/topbar here, so no mountChrome to do this for us), and the
+       language switch itself — must be usable BEFORE sign-in, so a
+       Chinese-speaking judge can switch language first. */
+    applyI18n(document);
+    const langSwitchHost = document.getElementById("langSwitchLogin");
+    if (langSwitchHost) {
+        langSwitchHost.innerHTML = renderLangSwitch();
+        wireLangSwitch(langSwitchHost);
+    }
+
     /* Suggested ids make the demo faster to walk through. */
     const SUGGESTED = {
         contractor: "ong.weihan",
@@ -16,16 +27,11 @@
         client: "tan.ziqian"
     };
 
-    const HONESTY_NOTE =
-        "This passcode locks VO-AI on this device. It does not encrypt your project " +
-        "data — anyone with access to this computer and browser can still read it. " +
-        "Full user accounts are planned for the next version.";
-
     grid.innerHTML = Object.values(ROLES).map(r =>
         '<button type="button" class="role-option" data-role="' + r.id + '">' +
             '<div class="role-icon" style="background:' + r.colour + '">' + r.icon + "</div>" +
-            "<strong>" + r.label + "</strong>" +
-            "<span>" + r.blurb + "</span>" +
+            "<strong>" + escapeHtml(t("role." + r.id + ".label", {})) + "</strong>" +
+            "<span>" + escapeHtml(t("role." + r.id + ".blurb", {})) + "</span>" +
         "</button>"
     ).join("");
 
@@ -48,25 +54,22 @@
 
         if (!passcodeSupported()) {
             passcodePanel.innerHTML =
-                '<p class="passcode-note">' +
-                    "A device passcode is not available in this browser (it needs a secure " +
-                    "connection). Sign-in works as normal without one." +
-                "</p>";
+                '<p class="passcode-note">' + escapeHtml(t("login.passcode.unavailable")) + "</p>";
             return;
         }
 
         if (panelMode === "setting") {
             passcodePanel.innerHTML =
                 '<div class="passcode-form">' +
-                    '<div class="field"><label for="newPasscode">New passcode</label>' +
+                    '<div class="field"><label for="newPasscode">' + escapeHtml(t("login.passcode.newLabel")) + '</label>' +
                         '<input type="password" id="newPasscode" autocomplete="new-password"></div>' +
-                    '<div class="field"><label for="confirmPasscode">Confirm passcode</label>' +
+                    '<div class="field"><label for="confirmPasscode">' + escapeHtml(t("login.passcode.confirmLabel")) + '</label>' +
                         '<input type="password" id="confirmPasscode" autocomplete="new-password"></div>' +
                     '<div class="passcode-actions">' +
-                        '<button type="button" class="primary-button" id="savePasscodeBtn">Save passcode</button>' +
-                        '<button type="button" class="link-button" id="cancelPasscodeBtn">Cancel</button>' +
+                        '<button type="button" class="primary-button" id="savePasscodeBtn">' + escapeHtml(t("login.passcode.save")) + '</button>' +
+                        '<button type="button" class="link-button" id="cancelPasscodeBtn">' + escapeHtml(t("login.passcode.cancel")) + '</button>' +
                     "</div>" +
-                    '<p class="passcode-note">' + HONESTY_NOTE + "</p>" +
+                    '<p class="passcode-note">' + escapeHtml(t("login.passcode.honesty")) + "</p>" +
                 "</div>";
             document.getElementById("savePasscodeBtn").addEventListener("click", onSavePasscode);
             document.getElementById("cancelPasscodeBtn").addEventListener("click", () => {
@@ -79,13 +82,13 @@
         if (panelMode === "clearing") {
             passcodePanel.innerHTML =
                 '<div class="passcode-form">' +
-                    '<div class="field"><label for="currentPasscodeToClear">Current passcode</label>' +
+                    '<div class="field"><label for="currentPasscodeToClear">' + escapeHtml(t("login.passcode.currentLabel")) + '</label>' +
                         '<input type="password" id="currentPasscodeToClear" autocomplete="current-password"></div>' +
                     '<div class="passcode-actions">' +
-                        '<button type="button" class="primary-button" id="confirmClearBtn">Clear passcode</button>' +
-                        '<button type="button" class="link-button" id="cancelClearBtn">Cancel</button>' +
+                        '<button type="button" class="primary-button" id="confirmClearBtn">' + escapeHtml(t("login.passcode.clear")) + '</button>' +
+                        '<button type="button" class="link-button" id="cancelClearBtn">' + escapeHtml(t("login.passcode.cancel")) + '</button>' +
                     "</div>" +
-                    '<p class="passcode-note">' + HONESTY_NOTE + "</p>" +
+                    '<p class="passcode-note">' + escapeHtml(t("login.passcode.honesty")) + "</p>" +
                 "</div>";
             document.getElementById("confirmClearBtn").addEventListener("click", onConfirmClear);
             document.getElementById("cancelClearBtn").addEventListener("click", () => {
@@ -98,16 +101,16 @@
         /* idle */
         if (hasPasscode()) {
             passcodePanel.innerHTML =
-                '<button type="button" class="link-button" id="clearPasscodeBtn">Clear this device\'s passcode</button>' +
-                '<p class="passcode-note">' + HONESTY_NOTE + "</p>";
+                '<button type="button" class="link-button" id="clearPasscodeBtn">' + escapeHtml(t("login.passcode.clearThisDevice")) + '</button>' +
+                '<p class="passcode-note">' + escapeHtml(t("login.passcode.honesty")) + "</p>";
             document.getElementById("clearPasscodeBtn").addEventListener("click", () => {
                 panelMode = "clearing";
                 renderPasscodePanel();
             });
         } else {
             passcodePanel.innerHTML =
-                '<button type="button" class="link-button" id="setPasscodeBtn">Set a passcode for this device</button>' +
-                '<p class="passcode-note">' + HONESTY_NOTE + "</p>";
+                '<button type="button" class="link-button" id="setPasscodeBtn">' + escapeHtml(t("login.passcode.setForDevice")) + '</button>' +
+                '<p class="passcode-note">' + escapeHtml(t("login.passcode.honesty")) + "</p>";
             document.getElementById("setPasscodeBtn").addEventListener("click", () => {
                 panelMode = "setting";
                 renderPasscodePanel();
@@ -118,14 +121,14 @@
     async function onSavePasscode() {
         const a = document.getElementById("newPasscode").value;
         const b = document.getElementById("confirmPasscode").value;
-        if (!a) { toast("Enter a passcode.", "warn"); return; }
-        if (a !== b) { toast("Passcodes do not match.", "warn"); return; }
+        if (!a) { toast(t("toast.enterPasscode"), "warn"); return; }
+        if (a !== b) { toast(t("toast.passcodesMismatch"), "warn"); return; }
         const ok = await setPasscode(a);
         if (!ok) {
-            toast("A device passcode is not available in this browser.", "warn");
+            toast(t("toast.passcodeUnavailable"), "warn");
             return;
         }
-        toast("Passcode set for this device.", "ok");
+        toast(t("toast.passcodeSet"), "ok");
         panelMode = "idle";
         renderPasscodePanel();
     }
@@ -133,9 +136,9 @@
     async function onConfirmClear() {
         const current = document.getElementById("currentPasscodeToClear").value;
         const ok = await verifyPasscode(current);
-        if (!ok) { toast("That passcode is wrong.", "error"); return; }
+        if (!ok) { toast(t("toast.passcodeWrong"), "error"); return; }
         clearPasscode();
-        toast("Passcode cleared for this device.", "ok");
+        toast(t("toast.passcodeCleared"), "ok");
         panelMode = "idle";
         renderPasscodePanel();
     }
@@ -146,13 +149,13 @@
 
     async function attemptSignIn() {
         const name = nameInput.value.trim();
-        if (!name) { toast("Enter your user ID to continue.", "warn"); nameInput.focus(); return; }
-        if (!selectedRole) { toast("Choose the role you are acting as.", "warn"); return; }
+        if (!name) { toast(t("toast.enterUserId"), "warn"); nameInput.focus(); return; }
+        if (!selectedRole) { toast(t("toast.chooseRole"), "warn"); return; }
 
         if (hasPasscode()) {
             const ok = await verifyPasscode(passcodeInput.value);
             if (!ok) {
-                toast("Wrong device passcode.", "error");
+                toast(t("toast.wrongDevicePasscode"), "error");
                 passcodeInput.focus();
                 return;
             }

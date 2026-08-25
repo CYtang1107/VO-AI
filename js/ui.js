@@ -2,14 +2,18 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { ROLES } = require("./store.js");
+    var { t, renderLangSwitch, wireLangSwitch, applyI18n } = require("./i18n.js");
 }
 
+/* `labelKey` looks up its display text via t() at render time (so it
+   follows the current language); `label` is kept as a plain English
+   fallback for any caller that reads NAV without going through t(). */
 const NAV = [
-    { id: "dashboard", href: "dashboard.html", icon: "⌂", label: "Dashboard" },
-    { id: "analysis",  href: "analysis.html",  icon: "✦", label: "AI Analysis" },
-    { id: "register",  href: "register.html",  icon: "▤", label: "VO Register" },
-    { id: "documents", href: "documents.html", icon: "▤", label: "Documents" },
-    { id: "report",    href: "report.html",    icon: "▧", label: "VO Reports" }
+    { id: "dashboard", href: "dashboard.html", icon: "⌂", label: "Dashboard",   labelKey: "nav.dashboard" },
+    { id: "analysis",  href: "analysis.html",  icon: "✦", label: "AI Analysis", labelKey: "nav.analysis" },
+    { id: "register",  href: "register.html",  icon: "▤", label: "VO Register", labelKey: "nav.register" },
+    { id: "documents", href: "documents.html", icon: "▤", label: "Documents",   labelKey: "nav.documents" },
+    { id: "report",    href: "report.html",    icon: "▧", label: "VO Reports",  labelKey: "nav.report" }
 ];
 
 function escapeHtml(s) {
@@ -35,9 +39,14 @@ const STATUS_CLASS = {
     "Draft": "draft"
 };
 
+/* The stored status value ("Approved", "Pending", ...) is app vocabulary,
+   not user data — it is always translated for display via the
+   "status.<value>" dictionary key, never shown as the raw English word
+   in the Chinese interface. The stored value itself is untouched. */
 function statusPill(status) {
     const cls = STATUS_CLASS[status] || "draft";
-    return '<span class="status ' + cls + '">' + escapeHtml(status) + "</span>";
+    const label = t("status." + status, {});
+    return '<span class="status ' + cls + '">' + escapeHtml(label === "status." + status ? status : label) + "</span>";
 }
 
 function renderSidebar(active, session, project) {
@@ -50,7 +59,7 @@ function renderSidebar(active, session, project) {
         ? NAV.map(n =>
             '<a href="' + n.href + '" class="nav-item' +
             (n.id === active ? " active" : "") + '">' +
-            "<span>" + n.icon + "</span>" + n.label + "</a>"
+            "<span>" + n.icon + "</span>" + escapeHtml(t(n.labelKey)) + "</a>"
           ).join("")
         : "";
 
@@ -60,35 +69,37 @@ function renderSidebar(active, session, project) {
     const projectBox = project
         ? '<div class="project-chip-wrap">' +
               '<button type="button" class="project-chip clickable" id="projectChipBtn">' +
-                  '<small>CURRENT PROJECT</small>' +
+                  '<small>' + escapeHtml(t("sidebar.currentProject")) + '</small>' +
                   '<strong>' + escapeHtml(project.name) + ' <span class="chip-caret">&#9662;</span></strong>' +
               '</button>' +
               '<div class="project-chip-menu" id="projectChipMenu" hidden>' +
                   '<div class="project-chip-menu-info">' +
                       '<strong>' + escapeHtml(project.name) + '</strong>' +
                       '<span>' + escapeHtml(project.client || '—') + '</span>' +
-                      '<span>Contract ' + escapeHtml(project.contractNo || '—') + '</span>' +
+                      '<span>' + escapeHtml(t("sidebar.contract", { no: project.contractNo || '—' })) + '</span>' +
                   '</div>' +
-                  '<a href="projects.html" class="project-chip-menu-action" id="switchProjectBtn">Switch project</a>' +
+                  '<a href="projects.html" class="project-chip-menu-action" id="switchProjectBtn">' +
+                      escapeHtml(t("sidebar.switchProject")) + '</a>' +
               '</div>' +
           '</div>'
-        : '<div class="project-chip-empty">Select a project to begin</div>';
+        : '<div class="project-chip-empty">' + escapeHtml(t("sidebar.selectProject")) + '</div>';
 
     return '' +
         '<div class="logo">' +
             '<div class="logo-icon">V</div>' +
-            "<div><h2>VO-AI</h2><span>Variation Intelligence</span></div>" +
+            "<div><h2>VO-AI</h2><span>" + escapeHtml(t("app.tagline")) + "</span></div>" +
         "</div>" +
         projectBox +
         "<nav>" + items + "</nav>" +
         '<div class="sidebar-bottom">' +
+            renderLangSwitch() +
             '<div class="user-profile">' +
                 '<div class="avatar" style="background:' + role.colour + '">' +
                     initials(session.name) + "</div>" +
                 "<div><strong>" + escapeHtml(session.name) + "</strong>" +
-                "<span>" + role.label + "</span></div>" +
+                "<span>" + escapeHtml(t("role." + role.id + ".label", {})) + "</span></div>" +
             "</div>" +
-            '<button class="signout-button" id="signOutBtn">Switch role / sign out</button>' +
+            '<button class="signout-button" id="signOutBtn">' + escapeHtml(t("sidebar.signOut")) + '</button>' +
         "</div>";
 }
 
@@ -101,7 +112,7 @@ function renderTopbar(title, crumb, session) {
         "</div>" +
         '<div class="top-actions">' +
             '<div class="role" style="border-color:' + role.colour + '">' +
-                role.icon + " " + role.label +
+                role.icon + " " + escapeHtml(t("role." + role.id + ".label", {})) +
             "</div>" +
         "</div>";
 }
@@ -167,6 +178,14 @@ function mountChrome(active, title, crumb, opts) {
         });
         document.addEventListener("click", () => { chipMenu.hidden = true; });
     }
+
+    wireLangSwitch(document.getElementById("langSwitch"));
+
+    /* Translate every static [data-i18n*] element on the page (headings,
+       table header cells, placeholders defined directly in the HTML) —
+       everything else is already rendered in the current language by
+       the dynamic render functions above and in each page-*.js. */
+    applyI18n(document);
 
     return ctx;
 }

@@ -23,6 +23,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rateSummary, analyse } = require("./analysis.js");
     var { clausesFor } = require("./clauses.js");
     var { FIELD_OWNER, canEdit, lockReason } = require("./permissions.js");
+    var { t, joinList } = require("./i18n.js");
 }
 
 /* -----------------------------------------------------------
@@ -37,21 +38,22 @@ function answerRateFlag(context) {
         r.check.state === "different" || r.check.state === "star");
 
     const lines = flagged.length === 0
-        ? ["All rates on this variation match the contract BQ. No rate is flagged."]
+        ? [t("assistant.rateFlag.allMatch")]
         : flagged.map(r => {
             const row = r.row, check = r.check;
             const claimedRate = rm(Number(row.rate) || 0);
-            const desc = row.description || "(no description)";
+            const desc = row.description || t("assistant.noDescription");
+            const unit = row.unit || t("assistant.unit");
             if (check.state === "star") {
-                return desc + " — claimed " + claimedRate + " per " + (row.unit || "unit") +
-                    ". " + check.detail;
+                return t("assistant.rateFlag.star", { desc: desc, claimedRate: claimedRate, unit: unit, detail: check.detail });
             }
-            return desc + " — claimed " + claimedRate + " per " + (row.unit || "unit") +
-                ", contract BQ rate " + rm(check.contractRate) + " per " + (row.unit || "unit") +
-                ". The contract BQ rate governs. " + check.detail;
+            return t("assistant.rateFlag.other", {
+                desc: desc, claimedRate: claimedRate, unit: unit,
+                contractRate: rm(check.contractRate), detail: check.detail
+            });
         });
 
-    return { title: "Why is this rate flagged?", lines: lines };
+    return { title: t("assistant.rate-flag.label"), lines: lines };
 }
 
 /* -----------------------------------------------------------
@@ -62,19 +64,20 @@ function answerClause(context) {
     const a = analyse(context.vo, context.project);
     if (!a.clause) {
         return {
-            title: "What clause applies to this variation?",
-            lines: ["The description is too vague to classify, so no governing clause can " +
-                "be identified. Add detail about what is changing — e.g. whether this is an " +
-                "addition, an omission, a substitution or a design revision."]
+            title: t("assistant.clause.label"),
+            lines: [t("assistant.clause.tooVague")]
         };
     }
     const c = a.clause;
+    /* c.entitlement / c.evidence are the clause's own English text — see
+       js/i18n.js's clause.note for why that is never translated. */
     return {
-        title: "What clause applies to this variation?",
+        title: t("assistant.clause.label"),
         lines: [
-            c.form + " " + c.ref + " — " + c.title,
-            "Entitlement: " + c.entitlement,
-            "Evidence required: " + c.evidence
+            t("assistant.clause.line1", { form: c.form, ref: c.ref, title: c.title }),
+            t("assistant.clause.entitlement", { text: c.entitlement }),
+            t("assistant.clause.evidence", { text: c.evidence }),
+            t("clause.note")
         ]
     };
 }
@@ -89,20 +92,21 @@ function answerElements(context) {
 
     if (!els || els.detected.length === 0) {
         return {
-            title: "What else might need measuring?",
-            lines: ["No building element was detected in this variation's description, so " +
-                "there is nothing to prompt for consequential measurement."]
+            title: t("assistant.elements.label"),
+            lines: [t("assistant.elements.none")]
         };
     }
 
-    const lines = ["Detected element(s): " + els.detected.map(e => e.name).join(", ")];
+    const lines = [t("assistant.elements.detected",
+        { list: els.detected.map(e => t("element." + e.id + ".name")).join(", ") })];
     if (els.related.length === 0) {
-        lines.push("No commonly-related elements need confirming for the detected element(s).");
+        lines.push(t("assistant.elements.noneRelated"));
     } else {
-        els.related.forEach(r => lines.push(r.element.name + " — " + r.note));
+        els.related.forEach(r => lines.push(t("assistant.elements.relatedLine",
+            { name: t("element." + r.element.id + ".name"), note: t("element." + r.because + ".note") })));
     }
 
-    return { title: "What else might need measuring?", lines: lines };
+    return { title: t("assistant.elements.label"), lines: lines };
 }
 
 /* -----------------------------------------------------------
@@ -117,41 +121,39 @@ function answerCertify(context) {
     const lines = [];
 
     lines.push(vo.submitted
-        ? "Submitted to the consultant."
-        : "Not submitted — the contractor has not yet submitted this variation to the consultant.");
+        ? t("assistant.certify.submitted")
+        : t("assistant.certify.notSubmitted"));
 
     lines.push(vo.evaluateStatus === "Approved"
-        ? "Consultant assessment: Approved."
-        : "Consultant assessment: " + vo.evaluateStatus + " — not yet approved.");
+        ? t("assistant.certify.assessmentApproved")
+        : t("assistant.certify.assessmentOther", { status: t("status." + vo.evaluateStatus, {}) }));
 
     lines.push(vo.certifiedStatus === "Approved"
-        ? "Client certification: Approved."
-        : "Client certification: " + (vo.certifiedStatus || "Pending") + " — not yet certified.");
+        ? t("assistant.certify.certApproved")
+        : t("assistant.certify.certOther", { status: t("status." + (vo.certifiedStatus || "Pending"), {}) }));
 
     const summary = rateSummary(vo, bq);
     if (summary.star > 0) {
-        lines.push(summary.star + " star rate row(s) are unresolved and must be agreed, " +
-            "supported by a quotation or rate build-up, before certification.");
+        lines.push(t("assistant.certify.starUnresolved", { n: summary.star }));
     }
     if (summary.different > 0) {
-        lines.push(summary.different + " row(s) still claim a rate different from the " +
-            "contract BQ — correct the assessed rate before certification.");
+        lines.push(t("assistant.certify.rateDifferent", { n: summary.different }));
     }
 
     if ((vo.revisedDrawing || []).length === 0) {
-        lines.push("No revised drawing has been attached.");
+        lines.push(t("assistant.certify.noRevisedDrawing"));
     }
     if ((vo.supportingDocs || []).length === 0) {
-        lines.push("No supporting document has been attached.");
+        lines.push(t("assistant.certify.noSupportingDoc"));
     }
 
     if (vo.timeImpact === undefined || vo.timeImpact === null || vo.timeImpact === "") {
-        lines.push("Time impact has not been set.");
+        lines.push(t("assistant.certify.timeImpactUnset"));
     } else {
-        lines.push("Time impact is set at " + vo.timeImpact + " day(s).");
+        lines.push(t("assistant.certify.timeImpactSet", { n: vo.timeImpact }));
     }
 
-    return { title: "What is missing before this can be certified?", lines: lines };
+    return { title: t("assistant.certify.label"), lines: lines };
 }
 
 /* -----------------------------------------------------------
@@ -165,20 +167,22 @@ function answerValue(context) {
     const variance = assessed - claimed;
 
     const lines = [
-        "Contractor claimed: " + rm(claimed),
-        "Consultant assessed: " + rm(assessed),
-        "Variance: " + rm(Math.abs(variance)) +
-            (variance < 0 ? " (reduction)" : variance > 0 ? " (increase)" : "")
+        t("assistant.value.claimed", { amount: rm(claimed) }),
+        t("assistant.value.assessed", { amount: rm(assessed) }),
+        t("assistant.value.variance", {
+            amount: rm(Math.abs(variance)),
+            word: t(variance < 0 ? "assistant.value.reduction" : variance > 0 ? "assistant.value.increase" : "")
+        })
     ];
 
     if (vo.certifiedStatus === "Approved" &&
         vo.finalPrice !== null && vo.finalPrice !== undefined && vo.finalPrice !== "") {
-        lines.push("Certified value: " + rm(vo.finalPrice));
+        lines.push(t("assistant.value.certified", { amount: rm(vo.finalPrice) }));
     } else {
-        lines.push("Not yet certified — no certified value.");
+        lines.push(t("assistant.value.notCertified"));
     }
 
-    return { title: "What is this variation worth?", lines: lines };
+    return { title: t("assistant.value.label"), lines: lines };
 }
 
 /* -----------------------------------------------------------
@@ -200,12 +204,12 @@ function answerEdit(context) {
 
     const lines = [
         editable.length > 0
-            ? "You may currently edit: " + editable.join(", ") + "."
-            : "You cannot currently edit any field on this variation."
+            ? t("assistant.edit.canEdit", { list: editable.join(", ") })
+            : t("assistant.edit.canEditNone")
     ];
-    locked.forEach(l => lines.push(l.field + " — " + l.reason));
+    locked.forEach(l => lines.push(t("assistant.edit.lockedLine", { field: l.field, reason: l.reason })));
 
-    return { title: "What can I edit here?", lines: lines };
+    return { title: t("assistant.edit.label"), lines: lines };
 }
 
 /* -----------------------------------------------------------
@@ -220,15 +224,17 @@ function answerValuationMethod(context) {
 
     if (list.length === 0) {
         return {
-            title: "How do variations get valued?",
-            lines: ["The description is too vague to classify, so no valuation clause could " +
-                "be identified. Add detail about what is changing."]
+            title: t("assistant.valuation-method.label"),
+            lines: [t("assistant.valuationMethod.none")]
         };
     }
 
+    /* c.entitlement is the clause's own English text — see clause.note. */
     return {
-        title: "How do variations get valued?",
-        lines: list.map(c => c.form + " " + c.ref + " — " + c.title + ": " + c.entitlement)
+        title: t("assistant.valuation-method.label"),
+        lines: list.map(c => t("assistant.valuationMethod.line",
+            { form: c.form, ref: c.ref, title: c.title, entitlement: c.entitlement }))
+            .concat([t("clause.note")])
     };
 }
 
@@ -237,6 +243,12 @@ function answerValuationMethod(context) {
    question wins. `id` doubles as the label a clicked suggestion sends in.
 ----------------------------------------------------------- */
 
+/* `label` is the English source string, used as a fallback match target
+   (see answer() below — a click always sends the id, but typed text
+   "What clause applies to this variation?" pasted verbatim should still
+   resolve). Display always goes through t("assistant.<id>.label") in
+   js/i18n.js so the suggested-question button follows the current
+   language. */
 const INTENTS = [
     {
         id: "rate-flag",
@@ -296,7 +308,7 @@ const INTENTS = [
 function suggestions(context) {
     if (!context || !context.vo) return [];
     return INTENTS.filter(i => i.available(context))
-        .map(i => ({ id: i.id, label: i.label }));
+        .map(i => ({ id: i.id, label: t("assistant." + i.id + ".label") }));
 }
 
 /* -----------------------------------------------------------
@@ -308,15 +320,14 @@ function suggestions(context) {
 
 function unmatchedResponse(context) {
     const sugg = suggestions(context);
-    const lines = ["I can only answer questions about the current variation order, the " +
-        "contract position and the register."];
+    const lines = [t("assistant.unmatched.intro")];
     if (sugg.length > 0) {
-        lines.push("Try one of these instead:");
+        lines.push(t("assistant.unmatched.tryInstead"));
         sugg.forEach(s => lines.push("• " + s.label));
     }
     return {
         intent: null,
-        title: "I can't answer that",
+        title: t("assistant.unmatched.title"),
         lines: lines,
         unmatched: true
     };

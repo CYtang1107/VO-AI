@@ -9,20 +9,22 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { prettyDate } = require("./calc.js");
     var { escapeHtml } = require("./ui.js");
     var { versionCount } = require("./documents.js");
+    var { t, getLang } = require("./i18n.js");
 }
 
 /* The three VO-level document fields, in the order they appear on the VO
-   detail page, each with the label this screen shows and the filter
-   bucket ("drawings" or "supporting") it belongs to. */
+   detail page, each with the label this screen shows (labelKey — see
+   js/i18n.js) and the filter bucket ("drawings" or "supporting") it
+   belongs to. */
 var VO_DOC_FIELDS = [
-    { field: "revisedDrawing", label: "Revised drawing",    bucket: "drawings" },
-    { field: "oldDrawing",     label: "Superseded drawing", bucket: "drawings" },
-    { field: "supportingDocs", label: "Supporting document", bucket: "supporting" }
+    { field: "revisedDrawing", label: "Revised drawing",    labelKey: "documents.field.revisedDrawing", bucket: "drawings" },
+    { field: "oldDrawing",     label: "Superseded drawing", labelKey: "documents.field.oldDrawing",      bucket: "drawings" },
+    { field: "supportingDocs", label: "Supporting document", labelKey: "documents.field.supportingDocs", bucket: "supporting" }
 ];
 
-var PROJECT_CATEGORY_LABEL = {
-    contract: "Contract",
-    bq: "Priced BQ"
+var PROJECT_CATEGORY_KEY = {
+    contract: "documents.category.contract",
+    bq: "documents.category.bq"
 };
 
 /* bytes -> a human-readable size: bytes under 1KB, KB under 1MB, MB
@@ -108,7 +110,7 @@ function renderDocEntry(d) {
             '<span class="file-date">' + escapeHtml(prettyDate(d.at)) + " · " +
                 escapeHtml(d.uploadedBy || "—") + "</span>" +
             (d.revisionCount > 0
-                ? '<span class="doc-version-count">' + (d.revisionCount + 1) + " versions on record</span>"
+                ? '<span class="doc-version-count">' + escapeHtml(t("documents.versionsOnRecord", { n: d.revisionCount + 1 })) + "</span>"
                 : "") +
         "</div>" +
         renderRevisions(d) +
@@ -117,10 +119,10 @@ function renderDocEntry(d) {
 
 function renderProjectDocList(docs) {
     if (docs.length === 0) {
-        return '<div class="empty-state">No project-level documents recorded.</div>';
+        return '<div class="empty-state">' + escapeHtml(t("documents.empty.project")) + '</div>';
     }
     return '<ul class="doc-list">' + docs.map(function (d) {
-        var label = PROJECT_CATEGORY_LABEL[d.category] || "Document";
+        var label = t(PROJECT_CATEGORY_KEY[d.category] || "documents.category.other");
         return '<li class="file-item doc-registry-item">' +
             '<div class="doc-current">' +
                 '<span class="doc-category-tag">' + escapeHtml(label) + "</span>" +
@@ -146,8 +148,9 @@ function renderVoGroup(voId, voNo, voDescription, docs) {
         var kindDocs = (byKind[f.field] || []).slice().sort(byNewest);
         if (kindDocs.length === 0) return "";
         return '<div class="doc-kind-group">' +
-            '<h4 class="doc-kind-label">' + escapeHtml(f.label) +
-                's (' + kindDocs.length + ')</h4>' +
+            '<h4 class="doc-kind-label">' + escapeHtml(t(f.labelKey)) +
+                (typeof getLang === "function" && getLang() === "zh" ? "" : "s") +
+                ' (' + kindDocs.length + ')</h4>' +
             '<ul class="doc-list">' + kindDocs.map(renderDocEntry).join("") + "</ul>" +
         "</div>";
     }).join("");
@@ -155,8 +158,8 @@ function renderVoGroup(voId, voNo, voDescription, docs) {
     return '<div class="doc-group doc-group-vo">' +
         '<div class="doc-group-head doc-group-head-link" data-vo-id="' + escapeHtml(voId) + '">' +
             '<h3>' + escapeHtml(voNo || "VO") + " — " +
-                escapeHtml(voDescription || "Untitled variation") + "</h3>" +
-            '<span class="doc-group-goto">Open VO &rarr;</span>' +
+                escapeHtml(voDescription || t("documents.untitled")) + "</h3>" +
+            '<span class="doc-group-goto">' + escapeHtml(t("documents.openVo")) + '</span>' +
         "</div>" +
         kindsHtml +
     "</div>";
@@ -172,7 +175,7 @@ function renderDocumentGroups(list, filters) {
     var f = filters || {};
 
     if (filtered.length === 0) {
-        return '<div class="empty-state">No documents match the current filters.</div>';
+        return '<div class="empty-state">' + escapeHtml(t("documents.empty.filtered")) + '</div>';
     }
 
     var showProject = !f.kind || f.kind === "all" || f.kind === "project";
@@ -183,7 +186,7 @@ function renderDocumentGroups(list, filters) {
     if (showProject) {
         var projectDocs = filtered.filter(function (d) { return d.source === "project"; }).sort(byNewest);
         html += '<div class="doc-group doc-group-project">' +
-            '<div class="doc-group-head"><h3>Project documents</h3></div>' +
+            '<div class="doc-group-head"><h3>' + escapeHtml(t("documents.projectDocs")) + '</h3></div>' +
             renderProjectDocList(projectDocs) +
         "</div>";
     }
@@ -200,7 +203,7 @@ function renderDocumentGroups(list, filters) {
         }).join("");
 
         if (voIds.length === 0 && !showProject) {
-            voGroupsHtml = '<div class="empty-state">No variation order documents match this filter.</div>';
+            voGroupsHtml = '<div class="empty-state">' + escapeHtml(t("documents.empty.voFiltered")) + '</div>';
         }
 
         html += voGroupsHtml;
@@ -218,7 +221,7 @@ if (typeof module !== "undefined" && module.exports) {
 
 if (typeof document !== "undefined") {
     (function () {
-        const ctx = mountChrome("documents", "Documents", "VO-AI / Documents");
+        const ctx = mountChrome("documents", t("nav.documents"), t("crumb.documents"));
         if (!ctx) return;
         const { project } = ctx;
 
@@ -226,16 +229,17 @@ if (typeof document !== "undefined") {
         const totalSize = list.reduce((sum, d) => sum + (d.size || 0), 0);
 
         document.getElementById("docSummary").innerHTML =
-            "<strong>" + list.length + "</strong> document" + (list.length === 1 ? "" : "s") +
-            " on record &middot; <strong>" + formatSize(totalSize) + "</strong> total" +
-            '<span class="doc-metadata-note">This prototype records document metadata only ' +
-            "(name, size, uploader, date) — file contents are never stored, so there is nothing " +
-            "to open or download here.</span>";
+            t("documents.summary", {
+                count: list.length,
+                plural: list.length === 1 ? "" : "s",
+                size: formatSize(totalSize)
+            }) +
+            '<span class="doc-metadata-note">' + escapeHtml(t("documents.summaryNote")) + "</span>";
 
         const voOptions = ((project.vos) || []).map(v =>
             '<option value="' + escapeHtml(v.id) + '">' + escapeHtml(v.no) + "</option>").join("");
         document.getElementById("voFilter").innerHTML =
-            '<option value="all">All variation orders</option>' + voOptions;
+            '<option value="all">' + escapeHtml(t("documents.allVos")) + '</option>' + voOptions;
 
         function draw() {
             const filters = {

@@ -6,6 +6,16 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { FIELD_OWNER } = require("./permissions.js");
     var { rateSummary } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
+    var { t } = require("./i18n.js");
+}
+
+/* typeOfInstruction is a raw English data VALUE — never renamed; see
+   optionDisplayText() in js/page-vo.js for the same pattern. */
+function instructionTypeLabel(value) {
+    if (!value) return value;
+    const key = "instructionType." + value;
+    const label = t(key, {});
+    return label === key ? value : label;
 }
 
 /* The VO DUE DATE column: if the consultant has entered a due date by
@@ -13,37 +23,51 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
    evaluation deadline from js/deadlines.js, with its state. */
 function dueDateCell(vo, todayIso) {
     if (vo.dueDate) {
-        return prettyDate(vo.dueDate) + ' <span class="rate-flag manual-due">manual</span>';
+        return prettyDate(vo.dueDate) + ' <span class="rate-flag manual-due">' + escapeHtml(t("register.manual")) + '</span>';
     }
     const evalClock = deadlinesFor(vo, todayIso)[0]; /* "evaluation" is always item 0 */
     if (!evalClock.dueDate) return "—";
     return prettyDate(evalClock.dueDate) +
         ' <span class="rate-flag deadline-' + evalClock.state + '">' +
-        escapeHtml(evalClock.state) + "</span>";
+        escapeHtml(t("deadline.state." + evalClock.state, {})) + "</span>";
 }
 
 function rateFlags(vo, project) {
     const s = rateSummary(vo, (project && project.bq) || []);
     const bits = [];
-    if (s.same) bits.push('<span class="rate-flag same">' + s.same + " same</span>");
-    if (s.different) bits.push('<span class="rate-flag different">' + s.different + " different</span>");
-    if (s.star) bits.push('<span class="rate-flag star">' + s.star + " star</span>");
+    if (s.same) bits.push('<span class="rate-flag same">' + escapeHtml(t("register.rate.same", { n: s.same })) + "</span>");
+    if (s.different) bits.push('<span class="rate-flag different">' + escapeHtml(t("register.rate.different", { n: s.different })) + "</span>");
+    if (s.star) bits.push('<span class="rate-flag star">' + escapeHtml(t("register.rate.star", { n: s.star })) + "</span>");
     return bits.join(" ") || "—";
 }
 
+/* `label` stays the English source of truth for callers that read
+   COLUMNS without going through js/i18n.js's t(); rendering always
+   prefers t(labelKey) so the header follows the current language. */
 const COLUMNS = [
-    { field: "no",                label: "VO NO.",           render: v => "<strong>" + escapeHtml(v.no) + "</strong>" },
-    { field: "description",       label: "DESCRIPTION",      render: v => escapeHtml(v.description || "—") },
-    { field: "dateIssued",        label: "DATE ISSUED",      render: v => prettyDate(v.dateIssued) },
-    { field: "dueDate",           label: "VO DUE DATE",      render: v => dueDateCell(v, today()) },
-    { field: "typeOfInstruction", label: "TYPE",             render: v => escapeHtml(v.typeOfInstruction || "—") },
-    { field: "measurement",       label: "CONTRACTOR'S MEASUREMENT", render: v => rm(contractorTotal(v)) },
-    { field: "assessment",        label: "CONSULTANT'S ASSESSMENT",  render: v => rm(assessedTotal(v)) },
-    { field: "rateCheck",         label: "RATE CROSS-CHECK", render: (v, p) => rateFlags(v, p) },
-    { field: "timeImpact",        label: "TIME IMPACT",      render: v => (Number(v.timeImpact) || 0) + " d" },
-    { field: "evaluateStatus",    label: "EVALUATE STATUS",  render: v => statusPill(v.evaluateStatus) },
-    { field: "certifiedStatus",   label: "CERTIFIED STATUS", render: v => statusPill(v.certifiedStatus) },
-    { field: "finalPrice",        label: "FINAL PRICE",
+    { field: "no",                label: "VO NO.",           labelKey: "register.col.no",
+      render: v => "<strong>" + escapeHtml(v.no) + "</strong>" },
+    { field: "description",       label: "DESCRIPTION",      labelKey: "register.col.description",
+      render: v => escapeHtml(v.description || "—") },
+    { field: "dateIssued",        label: "DATE ISSUED",      labelKey: "register.col.dateIssued",
+      render: v => prettyDate(v.dateIssued) },
+    { field: "dueDate",           label: "VO DUE DATE",      labelKey: "register.col.dueDate",
+      render: v => dueDateCell(v, today()) },
+    { field: "typeOfInstruction", label: "TYPE",             labelKey: "register.col.type",
+      render: v => escapeHtml(instructionTypeLabel(v.typeOfInstruction) || "—") },
+    { field: "measurement",       label: "CONTRACTOR'S MEASUREMENT", labelKey: "register.col.contractorMeasurement",
+      render: v => rm(contractorTotal(v)) },
+    { field: "assessment",        label: "CONSULTANT'S ASSESSMENT",  labelKey: "register.col.consultantAssessment",
+      render: v => rm(assessedTotal(v)) },
+    { field: "rateCheck",         label: "RATE CROSS-CHECK", labelKey: "register.col.rateCheck",
+      render: (v, p) => rateFlags(v, p) },
+    { field: "timeImpact",        label: "TIME IMPACT",      labelKey: "register.col.timeImpact",
+      render: v => t("register.dayUnit", { n: Number(v.timeImpact) || 0 }) },
+    { field: "evaluateStatus",    label: "EVALUATE STATUS",  labelKey: "register.col.evaluateStatus",
+      render: v => statusPill(v.evaluateStatus) },
+    { field: "certifiedStatus",   label: "CERTIFIED STATUS", labelKey: "register.col.certifiedStatus",
+      render: v => statusPill(v.certifiedStatus) },
+    { field: "finalPrice",        label: "FINAL PRICE",      labelKey: "register.col.finalPrice",
       render: v => (v.finalPrice === null || v.finalPrice === "" ? "—" : rm(v.finalPrice)) }
 ];
 
@@ -55,7 +79,7 @@ function columnsForRole(role) {
 function renderRegisterHead(role) {
     return "<tr>" + COLUMNS.map(c => {
         const owned = FIELD_OWNER[c.field] === role;
-        return "<th" + (owned ? ' class="owned-col"' : "") + ">" + c.label + "</th>";
+        return "<th" + (owned ? ' class="owned-col"' : "") + ">" + escapeHtml(t(c.labelKey)) + "</th>";
     }).join("") + "</tr>";
 }
 
@@ -63,7 +87,7 @@ function renderRegisterBody(project, role) {
     const vos = (project && project.vos) || [];
     if (vos.length === 0) {
         return '<tr><td colspan="' + COLUMNS.length + '" class="empty-state">' +
-               "No variation orders in this project yet.</td></tr>";
+               escapeHtml(t("register.empty")) + "</td></tr>";
     }
     return vos.map(v =>
         '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
@@ -81,7 +105,7 @@ if (typeof module !== "undefined" && module.exports) {
 
 if (typeof document !== "undefined") {
     (function () {
-        const ctx = mountChrome("register", "VO Register", "VO-AI / VO Register");
+        const ctx = mountChrome("register", t("nav.register"), t("crumb.register"));
         if (!ctx) return;
         const { session, project } = ctx;
 
@@ -90,9 +114,7 @@ if (typeof document !== "undefined") {
             renderRegisterBody(project, session.role);
 
         document.getElementById("ownedLegend").textContent =
-            "Highlighted columns are the ones you may edit as " +
-            (session.role === "contractor" ? "Contractor QS"
-             : session.role === "consultant" ? "Consultant QS" : "Client");
+            t("register.legend", { role: t("role." + session.role + ".label", {}) });
 
         document.querySelectorAll(".vo-row").forEach(row => {
             row.addEventListener("click", () => {

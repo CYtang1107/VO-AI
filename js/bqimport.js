@@ -7,6 +7,10 @@
    in page-projects.js. Nothing here ever imports data on its own — the
    caller must always run the result past the user for confirmation. */
 
+if (typeof require !== "undefined" && typeof module !== "undefined") {
+    var { t } = require("./i18n.js");
+}
+
 /* ---------- shared lookup tables (module-level; declared with `var` —
    see the dual-target note at the bottom of this file) ---------- */
 
@@ -354,7 +358,7 @@ function detectColumns(rows) {
         return {
             code: null, description: null, unit: null, rate: null,
             confidence: "needs review",
-            reasons: ["No data rows were found to analyse."]
+            reasons: [t("bqimport.detect.noneFound")]
         };
     }
 
@@ -403,10 +407,9 @@ function detectColumns(rows) {
         function (a, b) { return b.unitRatio - a.unitRatio; },
         "unit",
         {
-            none: "No column matched known unit tokens (m, m2, no, item...) confidently — Unit left unassigned.",
+            none: t("bqimport.detect.unit.none"),
             found: function (s) {
-                return "column " + (s.col + 1) + ": " + Math.round(s.unitRatio * 100) +
-                    "% match known unit tokens — read as Unit.";
+                return t("bqimport.detect.unit.found", { col: s.col + 1, pct: Math.round(s.unitRatio * 100) });
             }
         }
     );
@@ -420,10 +423,10 @@ function detectColumns(rows) {
         function (a, b) { return a.wholeSmallFraction - b.wholeSmallFraction || b.numericRatio - a.numericRatio; },
         "rate",
         {
-            none: "No column looked like a numeric rate column — Rate left unassigned.",
+            none: t("bqimport.detect.rate.none"),
             found: function (s) {
-                return "column " + (s.col + 1) + ": " + Math.round(s.numericRatio * 100) +
-                    "% numeric, values average RM " + s.avgNumericValue.toFixed(2) + " — read as Rate.";
+                return t("bqimport.detect.rate.found",
+                    { col: s.col + 1, pct: Math.round(s.numericRatio * 100), avg: s.avgNumericValue.toFixed(2) });
             }
         }
     );
@@ -433,10 +436,9 @@ function detectColumns(rows) {
         function (a, b) { return b.codeRatio - a.codeRatio; },
         "code",
         {
-            none: "No column matched a bill-reference pattern (e.g. B/4.1) — Code left unassigned.",
+            none: t("bqimport.detect.code.none"),
             found: function (s) {
-                return "column " + (s.col + 1) + ": " + Math.round(s.codeRatio * 100) +
-                    "% match a bill-reference pattern — read as Code.";
+                return t("bqimport.detect.code.found", { col: s.col + 1, pct: Math.round(s.codeRatio * 100) });
             }
         }
     );
@@ -446,10 +448,9 @@ function detectColumns(rows) {
         function (a, b) { return b.avgLen - a.avgLen; },
         "description",
         {
-            none: "No column looked like a description column — Description left unassigned.",
+            none: t("bqimport.detect.desc.none"),
             found: function (s) {
-                return "column " + (s.col + 1) + ": longest average text (" +
-                    Math.round(s.avgLen) + " characters) — read as Description.";
+                return t("bqimport.detect.desc.found", { col: s.col + 1, chars: Math.round(s.avgLen) });
             }
         }
     );
@@ -476,8 +477,8 @@ function extractItems(rows, mapping) {
     }
 
     (rows || []).forEach(function (row, index) {
-        if (bqIsBlankRow(row)) { skipped.push({ index: index, reason: "blank row" }); return; }
-        if (bqLooksLikeHeaderRow(row)) { skipped.push({ index: index, reason: "header row" }); return; }
+        if (bqIsBlankRow(row)) { skipped.push({ index: index, reason: t("bqimport.skip.blankRow") }); return; }
+        if (bqLooksLikeHeaderRow(row)) { skipped.push({ index: index, reason: t("bqimport.skip.headerRow") }); return; }
 
         var descRaw = cellAt(row, "description");
         var desc = descRaw !== undefined && descRaw !== null ? String(descRaw).trim() : "";
@@ -489,7 +490,7 @@ function extractItems(rows, mapping) {
         var code = codeRaw !== undefined && codeRaw !== null ? String(codeRaw).trim() : "";
 
         if (desc === "") {
-            skipped.push({ index: index, reason: "no description found in this row" });
+            skipped.push({ index: index, reason: t("bqimport.skip.noDescription") });
             return;
         }
 
@@ -499,11 +500,11 @@ function extractItems(rows, mapping) {
         }
 
         if (BQ_TOTAL_RE.test(desc)) {
-            skipped.push({ index: index, reason: "subtotal or total row" });
+            skipped.push({ index: index, reason: t("bqimport.skip.subtotal") });
         } else if (unit === "") {
-            skipped.push({ index: index, reason: "section heading (no rate, no unit)" });
+            skipped.push({ index: index, reason: t("bqimport.skip.sectionHeading") });
         } else {
-            skipped.push({ index: index, reason: "no parseable rate in this row" });
+            skipped.push({ index: index, reason: t("bqimport.skip.noRate") });
         }
     });
 

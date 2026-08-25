@@ -1,7 +1,16 @@
 /* VO-AI | permissions.js
    The template's "each role can only edit the yellow things" rule,
-   in exactly one place. No dependencies. */
+   in exactly one place. */
 
+if (typeof require !== "undefined" && typeof module !== "undefined") {
+    var { t } = require("./i18n.js");
+}
+
+/* Kept as plain English — a handful of call sites outside the browser
+   render path (and any future non-i18n consumer) still want a raw
+   label. Display code should prefer t("role.<id>.label") via
+   js/i18n.js so it follows the current language; this map is the
+   English source of truth those keys are built from. */
 const ROLE_LABEL = {
     contractor: "Contractor QS",
     consultant: "Consultant QS",
@@ -60,17 +69,17 @@ function lockReason(field, vo, role) {
     if (canEdit(field, vo, role)) return "";
 
     const owner = FIELD_OWNER[field];
-    if (!owner) return "This field is calculated by VO-AI and cannot be edited.";
+    if (!owner) return t("lock.calculated");
     if (owner !== role) {
-        return "Read-only — this column belongs to the " + ROLE_LABEL[owner] + ".";
+        return t("lock.notOwner", { role: t("role." + owner + ".label", {}) });
     }
     if (role === "contractor") {
-        return "Locked — the consultant has already assessed this VO.";
+        return t("lock.contractorLocked");
     }
     if (role === "consultant") {
-        return "Locked — waiting for the contractor to submit the VO.";
+        return t("lock.consultantLocked");
     }
-    return "Locked — waiting for the consultant's approval.";
+    return t("lock.clientLocked");
 }
 
 if (typeof module !== "undefined" && module.exports) {

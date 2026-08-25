@@ -4,6 +4,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, voValue, projectStats, today } = require("./calc.js");
     var { statusPill, escapeHtml } = require("./ui.js");
     var { deadlineSummary } = require("./deadlines.js");
+    var { t } = require("./i18n.js");
 }
 
 /* A one-line "where do my contractual deadlines stand" summary for the
@@ -14,9 +15,9 @@ function deadlinePositionText(project, role, todayIso) {
     const summary = deadlineSummary(project, role, todayIso);
     const outstanding = summary.items.filter(i => !i.satisfied && i.state !== "not-started");
     if (outstanding.length === 0) return "";
-    const bits = [outstanding.length + " deadline(s) outstanding"];
-    if (summary.overdue > 0) bits.push(summary.overdue + " overdue");
-    if (summary.dueSoon > 0) bits.push(summary.dueSoon + " due within 7 days");
+    const bits = [t("dashboard.deadline.outstanding", { n: outstanding.length })];
+    if (summary.overdue > 0) bits.push(t("dashboard.deadline.overdue", { n: summary.overdue }));
+    if (summary.dueSoon > 0) bits.push(t("dashboard.deadline.dueSoon", { n: summary.dueSoon }));
     return bits.join(", ") + ".";
 }
 
@@ -30,8 +31,8 @@ function actionItems(project, role) {
             .map(v => ({
                 vo: v,
                 text: v.evaluateStatus === "Rejected"
-                    ? "Rejected by the consultant — revise and submit again."
-                    : "Draft — complete the measurement and submit to the consultant."
+                    ? t("dashboard.action.rejected")
+                    : t("dashboard.action.draft")
             }));
     }
 
@@ -39,24 +40,24 @@ function actionItems(project, role) {
         return vos
             .filter(v => v.submitted &&
                 (v.evaluateStatus === "Pending" || v.evaluateStatus === "Under Review"))
-            .map(v => ({ vo: v, text: "Awaiting your assessment and rate cross-check." }));
+            .map(v => ({ vo: v, text: t("dashboard.action.awaitingAssessment") }));
     }
 
     return vos
         .filter(v => v.evaluateStatus === "Approved" && v.certifiedStatus === "Pending")
-        .map(v => ({ vo: v, text: "Approved by the consultant — awaiting your certification." }));
+        .map(v => ({ vo: v, text: t("dashboard.action.awaitingCert") }));
 }
 
 function renderStatCards(stats, role) {
     const cards = [
-        { icon: "▧", cls: "blue",   label: "Total VOs",     value: stats.total,
-          note: stats.draft + " still in draft" },
-        { icon: "◷", cls: "orange", label: "Pending review", value: stats.pending,
-          note: stats.pending > 0 ? "Requires attention" : "Nothing waiting", warn: stats.pending > 0 },
-        { icon: "✓", cls: "green",  label: "Approved",       value: stats.approved,
-          note: stats.certified + " certified by the client" },
-        { icon: "RM", cls: "purple", label: "Total VO value", value: rm(stats.value),
-          note: stats.timeImpact + " day(s) approved time impact" }
+        { icon: "▧", cls: "blue",   label: t("dashboard.stat.total"),     value: stats.total,
+          note: t("dashboard.stat.totalNote", { n: stats.draft }) },
+        { icon: "◷", cls: "orange", label: t("dashboard.stat.pending"), value: stats.pending,
+          note: stats.pending > 0 ? t("dashboard.stat.pendingNoteWarn") : t("dashboard.stat.pendingNoteOk"), warn: stats.pending > 0 },
+        { icon: "✓", cls: "green",  label: t("dashboard.stat.approved"),       value: stats.approved,
+          note: t("dashboard.stat.approvedNote", { n: stats.certified }) },
+        { icon: "RM", cls: "purple", label: t("dashboard.stat.value"), value: rm(stats.value),
+          note: t("dashboard.stat.valueNote", { n: stats.timeImpact }) }
     ];
 
     return cards.map(c =>
@@ -74,7 +75,7 @@ function renderRecentRows(vos) {
         String(b.dateIssued || "").localeCompare(String(a.dateIssued || "")));
 
     if (sorted.length === 0) {
-        return '<tr><td colspan="5" class="empty-state">No variation orders yet.</td></tr>';
+        return '<tr><td colspan="5" class="empty-state">' + escapeHtml(t("dashboard.recent.empty")) + '</td></tr>';
     }
 
     return sorted.slice(0, 6).map(v =>
@@ -96,7 +97,7 @@ if (typeof module !== "undefined" && module.exports) {
 
 if (typeof document !== "undefined") {
     (function () {
-        const ctx = mountChrome("dashboard", "Dashboard", "VO-AI / Dashboard");
+        const ctx = mountChrome("dashboard", t("nav.dashboard"), t("crumb.dashboard"));
         if (!ctx) return;
 
         const { session, project } = ctx;
@@ -104,14 +105,14 @@ if (typeof document !== "undefined") {
         /* The breadcrumb must name the project, not the user — mountChrome
            resolves the project, so fill it in once we have it. */
         const crumbEl = document.querySelector(".breadcrumb");
-        if (crumbEl) crumbEl.textContent = "Project / " + project.name;
+        if (crumbEl) crumbEl.textContent = t("crumb.project", { name: project.name });
 
         const stats = projectStats(project);
 
         document.getElementById("greeting").textContent =
-            "Hello, " + session.name;
+            t("dashboard.greeting", { name: session.name });
         document.getElementById("greetingSub").innerHTML =
-            "Your variation orders for <strong>" + escapeHtml(project.name) + "</strong>.";
+            t("dashboard.greetingSub", { name: "<strong>" + escapeHtml(project.name) + "</strong>" });
 
         document.getElementById("statCards").innerHTML = renderStatCards(stats, session.role);
         document.getElementById("recentBody").innerHTML = renderRecentRows(project.vos);
@@ -134,7 +135,7 @@ if (typeof document !== "undefined") {
         /* Action list */
         const items = actionItems(project, session.role);
         document.getElementById("actionList").innerHTML = items.length === 0
-            ? '<div class="empty-state">Nothing needs your attention right now.</div>'
+            ? '<div class="empty-state">' + escapeHtml(t("dashboard.action.empty")) + '</div>'
             : items.map(i =>
                 '<a class="finding" style="text-decoration:none;color:inherit" ' +
                 'href="vo.html?id=' + encodeURIComponent(i.vo.id) + '">' +

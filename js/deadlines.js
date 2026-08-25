@@ -4,6 +4,10 @@
    ISO "YYYY-MM-DD" strings and all arithmetic is done in UTC so a
    viewer's timezone can never shift a due date by a day. */
 
+if (typeof require !== "undefined" && typeof module !== "undefined") {
+    var { t } = require("./i18n.js");
+}
+
 /* ---------- the three periods, as named constants ----------
    The client specified these; INFO_REQUEST_DAYS's start date (the date
    the contractor issues the VO) is VO-AI's interpretation of an
@@ -77,12 +81,12 @@ function deadlinesFor(vo, todayIso) {
         evalDue = addDays(vo.dateIssued, EVALUATION_DAYS);
         evalDays = daysBetween(todayIso, evalDue);
     } else {
-        evalNote = "No issue date recorded yet — this clock has not started.";
+        evalNote = t("deadline.note.notStarted");
     }
-    if (evalSatisfied) evalNote = "Evaluation completed (" + vo.evaluateStatus + ").";
+    if (evalSatisfied) evalNote = t("deadline.note.evalCompleted", { status: t("status." + vo.evaluateStatus, {}) });
     items.push({
         id: "evaluation",
-        label: "Evaluation",
+        label: t("deadline.evaluation"),
         owner: "consultant",
         dueDate: evalDue,
         daysRemaining: evalSatisfied ? null : evalDays,
@@ -97,21 +101,21 @@ function deadlinesFor(vo, todayIso) {
     let reqDue = null, reqDays = null, reqNote = "", reqSatisfied = false;
     if (vo.infoRequestedAt) {
         reqSatisfied = true;
-        reqNote = "Information request made on " + vo.infoRequestedAt + ".";
+        reqNote = t("deadline.note.reqMade", { date: vo.infoRequestedAt });
         reqDue = hasIssued ? addDays(vo.dateIssued, INFO_REQUEST_DAYS) : null;
     } else if (evalSatisfied) {
         reqSatisfied = true;
-        reqNote = "Moot — the VO was evaluated without a request for further information.";
+        reqNote = t("deadline.note.reqMoot");
         reqDue = hasIssued ? addDays(vo.dateIssued, INFO_REQUEST_DAYS) : null;
     } else if (hasIssued) {
         reqDue = addDays(vo.dateIssued, INFO_REQUEST_DAYS);
         reqDays = daysBetween(todayIso, reqDue);
     } else {
-        reqNote = "No issue date recorded yet — this clock has not started.";
+        reqNote = t("deadline.note.notStarted");
     }
     items.push({
         id: "info-request",
-        label: "Request for further information",
+        label: t("deadline.infoRequest"),
         owner: "consultant",
         dueDate: reqDue,
         daysRemaining: reqSatisfied ? null : reqDays,
@@ -126,20 +130,20 @@ function deadlinesFor(vo, todayIso) {
        request date. */
     let resDue = null, resDays = null, resNote = "", resSatisfied = false;
     if (!vo.infoRequestedAt) {
-        resNote = "The consultant has not requested further information — this clock has not started.";
+        resNote = t("deadline.note.resNotRequested");
     } else {
         resDue = addDays(vo.infoRequestedAt, INFO_RESPONSE_DAYS);
         const docs = [].concat(vo.revisedDrawing || [], vo.oldDrawing || [], vo.supportingDocs || []);
         resSatisfied = docs.some(d => d && d.at && d.at >= vo.infoRequestedAt);
         if (resSatisfied) {
-            resNote = "A document was attached on or after the request date.";
+            resNote = t("deadline.note.resDone");
         } else {
             resDays = daysBetween(todayIso, resDue);
         }
     }
     items.push({
         id: "response",
-        label: "Response to information request",
+        label: t("deadline.response"),
         owner: "contractor",
         dueDate: resDue,
         daysRemaining: resSatisfied ? null : resDays,

@@ -6,11 +6,28 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { analyse, checkRate } = require("./analysis.js");
     var { escapeHtml } = require("./ui.js");
     var { versionCount } = require("./documents.js");
+    var { t } = require("./i18n.js");
 }
 
 /* -----------------------------------------------------------
    Small shared builders
 ----------------------------------------------------------- */
+
+/* typeOfInstruction is a raw English data VALUE — never renamed; see
+   optionDisplayText() in js/page-vo.js for the same pattern. */
+function instructionTypeLabel(value) {
+    if (!value) return value;
+    const key = "instructionType." + value;
+    const label = t(key, {});
+    return label === key ? value : label;
+}
+
+function statusLabel(value) {
+    if (!value) return "—";
+    const key = "status." + value;
+    const label = t(key, {});
+    return label === key ? value : label;
+}
 
 /* One numbered section listing attached documents with the date each
    was attached — used for the revised drawing, old drawing and
@@ -18,13 +35,13 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
    the sequence the client asked for, not collapsed into one line. */
 function docSection(files, label) {
     if (!files || files.length === 0) {
-        return '<p class="empty-state">No ' + escapeHtml(label) + ' attached.</p>';
+        return '<p class="empty-state">' + t("report.docSection.none", { label: escapeHtml(label) }) + '</p>';
     }
     return '<ul class="report-doc-list">' + files.map(f => {
         const vCount = versionCount(f);
         return "<li>" + escapeHtml(f.name) +
-        ' <span class="rate-detail">— attached ' + prettyDate(f.at) +
-        (vCount > 1 ? " · " + (vCount - 1) + " prior version(s) on record" : "") +
+        ' <span class="rate-detail">— ' + t("report.docSection.attached", { date: prettyDate(f.at) }) +
+        (vCount > 1 ? " · " + t("report.docSection.priorVersions", { n: vCount - 1 }) : "") +
         "</span></li>";
     }).join("") + "</ul>";
 }
@@ -36,12 +53,14 @@ function elementsBlock(a) {
     const detected = (a.elements && a.elements.detected) || [];
     if (detected.length === 0) return "";
     const related = a.elements.related || [];
-    let html = '<p class="rate-detail"><strong>Elements affected:</strong> ' +
-        detected.map(e => escapeHtml(e.name)).join(", ") + "</p>";
+    let html = '<p class="rate-detail"><strong>' + escapeHtml(t("report.elementsAffected")) + '</strong> ' +
+        detected.map(e => escapeHtml(t("element." + e.id + ".name"))).join(", ") + "</p>";
     if (related.length > 0) {
         html += related.map(r =>
-            '<div class="finding"><span>Confirm whether ' + escapeHtml(r.element.name) +
-            " also requires re-measurement — " + escapeHtml(r.note) + "</span></div>"
+            '<div class="finding"><span>' + t("report.confirmRelated", {
+                name: escapeHtml(t("element." + r.element.id + ".name")),
+                note: escapeHtml(t("element." + r.because + ".note"))
+            }) + "</span></div>"
         ).join("");
     }
     return html;
@@ -68,11 +87,14 @@ function fullMeasurementTable(vo, project) {
             '<td><span class="rate-flag ' + check.state + '">' + check.label + "</span>" +
                 '<div class="rate-detail">' + escapeHtml(check.detail) + "</div></td>" +
         "</tr>";
-    }).join("") || '<tr><td colspan="8" class="empty-state">No measurement entered.</td></tr>';
+    }).join("") || '<tr><td colspan="8" class="empty-state">' + escapeHtml(t("report.measurement.none")) + '</td></tr>';
 
     return '<div class="table-scroll"><table><thead><tr>' +
-        "<th>#</th><th>DESCRIPTION</th><th>UNIT</th><th>QTY</th><th>RATE</th>" +
-        "<th>CLAIMED</th><th>ASSESSED</th><th>RATE CROSS-CHECK</th>" +
+        "<th>" + escapeHtml(t("report.col.no")) + "</th><th>" + escapeHtml(t("report.col.description")) +
+        "</th><th>" + escapeHtml(t("report.col.unit")) + "</th><th>" + escapeHtml(t("report.col.qty")) +
+        "</th><th>" + escapeHtml(t("report.col.rate")) + "</th>" +
+        "<th>" + escapeHtml(t("report.col.claimed")) + "</th><th>" + escapeHtml(t("report.col.assessed")) +
+        "</th><th>" + escapeHtml(t("report.col.rateCheck")) + "</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>";
 }
 
@@ -90,10 +112,12 @@ function claimedMeasurementTable(vo) {
             "<td>" + rm(row.rate) + "</td>" +
             "<td>" + rm((Number(row.qty) || 0) * (Number(row.rate) || 0)) + "</td>" +
         "</tr>"
-    ).join("") || '<tr><td colspan="6" class="empty-state">No measurement entered.</td></tr>';
+    ).join("") || '<tr><td colspan="6" class="empty-state">' + escapeHtml(t("report.measurement.none")) + '</td></tr>';
 
     return '<div class="table-scroll"><table><thead><tr>' +
-        "<th>#</th><th>DESCRIPTION</th><th>UNIT</th><th>QTY</th><th>RATE</th><th>CLAIMED</th>" +
+        "<th>" + escapeHtml(t("report.col.no")) + "</th><th>" + escapeHtml(t("report.col.description")) +
+        "</th><th>" + escapeHtml(t("report.col.unit")) + "</th><th>" + escapeHtml(t("report.col.qty")) +
+        "</th><th>" + escapeHtml(t("report.col.rate")) + "</th><th>" + escapeHtml(t("report.col.claimed")) + "</th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div>";
 }
 
@@ -101,20 +125,18 @@ function claimedMeasurementTable(vo) {
    approves a value, they do not check a measurement row. */
 function clientValuationSummary(vo) {
     const count = (vo.measurement || []).length;
-    return "<p>" + count + " measurement item(s) claimed. The claimed, assessed and " +
-        "certified values are set out below; the itemised take-off and rate cross-check " +
-        "are held in the consultant's assessment document.</p>";
+    return "<p>" + t("report.claimedItems", { n: count }) + "</p>";
 }
 
 function renderTotals(a, certifiedCell, opts) {
     opts = opts || {};
-    const assessedLabel = opts.readOnly ? "Consultant assessed (read-only)" : "Consultant assessed";
-    const varianceLabel = opts.readOnly ? "Variance (read-only)" : "Variance";
+    const assessedLabel = opts.readOnly ? t("report.totals.assessedReadOnly") : t("report.totals.assessed");
+    const varianceLabel = opts.readOnly ? t("report.totals.varianceReadOnly") : t("report.totals.variance");
     return '<div class="report-totals">' +
-        "<div><small>Contractor claimed</small><strong>" + rm(a.contractorTotal) + "</strong></div>" +
-        "<div><small>" + assessedLabel + "</small><strong>" + rm(a.assessedTotal) + "</strong></div>" +
-        "<div><small>" + varianceLabel + "</small><strong>" + rm(a.variance) + "</strong></div>" +
-        "<div><small>Certified value</small><strong>" + certifiedCell + "</strong></div>" +
+        "<div><small>" + escapeHtml(t("report.totals.claimed")) + "</small><strong>" + rm(a.contractorTotal) + "</strong></div>" +
+        "<div><small>" + escapeHtml(assessedLabel) + "</small><strong>" + rm(a.assessedTotal) + "</strong></div>" +
+        "<div><small>" + escapeHtml(varianceLabel) + "</small><strong>" + rm(a.variance) + "</strong></div>" +
+        "<div><small>" + escapeHtml(t("report.totals.certified")) + "</small><strong>" + certifiedCell + "</strong></div>" +
     "</div>";
 }
 
@@ -137,12 +159,16 @@ function renderReport(vo, project, role) {
         row.assessedQty !== "" && row.assessedQty !== null && row.assessedQty !== undefined
     ) || Boolean(vo.assessmentNote);
 
+    /* a.clause.title/entitlement/evidence are the clause's own English
+       text — see js/i18n.js's clause.note for why that is never
+       translated; the note itself is. */
     const clauseBlock = a.clause
         ? "<p><strong>" + escapeHtml(a.clause.form + " " + a.clause.ref + " — " +
             a.clause.title) + "</strong></p><p class=\"rate-detail\">" +
             escapeHtml(a.clause.entitlement) + "</p><p class=\"rate-detail\">" +
-            "<strong>Evidence required:</strong> " + escapeHtml(a.clause.evidence) + "</p>"
-        : "<p class=\"rate-detail\">No governing clause identified from the description.</p>";
+            "<strong>" + escapeHtml(t("clause.evidenceRequired")) + "</strong> " + escapeHtml(a.clause.evidence) + "</p>" +
+            '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>"
+        : '<p class="rate-detail">' + escapeHtml(t("report.clause.none")) + "</p>";
 
     let measurementBody, totalsHtml;
     if (role === "client") {
@@ -168,62 +194,63 @@ function renderReport(vo, project, role) {
     '<div class="report-sheet">' +
 
       '<div class="report-head">' +
-        "<div><h1>Draft Variation Order</h1>" +
+        "<div><h1>" + escapeHtml(t("report.heading")) + "</h1>" +
         "<p>" + escapeHtml(project.name) + "</p>" +
-        "<p>Contract " + escapeHtml(project.contractNo || "—") +
-            " · Client " + escapeHtml(project.client || "—") + "</p></div>" +
+        "<p>" + t("report.contractLine", { no: escapeHtml(project.contractNo || "—"), client: escapeHtml(project.client || "—") }) + "</p></div>" +
         '<div class="report-ref"><strong>' + escapeHtml(vo.no) + "</strong>" +
-        "<span>Issued " + prettyDate(vo.dateIssued) + "</span></div>" +
+        "<span>" + t("report.issued", { date: prettyDate(vo.dateIssued) }) + "</span></div>" +
       "</div>" +
 
-      "<h3>1. Instruction</h3>" +
+      "<h3>" + escapeHtml(t("report.section.instruction")) + "</h3>" +
       "<p>" + escapeHtml(vo.description || "—") + "</p>" +
-      '<p class="rate-detail">' + escapeHtml(vo.typeOfInstruction || "—") +
-        " · Reference " + escapeHtml(vo.instructionNo || "—") +
-        " · Due " + prettyDate(vo.dueDate) + "</p>" +
+      '<p class="rate-detail">' + t("report.instructionLine", {
+            type: escapeHtml(instructionTypeLabel(vo.typeOfInstruction) || "—"),
+            ref: escapeHtml(vo.instructionNo || "—"),
+            date: prettyDate(vo.dueDate)
+        }) + "</p>" +
 
-      "<h3>2. Classification and affected elements</h3>" +
-      "<p>" + escapeHtml(a.classification.label) +
-        " affecting <strong>" + escapeHtml(a.classification.affectedWork) + "</strong></p>" +
+      "<h3>" + escapeHtml(t("report.section.classification")) + "</h3>" +
+      "<p>" + t("report.classificationLine", {
+            label: escapeHtml(a.classification.label),
+            work: "<strong>" + escapeHtml(a.classification.affectedWork) + "</strong>"
+        }) + "</p>" +
       elementsBlock(a) +
 
-      "<h3>3. Contractual basis</h3>" + clauseBlock +
+      "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + clauseBlock +
 
-      "<h3>4. Revised drawing</h3>" + docSection(vo.revisedDrawing, "revised drawing") +
+      "<h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) +
 
-      "<h3>5. Old drawing (superseded)</h3>" + docSection(vo.oldDrawing, "superseded drawing") +
+      "<h3>" + escapeHtml(t("report.section.oldDrawing")) + "</h3>" + docSection(vo.oldDrawing, t("report.docLabel.oldDrawing")) +
 
-      "<h3>6. Measurement and valuation</h3>" +
+      "<h3>" + escapeHtml(t("report.section.measurement")) + "</h3>" +
       measurementBody + totalsHtml +
 
-      "<h3>7. Supporting documents</h3>" + docSection(vo.supportingDocs, "supporting document") +
+      "<h3>" + escapeHtml(t("report.section.supportingDocs")) + "</h3>" + docSection(vo.supportingDocs, t("report.docLabel.supportingDocs")) +
 
-      "<h3>8. Findings</h3>" +
-      (a.findings.length === 0 ? "<p>Nothing flagged.</p>"
+      "<h3>" + escapeHtml(t("report.section.findings")) + "</h3>" +
+      (a.findings.length === 0 ? "<p>" + escapeHtml(t("report.nothingFlagged")) + "</p>"
         : a.findings.map(f => '<div class="finding"><span>' + escapeHtml(f) +
                               "</span></div>").join("")) +
 
-      "<h3>9. Time impact</h3>" +
-      "<p>" + (Number(vo.timeImpact) || 0) + " day(s) claimed extension of time.</p>" +
+      "<h3>" + escapeHtml(t("report.section.timeImpact")) + "</h3>" +
+      "<p>" + t("report.timeImpactLine", { n: Number(vo.timeImpact) || 0 }) + "</p>" +
 
-      "<h3>10. Status and signatures</h3>" +
-      "<p>Consultant evaluation: <strong>" + escapeHtml(vo.evaluateStatus) + "</strong><br>" +
-      "Client certification: <strong>" + escapeHtml(vo.certifiedStatus) + "</strong></p>" +
-      (vo.assessmentNote ? '<p class="rate-detail"><strong>Consultant\'s assessment:</strong> ' +
+      "<h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
+      "<p>" + t("report.evaluationLine", { status: "<strong>" + escapeHtml(t("status." + vo.evaluateStatus, {})) + "</strong>" }) + "<br>" +
+      t("report.certificationLine", { status: "<strong>" + escapeHtml(t("status." + vo.certifiedStatus, {})) + "</strong>" }) + "</p>" +
+      (vo.assessmentNote ? '<p class="rate-detail"><strong>' + t("vo.field.assessmentNote") + ':</strong> ' +
         escapeHtml(vo.assessmentNote) + "</p>" : "") +
-      (showRecommendation ? '<p class="rate-detail"><strong>Consultant\'s recommendation:</strong> ' +
+      (showRecommendation ? '<p class="rate-detail"><strong>' + t("report.recommendationLabel") + '</strong> ' +
         escapeHtml(vo.consultantRemark) + "</p>" : "") +
 
       '<div class="signatures">' +
-        "<div><span></span><small>Contractor QS</small></div>" +
-        "<div><span></span><small>Consultant QS</small></div>" +
-        "<div><span></span><small>Client / Developer</small></div>" +
+        "<div><span></span><small>" + escapeHtml(t("report.sig.contractor")) + "</small></div>" +
+        "<div><span></span><small>" + escapeHtml(t("report.sig.consultant")) + "</small></div>" +
+        "<div><span></span><small>" + escapeHtml(t("report.sig.client")) + "</small></div>" +
       "</div>" +
 
-      '<div class="disclaimer"><strong>⚠ Professional Review Required</strong>' +
-      "<span>This draft is a decision-support output generated by VO-AI from the data " +
-      "entered above. It is not a certificate. The responsible construction professional " +
-      "must verify every figure before issue.</span></div>" +
+      '<div class="disclaimer"><strong>' + escapeHtml(t("report.disclaimer.title")) + '</strong>' +
+      "<span>" + escapeHtml(t("report.disclaimer.body")) + "</span></div>" +
 
     "</div>";
 }
@@ -261,50 +288,55 @@ function renderSummaryReport(project) {
         : null;
 
     const bodyRows = rows.length === 0
-        ? '<tr><td colspan="9" class="empty-state">No variation orders on this project.</td></tr>'
+        ? '<tr><td colspan="9" class="empty-state">' + escapeHtml(t("report.summary.empty")) + '</td></tr>'
         : rows.map(r => "<tr>" +
             "<td>" + escapeHtml(r.vo.no) + "</td>" +
             "<td>" + escapeHtml(r.vo.description || "—") + "</td>" +
             "<td>" + prettyDate(r.vo.dateIssued) + "</td>" +
-            "<td>" + escapeHtml(r.vo.evaluateStatus || "—") + "</td>" +
-            "<td>" + escapeHtml(r.vo.certifiedStatus || "—") + "</td>" +
+            "<td>" + escapeHtml(statusLabel(r.vo.evaluateStatus)) + "</td>" +
+            "<td>" + escapeHtml(statusLabel(r.vo.certifiedStatus)) + "</td>" +
             "<td>" + rm(r.claimed) + "</td>" +
             "<td>" + rm(r.assessed) + "</td>" +
             "<td>" + (r.certified === null ? "—" : rm(r.certified)) + "</td>" +
-            "<td>" + (Number(r.vo.timeImpact) || 0) + " day(s)</td>" +
+            "<td>" + t("report.summary.dayUnit", { n: Number(r.vo.timeImpact) || 0 }) + "</td>" +
         "</tr>").join("");
 
     return '' +
     '<div class="report-sheet">' +
 
       '<div class="report-head">' +
-        "<div><h1>Variation Orders — Summary Report</h1>" +
+        "<div><h1>" + escapeHtml(t("report.summary.heading")) + "</h1>" +
         "<p>" + escapeHtml((project && project.name) || "—") + "</p>" +
-        "<p>Contract " + escapeHtml((project && project.contractNo) || "—") +
-            " · Client " + escapeHtml((project && project.client) || "—") + "</p></div>" +
-        '<div class="report-ref"><strong>' + rows.length + " VO(s)</strong>" +
-        "<span>Printed " + prettyDate(today()) + "</span></div>" +
+        "<p>" + t("report.contractLine", {
+            no: escapeHtml((project && project.contractNo) || "—"),
+            client: escapeHtml((project && project.client) || "—")
+        }) + "</p></div>" +
+        '<div class="report-ref"><strong>' + escapeHtml(t("report.summary.voCount", { n: rows.length })) + "</strong>" +
+        "<span>" + escapeHtml(t("report.summary.printed", { date: prettyDate(today()) })) + "</span></div>" +
       "</div>" +
 
       '<div class="table-scroll"><table><thead><tr>' +
-        "<th>VO NO.</th><th>DESCRIPTION</th><th>DATE ISSUED</th><th>EVALUATE STATUS</th>" +
-        "<th>CERTIFIED STATUS</th><th>CLAIMED</th><th>ASSESSED</th><th>CERTIFIED</th><th>TIME IMPACT</th>" +
+        "<th>" + escapeHtml(t("report.summary.col.no")) + "</th><th>" + escapeHtml(t("report.summary.col.description")) +
+        "</th><th>" + escapeHtml(t("report.summary.col.dateIssued")) + "</th><th>" + escapeHtml(t("report.summary.col.evaluateStatus")) + "</th>" +
+        "<th>" + escapeHtml(t("report.summary.col.certifiedStatus")) + "</th><th>" + escapeHtml(t("report.summary.col.claimed")) +
+        "</th><th>" + escapeHtml(t("report.summary.col.assessed")) + "</th><th>" + escapeHtml(t("report.summary.col.certified")) +
+        "</th><th>" + escapeHtml(t("report.summary.col.timeImpact")) + "</th>" +
       "</tr></thead><tbody>" + bodyRows + "</tbody></table></div>" +
 
       '<div class="report-totals">' +
-        "<div><small>Total claimed</small><strong>" + rm(totalClaimed) + "</strong></div>" +
-        "<div><small>Total assessed</small><strong>" + rm(totalAssessed) + "</strong></div>" +
-        "<div><small>Total certified</small><strong>" + rm(totalCertified) + "</strong></div>" +
-        "<div><small>Total approved time impact</small><strong>" + totalTimeImpact + " day(s)</strong></div>" +
+        "<div><small>" + escapeHtml(t("report.summary.totalClaimed")) + "</small><strong>" + rm(totalClaimed) + "</strong></div>" +
+        "<div><small>" + escapeHtml(t("report.summary.totalAssessed")) + "</small><strong>" + rm(totalAssessed) + "</strong></div>" +
+        "<div><small>" + escapeHtml(t("report.summary.totalCertified")) + "</small><strong>" + rm(totalCertified) + "</strong></div>" +
+        "<div><small>" + escapeHtml(t("report.summary.totalTimeImpact")) + "</small><strong>" +
+            t("report.summary.dayUnit", { n: totalTimeImpact }) + "</strong></div>" +
       "</div>" +
 
-      (pctOfContract ? '<p class="rate-detail"><strong>Certified total is ' +
-        escapeHtml(pctOfContract) + " of the contract sum</strong> (" + rm(contractSum) + ").</p>" : "") +
+      (pctOfContract ? '<p class="rate-detail"><strong>' +
+            t("report.summary.pctOfContractBold", { pct: escapeHtml(pctOfContract) }) +
+            "</strong> (" + rm(contractSum) + ").</p>" : "") +
 
-      '<div class="disclaimer"><strong>⚠ Professional Review Required</strong>' +
-      "<span>This summary is a decision-support output generated by VO-AI from the data " +
-      "entered above. It is not a certificate. The responsible construction professional " +
-      "must verify every figure before issue.</span></div>" +
+      '<div class="disclaimer"><strong>' + escapeHtml(t("report.disclaimer.title")) + '</strong>' +
+      "<span>" + escapeHtml(t("report.summary.disclaimerBody")) + "</span></div>" +
 
     "</div>";
 }
@@ -315,7 +347,7 @@ if (typeof module !== "undefined" && module.exports) {
 
 if (typeof document !== "undefined") {
     (function () {
-        const ctx = mountChrome("report", "VO Report", "VO-AI / VO Reports");
+        const ctx = mountChrome("report", t("nav.report"), t("crumb.report"));
         if (!ctx) return;
         const { project, session } = ctx;
         const role = session.role;
@@ -327,7 +359,7 @@ if (typeof document !== "undefined") {
 
         picker.innerHTML = (project.vos || []).map(v =>
             '<option value="' + escapeHtml(v.id) + '"' + (v.id === voId ? " selected" : "") +
-            ">" + escapeHtml(v.no + " — " + (v.description || "Untitled")) + "</option>"
+            ">" + escapeHtml(v.no + " — " + (v.description || t("report.pickerUntitled"))) + "</option>"
         ).join("");
         picker.value = voId || (project.vos[0] || {}).id || "";
 
@@ -339,7 +371,7 @@ if (typeof document !== "undefined") {
             }
             picker.hidden = false;
             const vo = (project.vos || []).find(v => v.id === picker.value) || project.vos[0];
-            if (!vo) { host.innerHTML = '<div class="empty-state">No VOs to report on.</div>'; return; }
+            if (!vo) { host.innerHTML = '<div class="empty-state">' + escapeHtml(t("report.noVos")) + '</div>'; return; }
             host.innerHTML = renderReport(vo, project, role);
         }
 

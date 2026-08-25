@@ -8,13 +8,22 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { analyse, classificationBasis } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml } = require("./ui.js");
+    var { t } = require("./i18n.js");
 }
 
+/* Raw English data VALUEs — never renamed, see optionDisplayText() in
+   js/page-vo.js for the same pattern applied to typeOfInstruction. */
 const INSTRUCTION_TYPES = ["Architect's Instruction (AI)", "Engineer's instruction (EI)"];
+
+function instructionTypeLabel(value) {
+    const key = "instructionType." + value;
+    const label = t(key, {});
+    return label === key ? value : label;
+}
 
 /* Same format as bqOptions in js/page-vo.js: code · description · rate/unit. */
 function bqOptions(project, selectedId) {
-    const opts = ['<option value="">— select the BQ item being changed —</option>'];
+    const opts = ['<option value="">' + escapeHtml(t("analysis.field.originalItemSelect")) + '</option>'];
     (project.bq || []).forEach(b => {
         opts.push('<option value="' + escapeHtml(b.id) + '"' +
             (b.id === selectedId ? " selected" : "") + ">" +
@@ -29,44 +38,41 @@ function bqOptions(project, selectedId) {
 function renderOriginalItemField(project, selectedId) {
     const bq = project.bq || [];
     if (bq.length === 0) {
-        return '<div class="field"><label>Original item (from priced BQ)</label>' +
-               '<div class="empty-state">This project has no priced BQ items yet. Ask the ' +
-               'consultant QS to upload the priced Bills of Quantities before running an ' +
-               'analysis.</div></div>';
+        return '<div class="field"><label>' + escapeHtml(t("analysis.field.originalItem")) + '</label>' +
+               '<div class="empty-state">' + escapeHtml(t("analysis.field.originalItemEmpty")) + '</div></div>';
     }
-    return '<div class="field"><label>Original item (from priced BQ)</label>' +
+    return '<div class="field"><label>' + escapeHtml(t("analysis.field.originalItem")) + '</label>' +
            '<select id="vaOriginalItem">' + bqOptions(project, selectedId) + "</select></div>";
 }
 
 function renderForm(project) {
     return '' +
-        '<div class="field"><label>Variation title / description of the proposed change</label>' +
-        '<textarea id="vaDescription" placeholder="Describe what is changing and why"></textarea></div>' +
+        '<div class="field"><label>' + escapeHtml(t("analysis.field.description")) + '</label>' +
+        '<textarea id="vaDescription" placeholder="' + escapeHtml(t("analysis.field.descriptionPlaceholder")) + '"></textarea></div>' +
 
-        '<div class="field"><label>Type of instruction</label>' +
+        '<div class="field"><label>' + escapeHtml(t("analysis.field.type")) + '</label>' +
         '<select id="vaType">' +
-        INSTRUCTION_TYPES.map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) +
+        INSTRUCTION_TYPES.map(ty => '<option value="' + escapeHtml(ty) + '">' + escapeHtml(instructionTypeLabel(ty)) +
             "</option>").join("") +
         "</select></div>" +
 
         renderOriginalItemField(project, "") +
 
-        '<div class="field"><label>Revised item description</label>' +
-        '<input type="text" id="vaRevisedDesc" placeholder="e.g. Marble floor tiles 600x600mm"></div>' +
+        '<div class="field"><label>' + escapeHtml(t("analysis.field.revisedDesc")) + '</label>' +
+        '<input type="text" id="vaRevisedDesc" placeholder="' + escapeHtml(t("analysis.field.revisedDescPlaceholder")) + '"></div>' +
 
-        '<div class="field"><label>Quantity</label>' +
+        '<div class="field"><label>' + escapeHtml(t("analysis.field.qty")) + '</label>' +
         '<input type="number" id="vaQty" min="0" step="any"></div>' +
 
-        '<div class="field"><label>Revised rate, RM per unit</label>' +
+        '<div class="field"><label>' + escapeHtml(t("analysis.field.rate")) + '</label>' +
         '<input type="number" id="vaRate" min="0" step="any"></div>' +
 
         '<button type="button" class="primary-button" id="analyseBtn" ' +
-        'style="margin-top:4px">Analyse</button>';
+        'style="margin-top:4px">' + escapeHtml(t("analysis.runBtn")) + '</button>';
 }
 
 function renderAssessmentEmpty() {
-    return '<div class="empty-state">Describe the proposed change and click Analyse to see ' +
-           "the AI assessment.</div>";
+    return '<div class="empty-state">' + escapeHtml(t("analysis.empty")) + '</div>';
 }
 
 /* A substitution is two measurement rows: the contract-rate omission of
@@ -119,12 +125,12 @@ function renderClassificationBlock(a, basis) {
         basis.signals.map(s => '<div class="finding"><span>' + escapeHtml(s) + "</span></div>")
             .join("");
     return '<div class="result-group">' +
-        '<h4 class="result-group-title">Classification</h4>' +
-        '<div class="result-row"><span class="result-label">Classification</span>' +
+        '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.classification")) + '</h4>' +
+        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.classification")) + '</span>' +
         '<span class="result-value">' + escapeHtml(a.classification.label) + "</span></div>" +
-        '<div class="result-row"><span class="result-label">Affected work</span>' +
+        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.affectedWork")) + '</span>' +
         '<span class="result-value">' + escapeHtml(a.classification.affectedWork) + "</span></div>" +
-        '<p class="rate-detail" style="margin-top:10px"><strong>Basis for classification' +
+        '<p class="rate-detail" style="margin-top:10px"><strong>' + escapeHtml(t("analysis.basisTitle")) +
         "</strong></p>" +
         signalsHtml +
         '<p class="rate-detail">' + escapeHtml(basis.summary) + "</p>" +
@@ -140,22 +146,21 @@ function renderElementsBlock(a) {
     if (!els || els.detected.length === 0) return "";
 
     const detectedHtml = els.detected.map(el =>
-        '<span class="element-tag">' + escapeHtml(el.name) + "</span>").join(" ");
+        '<span class="element-tag">' + escapeHtml(t("element." + el.id + ".name")) + "</span>").join(" ");
 
     const relatedHtml = els.related.length === 0
-        ? '<p class="rate-detail">No commonly-related elements to confirm for the detected ' +
-          "element(s)." + "</p>"
+        ? '<p class="rate-detail">' + escapeHtml(t("analysis.elements.noneRelated")) + "</p>"
         : els.related.map(r =>
             '<div class="finding element-check"><label><input type="checkbox"> ' +
-            '<span class="element-tag element-tag-related">' + escapeHtml(r.element.name) +
-            "</span> — " + escapeHtml(r.note) + "</label></div>").join("");
+            '<span class="element-tag element-tag-related">' + escapeHtml(t("element." + r.element.id + ".name")) +
+            "</span> — " + escapeHtml(t("element." + r.because + ".note")) + "</label></div>").join("");
 
     return '<div class="result-group">' +
-        '<h4 class="result-group-title">Elements affected</h4>' +
-        '<div class="result-row"><span class="result-label">Detected element(s)</span>' +
+        '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.elements")) + '</h4>' +
+        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.detectedElements")) + '</span>' +
         '<span class="result-value">' + detectedHtml + "</span></div>" +
-        '<p class="rate-detail" style="margin-top:10px"><strong>Confirm whether these ' +
-        "also require measurement</strong></p>" +
+        '<p class="rate-detail" style="margin-top:10px"><strong>' + escapeHtml(t("vo.result.confirmRelated")) +
+        "</strong></p>" +
         relatedHtml +
         "</div>";
 }
@@ -163,35 +168,37 @@ function renderElementsBlock(a) {
 function renderClauseBlock(a) {
     if (!a.clause) {
         return '<div class="result-group">' +
-               '<h4 class="result-group-title">Contractual basis</h4>' +
-               '<p class="rate-detail">The change could not be classified from the ' +
-               "description, so no governing contract clause can be identified. Enter a " +
-               "clearer description and analyse again.</p></div>";
+               '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.contractualBasis")) + '</h4>' +
+               '<p class="rate-detail">' + escapeHtml(t("analysis.clause.none")) + "</p></div>";
     }
+    /* a.clause.title/entitlement/evidence are the clause's own English
+       text — see js/i18n.js's clause.note for why that is never
+       translated; the note itself is. */
     return '<div class="result-group">' +
-        '<h4 class="result-group-title">Contractual basis</h4>' +
-        '<div class="result-row"><span class="result-label">Governing clause</span>' +
+        '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.contractualBasis")) + '</h4>' +
+        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.governingClause")) + '</span>' +
         '<span class="result-value">' + escapeHtml(a.clause.form + " " + a.clause.ref) +
         "</span></div>" +
         '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
         escapeHtml(a.clause.entitlement) + "</p>" +
-        '<p class="rate-detail"><strong>Evidence required:</strong> ' +
-        escapeHtml(a.clause.evidence) + "</p></div>";
+        '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
+        escapeHtml(a.clause.evidence) + "</p>" +
+        '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p></div>";
 }
 
 /* Cost impact: the additional cost is what a QS looks for first, so it
    gets the .cost-highlight treatment; the rest are plain result rows. */
 function renderCostBlock(costs) {
     let html = '<div class="result-group">' +
-        '<h4 class="result-group-title">Cost impact</h4>' +
-        '<div class="result-row"><span class="result-label">Original cost</span>' +
+        '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.cost")) + '</h4>' +
+        '<div class="result-row"><span class="result-label">' + escapeHtml(t("analysis.cost.original")) + '</span>' +
         '<span class="result-value">' + rm(costs.originalCost) + "</span></div>" +
-        '<div class="result-row"><span class="result-label">Revised cost</span>' +
+        '<div class="result-row"><span class="result-label">' + escapeHtml(t("analysis.cost.revised")) + '</span>' +
         '<span class="result-value">' + rm(costs.revisedCost) + "</span></div>" +
-        '<div class="cost-highlight"><span class="result-label">Additional cost</span>' +
+        '<div class="cost-highlight"><span class="result-label">' + escapeHtml(t("analysis.cost.additional")) + '</span>' +
         '<span class="result-value">' + rm(costs.additionalCost) + "</span></div>";
     if (costs.pct !== null) {
-        html += '<div class="result-row"><span class="result-label">Change vs. original rate</span>' +
+        html += '<div class="result-row"><span class="result-label">' + escapeHtml(t("analysis.cost.changeVsOriginal")) + '</span>' +
             '<span class="result-value">' + (costs.pct >= 0 ? "+" : "") + costs.pct.toFixed(1) +
             "%</span></div>";
     }
@@ -204,11 +211,11 @@ function renderCostBlock(costs) {
    pasting in a change sees the system find the comparable rate on its
    own, without mistaking it for a confirmed link. */
 function renderRateRows(a) {
-    if (a.rates.rows.length === 0) return '<div class="empty-state">No measurement rows.</div>';
+    if (a.rates.rows.length === 0) return '<div class="empty-state">' + escapeHtml(t("analysis.noMeasurementRows")) + '</div>';
     return a.rates.rows.map(r => {
         const autoNote = r.check.autoMatched
             ? '<div class="rate-detail auto-match-note">' +
-              '<span class="rate-flag auto-match">Suggested match</span> ' +
+              '<span class="rate-flag auto-match">' + escapeHtml(t("vo.measurement.suggestedMatch")) + '</span> ' +
               escapeHtml(r.check.matchedItem.code + " · " + r.check.matchedItem.description) +
               " — " + escapeHtml(r.check.matchBasis) + "</div>"
             : "";
@@ -221,7 +228,7 @@ function renderRateRows(a) {
 
 function renderFindings(a) {
     return a.findings.length === 0
-        ? '<div class="empty-state">Nothing to flag.</div>'
+        ? '<div class="empty-state">' + escapeHtml(t("analysis.nothingToFlag")) + '</div>'
         : a.findings.map(f => '<div class="finding"><span>' + escapeHtml(f) +
                               "</span></div>").join("");
 }
@@ -238,16 +245,16 @@ function renderAssessmentResult(a, basis, costs, showCreateButton) {
         renderClauseBlock(a) +
         renderCostBlock(costs) +
         '<div class="result-group">' +
-        '<h4 class="result-group-title">Rate cross-check</h4>' +
+        '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.rateCheck")) + '</h4>' +
         renderRateRows(a) +
         "</div>" +
         '<div class="result-group">' +
-        '<h4 class="result-group-title">Findings</h4>' +
+        '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.findings")) + '</h4>' +
         renderFindings(a) +
         "</div>" +
         (showCreateButton
             ? '<button type="button" class="primary-button" id="createVoBtn" ' +
-              'style="margin-top:4px">Create this as a Variation Order</button>'
+              'style="margin-top:4px">' + escapeHtml(t("analysis.createVoBtn")) + '</button>'
             : "");
 }
 
@@ -262,7 +269,7 @@ function renderAssessmentResult(a, basis, costs, showCreateButton) {
 function renderAssistantSuggestions(context) {
     const list = suggestions(context);
     if (list.length === 0) {
-        return '<div class="empty-state">Run an analysis above to ask the assistant about it.</div>';
+        return '<div class="empty-state">' + escapeHtml(t("assistant.noQuestionsAnalysis")) + '</div>';
     }
     return list.map(s =>
         '<button type="button" class="assistant-suggestion-btn" data-question="' +
@@ -271,8 +278,7 @@ function renderAssistantSuggestions(context) {
 
 function renderAssistantAnswer(result) {
     if (!result) {
-        return '<div class="empty-state">Click a suggested question, or type your own, to get ' +
-            "an answer grounded in the analysis above.</div>";
+        return '<div class="empty-state">' + escapeHtml(t("assistant.answerEmptyAnalysis")) + '</div>';
     }
     const lines = result.lines.map(l =>
         '<div class="finding"><span>' + escapeHtml(l) + "</span></div>").join("");
@@ -284,14 +290,12 @@ function renderAssistantAnswer(result) {
 
 function renderAssistantPanel(context) {
     return '' +
-        '<p class="assistant-note">Answers are computed from this project\'s stored data and ' +
-        "the bundled clause and element knowledge bases. This is not a general chat assistant " +
-        "— it can only answer the questions below.</p>" +
+        '<p class="assistant-note">' + escapeHtml(t("assistant.note")) + "</p>" +
         '<div class="assistant-suggestions" id="assistantSuggestions">' +
         renderAssistantSuggestions(context) + "</div>" +
         '<div class="assistant-ask-row">' +
-        '<input type="text" id="assistantInput" placeholder="Ask about this variation or the contract position...">' +
-        '<button type="button" class="secondary-button" id="assistantAskBtn">Ask</button>' +
+        '<input type="text" id="assistantInput" placeholder="' + escapeHtml(t("assistant.placeholder")) + '">' +
+        '<button type="button" class="secondary-button" id="assistantAskBtn">' + escapeHtml(t("assistant.ask")) + '</button>' +
         "</div>" +
         '<div id="assistantAnswer">' + renderAssistantAnswer(null) + "</div>";
 }
@@ -310,7 +314,7 @@ if (typeof module !== "undefined" && module.exports) {
 
 if (typeof document !== "undefined") {
     (function () {
-        const ctx = mountChrome("analysis", "AI Analysis", "VO-AI / AI Analysis");
+        const ctx = mountChrome("analysis", t("nav.analysis"), t("crumb.analysis"));
         if (!ctx) return;
         const { session, project } = ctx;
 
@@ -354,19 +358,19 @@ if (typeof document !== "undefined") {
             const bqItem = (project.bq || []).find(b => b.id === bqItemId);
 
             if (!bqItem) {
-                toast("Select the original BQ item being changed.", "warn");
+                toast(t("toast.selectBqItem"), "warn");
                 return;
             }
 
             const revisedDescription = (document.getElementById("vaRevisedDesc").value || "").trim();
             if (!revisedDescription) {
-                toast("Enter a description of the revised item.", "warn");
+                toast(t("toast.enterRevisedDesc"), "warn");
                 return;
             }
 
             const qty = Number(document.getElementById("vaQty").value);
             if (!(qty > 0)) {
-                toast("Enter a quantity greater than zero.", "warn");
+                toast(t("toast.enterQtyPositive"), "warn");
                 return;
             }
 
@@ -411,12 +415,12 @@ if (typeof document !== "undefined") {
                         }));
                         logHistory(v, session, "Created from AI Analysis");
                     });
-                    toast("Variation order created.");
+                    toast(t("toast.voCreated"));
                     window.location.href = "vo.html?id=" + encodeURIComponent(created.id);
                 });
             }
 
-            toast("Analysis complete.");
+            toast(t("toast.analysisComplete"));
         }
 
         document.getElementById("analyseBtn").addEventListener("click", runAnalysis);

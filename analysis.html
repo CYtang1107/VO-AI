@@ -15,8 +15,8 @@
 
     <section class="welcome">
         <div>
-            <h2>AI Analysis</h2>
-            <p>Describe a proposed change to see its classification, governing clause and
+            <h2 data-i18n="analysis.title">AI Analysis</h2>
+            <p data-i18n="analysis.sub">Describe a proposed change to see its classification, governing clause and
                cost impact — before any variation order exists.</p>
         </div>
     </section>
@@ -25,8 +25,8 @@
         <div class="card">
             <div class="card-header">
                 <div>
-                    <h3>Variation Information</h3>
-                    <p>What is changing, and against which priced BQ item</p>
+                    <h3 data-i18n="analysis.formTitle">Variation Information</h3>
+                    <p data-i18n="analysis.formSub">What is changing, and against which priced BQ item</p>
                 </div>
             </div>
             <div class="card-body" id="vaFormBody"></div>
@@ -35,8 +35,8 @@
         <div class="card">
             <div class="card-header">
                 <div>
-                    <h3>AI Assessment</h3>
-                    <p>Computed from your input — nothing fabricated</p>
+                    <h3 data-i18n="analysis.resultTitle">AI Assessment</h3>
+                    <p data-i18n="analysis.resultSub">Computed from your input — nothing fabricated</p>
                 </div>
             </div>
             <div class="card-body" id="assessmentResult"></div>
@@ -46,22 +46,23 @@
     <div class="card" style="margin-bottom:20px">
         <div class="card-header">
             <div>
-                <h3>Ask about this variation</h3>
-                <p>A structured helper answering from this VO's real data — not a chat assistant</p>
+                <h3 data-i18n="vo.askTitle">Ask about this variation</h3>
+                <p data-i18n="vo.askSub">A structured helper answering from this VO's real data — not a chat assistant</p>
             </div>
         </div>
         <div class="card-body" id="assistantPanel"></div>
     </div>
 
     <div class="disclaimer">
-        <strong>⚠ Professional Review Required</strong>
-        <span>
+        <strong data-i18n="disclaimer.title">⚠ Professional Review Required</strong>
+        <span data-i18n="disclaimer.body">
             AI-generated results are decision-support outputs. Final variation assessment,
             certification and approval must be reviewed by the appropriate construction professional.
         </span>
     </div>
 </main>
 
+<script src="js/i18n.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/clauses.js"></script>
 <script src="js/elements.js"></script>

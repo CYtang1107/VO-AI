@@ -15,22 +15,23 @@
 
     <section class="welcome">
         <div>
-            <h2>VO Report</h2>
-            <p>Stage 5 — a draft report assembled from the register.</p>
+            <h2 data-i18n="report.title">VO Report</h2>
+            <p data-i18n="report.sub">Stage 5 — a draft report assembled from the register.</p>
         </div>
         <div class="page-actions" style="margin:0">
             <select id="reportMode" style="padding:11px;border-radius:8px;border:1px solid #dfe3e8">
-                <option value="single">Single VO report</option>
-                <option value="summary">All VO summary report</option>
+                <option value="single" data-i18n="report.mode.single">Single VO report</option>
+                <option value="summary" data-i18n="report.mode.summary">All VO summary report</option>
             </select>
             <select id="voPicker" style="padding:11px;border-radius:8px;border:1px solid #dfe3e8"></select>
-            <button class="primary-button" id="printBtn">Print / Save as PDF</button>
+            <button class="primary-button" id="printBtn" data-i18n="report.print">Print / Save as PDF</button>
         </div>
     </section>
 
     <div id="reportHost"></div>
 </main>
 
+<script src="js/i18n.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/clauses.js"></script>
 <script src="js/elements.js"></script>

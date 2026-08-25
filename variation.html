@@ -8,8 +8,14 @@
 </head>
 <body>
     <div class="empty-state">
-        This page has moved into the VO register.
-        <a href="register.html">Continue →</a>
+        <span id="variationMovedText">This page has moved into the VO register.</span>
+        <a href="register.html" id="variationContinueLink">Continue →</a>
     </div>
+
+<script src="js/i18n.js"></script>
+<script>
+    document.getElementById("variationMovedText").textContent = t("variation.moved");
+    document.getElementById("variationContinueLink").textContent = t("common.continueArrow");
+</script>
 </body>
 </html>
