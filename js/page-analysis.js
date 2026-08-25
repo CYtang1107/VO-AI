@@ -130,6 +130,35 @@ function renderClassificationBlock(a, basis) {
         "</div>";
 }
 
+/* A checklist, not a conclusion: the detected element(s) followed by
+   the other elements that commonly need re-measurement alongside them,
+   each with the reason. The system never asserts that a related
+   element actually changed — only that a QS should confirm it. */
+function renderElementsBlock(a) {
+    const els = a.elements;
+    if (!els || els.detected.length === 0) return "";
+
+    const detectedHtml = els.detected.map(el =>
+        '<span class="element-tag">' + escapeHtml(el.name) + "</span>").join(" ");
+
+    const relatedHtml = els.related.length === 0
+        ? '<p class="rate-detail">No commonly-related elements to confirm for the detected ' +
+          "element(s)." + "</p>"
+        : els.related.map(r =>
+            '<div class="finding element-check"><label><input type="checkbox"> ' +
+            '<span class="element-tag element-tag-related">' + escapeHtml(r.element.name) +
+            "</span> — " + escapeHtml(r.note) + "</label></div>").join("");
+
+    return '<div class="result-group">' +
+        '<h4 class="result-group-title">Elements affected</h4>' +
+        '<div class="result-row"><span class="result-label">Detected element(s)</span>' +
+        '<span class="result-value">' + detectedHtml + "</span></div>" +
+        '<p class="rate-detail" style="margin-top:10px"><strong>Confirm whether these ' +
+        "also require measurement</strong></p>" +
+        relatedHtml +
+        "</div>";
+}
+
 function renderClauseBlock(a) {
     if (!a.clause) {
         return '<div class="result-group">' +
@@ -204,6 +233,7 @@ function renderFindings(a) {
 function renderAssessmentResult(a, basis, costs, showCreateButton) {
     return '' +
         renderClassificationBlock(a, basis) +
+        renderElementsBlock(a) +
         renderClauseBlock(a) +
         renderCostBlock(costs) +
         '<div class="result-group">' +
@@ -224,7 +254,7 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         bqOptions, renderOriginalItemField, renderForm, renderAssessmentEmpty,
         buildSyntheticVO, computeCosts,
-        renderClassificationBlock, renderClauseBlock, renderCostBlock,
+        renderClassificationBlock, renderElementsBlock, renderClauseBlock, renderCostBlock,
         renderRateRows, renderFindings, renderAssessmentResult
     };
 }

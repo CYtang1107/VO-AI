@@ -1310,3 +1310,33 @@ td.owned-col { background: #fffdf2; }
 .accept-match-btn:hover { background: #fff3dc; }
 
 .auto-match-note { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* =========================
+   ELEMENT CLASSIFICATION — a checklist, not a conclusion. The detected
+   element(s) look confirmed (solid tag); the related elements are a
+   prompt to go check, so they get a checkbox and a lighter tag.
+========================= */
+
+.element-tag {
+    display: inline-block;
+    padding: 3px 9px;
+    margin: 2px 4px 2px 0;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.element-tag-related {
+    background: #f5f8ff;
+    color: #2563eb;
+}
+
+.element-check label {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    cursor: pointer;
+}
+.element-check input[type="checkbox"] { margin-top: 3px; }

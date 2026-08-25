@@ -210,6 +210,48 @@ test("analyse never invents a confidence score", () => {
     assert.strictEqual(a.confidence, undefined);
 });
 
+/* ---------- elements section: additive, must not disturb existing fields ---------- */
+
+test("analyse includes an elements section without disturbing its existing fields", () => {
+    const project = { bq: bq };
+    const vo = {
+        description: "Change floor finish from ceramic tile to marble tile",
+        measurement: [
+            { bqItemId: "BQ2", qty: 100, rate: 31, assessedQty: 100, assessedRate: 22 }
+        ]
+    };
+    const a = analyse(vo, project);
+
+    /* Existing fields, unchanged. */
+    assert.strictEqual(a.contractorTotal, 3100);
+    assert.strictEqual(a.assessedTotal, 2200);
+    assert.strictEqual(a.variance, -900);
+    assert.ok(a.clause);
+    assert.strictEqual(a.rates.different, 1);
+    assert.ok(a.classification);
+
+    /* New elements section. */
+    assert.ok(a.elements, "expected an elements section");
+    assert.ok(a.elements.detected.some(e => e.id === "floor-finishes"));
+    assert.ok(a.elements.related.some(r => r.element.id === "skirting"));
+});
+
+test("analyse prompts for related elements as a finding, worded as a prompt not an assertion", () => {
+    const a = analyse({ description: "Change block wall to brick wall", measurement: [] },
+                       { bq: [] });
+    const elementFinding = a.findings.find(f => /affects the Wall/.test(f));
+    assert.ok(elementFinding, "expected a finding naming the wall element");
+    assert.match(elementFinding, /Confirm whether/);
+    assert.doesNotMatch(elementFinding, /\bare affected\b/i);
+});
+
+test("analyse with no element named in the description adds no element finding", () => {
+    const a = analyse({ description: "Extend the working hours for the site office.",
+                         measurement: [] }, { bq: [] });
+    assert.deepStrictEqual(a.elements.detected, []);
+    assert.ok(!a.findings.some(f => /affects the/.test(f)));
+});
+
 /* ---------- classification basis: no confidence score, just signals ---------- */
 
 test("classificationBasis names both signals for a substitution", () => {

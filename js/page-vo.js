@@ -151,6 +151,30 @@ function renderMeasurementRows(vo, project, role) {
     }).join("");
 }
 
+/* Same checklist as js/page-analysis.js's renderElementsBlock — the
+   detected element(s) and the other elements that commonly need
+   re-measurement alongside them, each with the reason. A prompt to
+   confirm, never an assertion. */
+function renderElementsBlock(a) {
+    const els = a.elements;
+    if (!els || els.detected.length === 0) return "";
+
+    const detectedHtml = els.detected.map(el =>
+        '<span class="element-tag">' + escapeHtml(el.name) + "</span>").join(" ");
+
+    const relatedHtml = els.related.length === 0 ? "" :
+        els.related.map(r =>
+            '<div class="finding element-check"><label><input type="checkbox"> ' +
+            '<span class="element-tag element-tag-related">' + escapeHtml(r.element.name) +
+            "</span> — " + escapeHtml(r.note) + "</label></div>").join("");
+
+    return '<div class="result-row"><span class="result-label">Detected element(s)</span>' +
+        '<span class="result-value">' + detectedHtml + "</span></div>" +
+        (els.related.length === 0 ? "" :
+            '<p class="rate-detail" style="margin-top:10px"><strong>Confirm whether these ' +
+            "also require measurement</strong></p>" + relatedHtml);
+}
+
 function renderAssessmentPanel(vo, project, role) {
     const a = analyse(vo, project);
 
@@ -170,6 +194,7 @@ function renderAssessmentPanel(vo, project, role) {
             '<span class="result-value">' + escapeHtml(a.classification.label) + "</span></div>" +
         '<div class="result-row"><span class="result-label">Affected work</span>' +
             '<span class="result-value">' + escapeHtml(a.classification.affectedWork) + "</span></div>" +
+        renderElementsBlock(a) +
         clauseBlock +
         '<div class="result-row"><span class="result-label">Contractor claimed</span>' +
             '<span class="result-value">' + rm(a.contractorTotal) + "</span></div>" +
@@ -195,7 +220,7 @@ function renderHistory(vo) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { field, renderDocList, renderMeasurementRows, renderAssessmentPanel, renderHistory };
+    module.exports = { field, renderDocList, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel, renderHistory };
 }
 
 if (typeof document !== "undefined") {

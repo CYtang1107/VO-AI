@@ -6,6 +6,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, contractorTotal, assessedTotal } = require("./calc.js");
     var { matchClause } = require("./clauses.js");
+    var { detectElements, relatedElements } = require("./elements.js");
 }
 
 const RATE_TOLERANCE = 0.005;   /* half a sen */
@@ -407,11 +408,28 @@ function classificationBasis(vo) {
    Full assessment
 ----------------------------------------------------------- */
 
+/* -----------------------------------------------------------
+   Element classification — which building element(s) the description
+   names, and which other elements commonly need re-measurement
+   alongside them (see js/elements.js). This is a prompt for the user
+   to confirm, never an assertion that the related element actually
+   changed — the system only knows what is common practice.
+----------------------------------------------------------- */
+
+function elementAnalysis(vo) {
+    const text = (vo && vo.description) || "";
+    const detected = detectElements(text);
+    const detectedIds = detected.map(e => e.id);
+    const related = relatedElements(detectedIds);
+    return { detected: detected, related: related };
+}
+
 function analyse(vo, project) {
     const bq = (project && project.bq) || [];
     const classification = classifyVariation(vo);
     const clause = matchClause(classification.id);
     const rates = rateSummary(vo, bq);
+    const elements = elementAnalysis(vo);
 
     const claimed = contractorTotal(vo);
     const assessed = assessedTotal(vo);
@@ -446,6 +464,17 @@ function analyse(vo, project) {
         findings.push("No measurement has been entered, so no cost impact can be assessed.");
     }
 
+    elements.detected.forEach(el => {
+        const relatedForThis = elements.related.filter(r => r.because === el.id);
+        if (relatedForThis.length === 0) return;
+        const names = relatedForThis.map(r => r.element.name);
+        const list = names.length === 1 ? names[0] :
+            names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+        findings.push(
+            "This change affects the " + el.name + ". Confirm whether " + list +
+            " also require measurement — " + relatedForThis[0].note);
+    });
+
     return {
         classification: classification,
         clause: clause,
@@ -453,13 +482,15 @@ function analyse(vo, project) {
         contractorTotal: claimed,
         assessedTotal: assessed,
         variance: assessed - claimed,
-        findings: findings
+        findings: findings,
+        elements: elements
     };
 }
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         RATE_TOLERANCE, checkRate, rateSummary, matchBqItem,
-        classifyVariation, affectedWork, classificationBasis, analyse
+        classifyVariation, affectedWork, classificationBasis, analyse,
+        elementAnalysis
     };
 }
