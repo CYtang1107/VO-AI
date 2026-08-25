@@ -10,8 +10,12 @@ const DB_KEY = "voai.db.v1";
 const SESSION_KEY = "voai.session.v1";
 
 /* `var`, not `const`: same parse-time-hoisting hazard as ROLES below —
-   ui.js/page-login.js share this global scope in the browser. */
-var PASSCODE_KEY = "voai.passcode.v1";
+   ui.js/page-login.js share this global scope in the browser.
+   Session-storage (not localStorage) — a tab-session record of which
+   projects have already had their passcode entered, so navigating
+   between register/dashboard/analysis pages within an opened project
+   never re-prompts. Cleared on sign-out so a fresh sign-in re-prompts. */
+var UNLOCKED_PROJECTS_KEY = "voai.unlockedProjects.v1";
 
 /* `var`, not `const`: js/ui.js re-declares this name in a parse-time-hoisted
    guarded `var` for its Node import. `const` here would be a SyntaxError in the
@@ -126,15 +130,56 @@ function setSession(session) {
 
 function clearSession() {
     localStorage.removeItem(SESSION_KEY);
+    clearUnlockedProjects();
 }
 
-/* ---------- device-local passcode ----------
-   Optional, off by default. Hashed with Web Crypto SHA-256 plus a
-   per-install random salt: only the salt and the hex digest are ever
-   stored, never the plain passcode. This locks the app on THIS device
-   and browser only — it does not encrypt the project data, which stays
+/* ---------- per-tab project-passcode unlock state ----------
+   Session-scoped only (sessionStorage, not the persisted DB/session):
+   once a project's passcode has been entered correctly in this browser
+   tab, further navigation within it does not re-prompt. Opening the
+   project afresh from the Projects screen after signing out — or in a
+   new tab — starts from locked again. */
+
+function isProjectUnlocked(projectId) {
+    if (typeof sessionStorage === "undefined") return false;
+    try {
+        const raw = sessionStorage.getItem(UNLOCKED_PROJECTS_KEY);
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) && list.includes(projectId);
+    } catch (e) {
+        return false;
+    }
+}
+
+function markProjectUnlocked(projectId) {
+    if (typeof sessionStorage === "undefined") return;
+    let list = [];
+    try {
+        const raw = sessionStorage.getItem(UNLOCKED_PROJECTS_KEY);
+        list = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(list)) list = [];
+    } catch (e) {
+        list = [];
+    }
+    if (!list.includes(projectId)) list.push(projectId);
+    sessionStorage.setItem(UNLOCKED_PROJECTS_KEY, JSON.stringify(list));
+}
+
+function clearUnlockedProjects() {
+    if (typeof sessionStorage === "undefined") return;
+    sessionStorage.removeItem(UNLOCKED_PROJECTS_KEY);
+}
+
+/* ---------- project passcode ----------
+   Optional, off by default, and set only by the Consultant QS who
+   created the project. Hashed with Web Crypto SHA-256 plus a per-project
+   random salt: only the salt and the hex digest are ever stored, never
+   the plain passcode. This gates opening the project on THIS device and
+   browser only — it does not encrypt the project data, which stays
    readable in this browser's localStorage regardless. See the honesty
-   note next to the passcode control on the sign-in page. */
+   note next to the passcode control on the Projects screen. The hash +
+   salt live directly on the project record (project.passcode), so they
+   travel with export/import like any other project field. */
 
 function getCrypto() {
     return (typeof globalThis !== "undefined" && globalThis.crypto) || null;
@@ -179,49 +224,43 @@ async function digestHex(text, digestFn) {
     return bufToHex(buf);
 }
 
-function loadPasscodeRecord() {
-    if (typeof localStorage === "undefined") return null;
-    const raw = localStorage.getItem(PASSCODE_KEY);
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch (e) { return null; }
+function projectHasPasscode(project) {
+    return !!(project && project.passcode);
 }
 
-function savePasscodeRecord(record) {
-    if (typeof localStorage === "undefined") return;
-    localStorage.setItem(PASSCODE_KEY, JSON.stringify(record));
-}
-
-function hasPasscode() {
-    return !!loadPasscodeRecord();
-}
-
-async function setPasscode(plain, digestFn) {
+/* Sets (or overwrites) the passcode on the project with this id.
+   Returns false — never throws — when Web Crypto is unavailable and no
+   test digestFn was injected, so callers can degrade to "no passcode,
+   and say so" rather than accepting input that goes nowhere. */
+async function setProjectPasscode(projectId, plain, digestFn) {
     if (!passcodeSupported() && !digestFn) return false;
     try {
         const salt = randomSalt();
         const hash = await digestHex(salt + ":" + plain, digestFn);
-        savePasscodeRecord({ salt: salt, hash: hash });
-        return true;
+        const updated = updateProject(projectId, project => {
+            project.passcode = { salt: salt, hash: hash };
+        });
+        return !!updated;
     } catch (e) {
         return false;
     }
 }
 
-async function verifyPasscode(plain, digestFn) {
-    const record = loadPasscodeRecord();
-    if (!record) return false;
+async function verifyProjectPasscode(project, plain, digestFn) {
+    if (!project || !project.passcode) return false;
     if (!passcodeSupported() && !digestFn) return false;
     try {
-        const hash = await digestHex(record.salt + ":" + plain, digestFn);
-        return hash === record.hash;
+        const hash = await digestHex(project.passcode.salt + ":" + plain, digestFn);
+        return hash === project.passcode.hash;
     } catch (e) {
         return false;
     }
 }
 
-function clearPasscode() {
-    if (typeof localStorage === "undefined") return;
-    localStorage.removeItem(PASSCODE_KEY);
+function clearProjectPasscode(projectId) {
+    updateProject(projectId, project => {
+        project.passcode = null;
+    });
 }
 
 /* ---------- projects ---------- */
@@ -239,7 +278,8 @@ function createProject(data, session) {
         createdAt: new Date().toISOString(),
         bq: [],
         documents: [],
-        vos: []
+        vos: [],
+        passcode: null
     };
     db.projects.push(project);
     saveDB(db);
@@ -311,6 +351,7 @@ function seedDB() {
             createdBy: "Serena Wong",
             createdByRole: "consultant",
             createdAt: "2026-06-01T09:00:00Z",
+            passcode: null,
             bq: bq,
             documents: [
                 { id: "D1", name: "Contract Agreement - PAM 2018.pdf", size: 2411000, category: "contract", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:10:00Z" },
@@ -442,10 +483,12 @@ function seedDB() {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        DB_KEY, SESSION_KEY, PASSCODE_KEY, ROLES, uid, newVO,
+        DB_KEY, SESSION_KEY, UNLOCKED_PROJECTS_KEY, ROLES, uid, newVO,
         loadDB, saveDB, resetDB,
         getSession, setSession, clearSession,
-        passcodeSupported, hasPasscode, setPasscode, verifyPasscode, clearPasscode,
+        isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,
+        passcodeSupported,
+        projectHasPasscode, setProjectPasscode, verifyProjectPasscode, clearProjectPasscode,
         createProject, getProject, updateProject,
         createVO, updateVO, logHistory, seedDB
     };

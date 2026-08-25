@@ -2181,3 +2181,51 @@ td.owned-col { background: #fffdf2; }
         margin-left: 0;
     }
 }
+
+/* ---------- project passcode (Projects screen) ---------- */
+
+.passcode-badge {
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.project-passcode-gate,
+.project-passcode-manage {
+    margin-top: 14px;
+}
+
+.project-passcode-gate .field,
+.passcode-manage-panel .field {
+    margin-bottom: 12px;
+}
+
+.project-passcode-gate .field:last-of-type,
+.passcode-manage-panel .field:last-of-type {
+    margin-bottom: 0;
+}
+
+.passcode-manage-panel {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid #eef1f5;
+    border-radius: 10px;
+    background: #fafbfc;
+}
+
+@media (max-width: 700px) {
+    .project-passcode-gate input[type="password"],
+    .passcode-manage-panel input[type="password"] {
+        min-height: 44px;
+    }
+
+    .project-passcode-gate .passcode-actions,
+    .passcode-manage-panel .passcode-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .project-passcode-gate .passcode-actions button,
+    .passcode-manage-panel .passcode-actions button {
+        min-height: 44px;
+    }
+}

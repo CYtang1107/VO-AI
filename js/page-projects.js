@@ -28,12 +28,46 @@ function parseBqPaste(text) {
         }));
 }
 
+/* The passcode gate shown in place of the Open button when a project is
+   locked and has not yet been unlocked in this browser tab. Static
+   markup only — the browser wiring below fills in behaviour; kept here
+   so renderProjectCard stays a single pure function. */
+function renderPasscodeGate() {
+    return '<div class="project-passcode-gate">' +
+        '<div class="field"><label>' + escapeHtml(t("projects.passcode.enterLabel")) + '</label>' +
+            '<input type="password" class="project-passcode-gate-input" autocomplete="current-password" ' +
+                'placeholder="' + escapeHtml(t("projects.passcode.enterPlaceholder")) + '"></div>' +
+        '<div class="passcode-actions">' +
+            '<button type="button" class="primary-button project-passcode-gate-unlock">' +
+                escapeHtml(t("projects.passcode.unlock")) + '</button>' +
+        "</div>" +
+    "</div>";
+}
+
+/* Only the Consultant QS may set, change or clear a project's passcode —
+   this is their control over which project a device can access. Static
+   idle-state markup; the manage form itself is built by the browser
+   wiring below when the toggle is clicked. */
+function renderPasscodeManageBlock(project) {
+    const locked = !!project.passcode;
+    return '<div class="project-passcode-manage">' +
+        '<button type="button" class="link-button project-passcode-manage-toggle">' +
+            escapeHtml(locked ? t("projects.passcode.changeOrClear") : t("projects.passcode.setBtn")) +
+        "</button>" +
+        '<div class="passcode-manage-panel" hidden></div>' +
+    "</div>";
+}
+
 function renderProjectCard(project, session) {
     const s = projectStats(project);
+    const locked = !!project.passcode;
+    const isConsultant = session.role === "consultant";
     return '' +
         '<div class="card project-card" data-project="' + escapeHtml(project.id) + '">' +
           '<div class="card-body">' +
-            "<h3>" + escapeHtml(project.name) + "</h3>" +
+            "<h3>" + escapeHtml(project.name) +
+                (locked ? ' <span class="passcode-badge" title="' + escapeHtml(t("projects.passcode.badgeTitle")) + '">&#128274;</span>' : "") +
+            "</h3>" +
             '<p class="lead" style="font-size:11px;margin:6px 0 14px">' +
                 escapeHtml(project.client || "—") + " · " + escapeHtml(t("sidebar.contract", { no: project.contractNo || "—" })) + "</p>" +
             '<div class="project-meta">' +
@@ -42,11 +76,13 @@ function renderProjectCard(project, session) {
                 "<div><small>" + escapeHtml(t("projects.card.voValue")) + "</small><strong>" + rm(s.value) + "</strong></div>" +
                 "<div><small>" + escapeHtml(t("projects.card.bqItems")) + "</small><strong>" + (project.bq || []).length + "</strong></div>" +
             "</div>" +
+            '<div class="project-passcode-gate-slot"></div>' +
             '<button class="primary-button open-project" style="width:100%;margin-top:16px">' +
                 escapeHtml(t("projects.openAs", { role: t("role." + session.role + ".label", {}) })) +
             "</button>" +
             '<button type="button" class="secondary-button export-project" ' +
                 'style="width:100%;margin-top:8px">' + escapeHtml(t("projects.exportBtn")) + '</button>' +
+            (isConsultant ? renderPasscodeManageBlock(project) : "") +
           "</div>" +
         "</div>";
 }
@@ -244,6 +280,135 @@ if (typeof document !== "undefined") {
             });
         }
 
+/* Navigates into the project — the only place opening happens, so this
+   is the one gate a passcode gets checked at. */
+        function openProject(projectId) {
+            setSession(Object.assign({}, getSession(), { projectId: projectId }));
+            window.location.href = "dashboard.html";
+        }
+
+        /* Shows the passcode entry form in place of the Open button on a
+           locked, not-yet-unlocked card. Correct passcode marks the
+           project unlocked for this browser tab and opens it; a wrong
+           one is refused via toast and never opens the project. */
+        function showPasscodeGate(card, project) {
+            const slot = card.querySelector(".project-passcode-gate-slot");
+            const openBtn = card.querySelector(".open-project");
+            slot.innerHTML = renderPasscodeGate();
+            openBtn.hidden = true;
+
+            const input = slot.querySelector(".project-passcode-gate-input");
+            const unlockBtn = slot.querySelector(".project-passcode-gate-unlock");
+
+            async function attemptUnlock() {
+                const ok = await verifyProjectPasscode(project, input.value);
+                if (!ok) {
+                    toast(t("toast.wrongProjectPasscode"), "error");
+                    input.value = "";
+                    input.focus();
+                    return;
+                }
+                markProjectUnlocked(project.id);
+                openProject(project.id);
+            }
+
+            unlockBtn.addEventListener("click", attemptUnlock);
+            input.addEventListener("keydown", e => {
+                if (e.key === "Enter") attemptUnlock();
+            });
+        }
+
+        /* Renders (or clears) the Consultant QS's set/change/clear
+           passcode panel for one project card. `mode`: "idle" | "set" |
+           "manage" (locked — change or clear). */
+        function renderPasscodeManagePanel(card, project, mode) {
+            const panel = card.querySelector(".passcode-manage-panel");
+            const toggle = card.querySelector(".project-passcode-manage-toggle");
+            if (!panel) return;
+
+            if (mode === "idle") {
+                panel.hidden = true;
+                panel.innerHTML = "";
+                if (toggle) toggle.hidden = false;
+                return;
+            }
+            if (toggle) toggle.hidden = true;
+            panel.hidden = false;
+
+            if (!passcodeSupported()) {
+                panel.innerHTML = '<p class="passcode-note">' + escapeHtml(t("projects.passcode.unavailable")) + "</p>" +
+                    '<button type="button" class="link-button pc-cancel">' + escapeHtml(t("projects.passcode.cancel")) + "</button>";
+                panel.querySelector(".pc-cancel").addEventListener("click", () => renderPasscodeManagePanel(card, project, "idle"));
+                return;
+            }
+
+            if (mode === "set") {
+                panel.innerHTML =
+                    '<div class="field"><label>' + escapeHtml(t("projects.passcode.newLabel")) + '</label>' +
+                        '<input type="password" class="pc-new" autocomplete="new-password"></div>' +
+                    '<div class="field"><label>' + escapeHtml(t("projects.passcode.confirmLabel")) + '</label>' +
+                        '<input type="password" class="pc-confirm" autocomplete="new-password"></div>' +
+                    '<div class="passcode-actions">' +
+                        '<button type="button" class="primary-button pc-save">' + escapeHtml(t("projects.passcode.save")) + "</button>" +
+                        '<button type="button" class="link-button pc-cancel">' + escapeHtml(t("projects.passcode.cancel")) + "</button>" +
+                    "</div>" +
+                    '<p class="passcode-note">' + escapeHtml(t("projects.passcode.honesty")) + "</p>";
+
+                panel.querySelector(".pc-save").addEventListener("click", async () => {
+                    const a = panel.querySelector(".pc-new").value;
+                    const b = panel.querySelector(".pc-confirm").value;
+                    if (!a) { toast(t("toast.enterPasscode"), "warn"); return; }
+                    if (a !== b) { toast(t("toast.passcodesMismatch"), "warn"); return; }
+                    const ok = await setProjectPasscode(project.id, a);
+                    if (!ok) { toast(t("toast.passcodeUnavailable"), "warn"); return; }
+                    toast(t("toast.passcodeSet"), "ok");
+                    refresh();
+                });
+                panel.querySelector(".pc-cancel").addEventListener("click", () => renderPasscodeManagePanel(card, project, "idle"));
+                return;
+            }
+
+            /* mode === "manage": locked already — requires the current
+               passcode before changing OR clearing it. */
+            panel.innerHTML =
+                '<div class="field"><label>' + escapeHtml(t("projects.passcode.currentLabel")) + '</label>' +
+                    '<input type="password" class="pc-current" autocomplete="current-password"></div>' +
+                '<div class="field"><label>' + escapeHtml(t("projects.passcode.newLabel")) + '</label>' +
+                    '<input type="password" class="pc-new" autocomplete="new-password"></div>' +
+                '<div class="field"><label>' + escapeHtml(t("projects.passcode.confirmLabel")) + '</label>' +
+                    '<input type="password" class="pc-confirm" autocomplete="new-password"></div>' +
+                '<p class="hint">' + escapeHtml(t("projects.passcode.leaveBlankHint")) + "</p>" +
+                '<div class="passcode-actions">' +
+                    '<button type="button" class="primary-button pc-save-change">' + escapeHtml(t("projects.passcode.saveChange")) + "</button>" +
+                    '<button type="button" class="secondary-button pc-clear">' + escapeHtml(t("projects.passcode.clear")) + "</button>" +
+                    '<button type="button" class="link-button pc-cancel">' + escapeHtml(t("projects.passcode.cancel")) + "</button>" +
+                "</div>" +
+                '<p class="passcode-note">' + escapeHtml(t("projects.passcode.honesty")) + "</p>";
+
+            panel.querySelector(".pc-save-change").addEventListener("click", async () => {
+                const current = panel.querySelector(".pc-current").value;
+                const a = panel.querySelector(".pc-new").value;
+                const b = panel.querySelector(".pc-confirm").value;
+                const ok = await verifyProjectPasscode(project, current);
+                if (!ok) { toast(t("toast.passcodeWrong"), "error"); return; }
+                if (!a) { toast(t("toast.enterPasscode"), "warn"); return; }
+                if (a !== b) { toast(t("toast.passcodesMismatch"), "warn"); return; }
+                const saved = await setProjectPasscode(project.id, a);
+                if (!saved) { toast(t("toast.passcodeUnavailable"), "warn"); return; }
+                toast(t("toast.passcodeSet"), "ok");
+                refresh();
+            });
+            panel.querySelector(".pc-clear").addEventListener("click", async () => {
+                const current = panel.querySelector(".pc-current").value;
+                const ok = await verifyProjectPasscode(project, current);
+                if (!ok) { toast(t("toast.passcodeWrong"), "error"); return; }
+                clearProjectPasscode(project.id);
+                toast(t("toast.passcodeCleared"), "ok");
+                refresh();
+            });
+            panel.querySelector(".pc-cancel").addEventListener("click", () => renderPasscodeManagePanel(card, project, "idle"));
+        }
+
         function refresh() {
             const db = loadDB();
             const list = document.getElementById("projectList");
@@ -256,18 +421,28 @@ if (typeof document !== "undefined") {
                 : db.projects.map(p => renderProjectCard(p, session)).join("");
 
             list.querySelectorAll(".project-card").forEach(card => {
+                const project = db.projects.find(p => p.id === card.dataset.project);
+                if (!project) return;
+
                 card.querySelector(".open-project").addEventListener("click", () => {
-                    setSession(Object.assign({}, getSession(),
-                        { projectId: card.dataset.project }));
-                    window.location.href = "dashboard.html";
+                    if (project.passcode && !isProjectUnlocked(project.id)) {
+                        showPasscodeGate(card, project);
+                        return;
+                    }
+                    openProject(project.id);
                 });
 
                 card.querySelector(".export-project").addEventListener("click", () => {
-                    const project = db.projects.find(p => p.id === card.dataset.project);
-                    if (!project) return;
                     downloadProjectJson(exportProject(project));
                     toast(t("toast.projectExported"));
                 });
+
+                const manageToggle = card.querySelector(".project-passcode-manage-toggle");
+                if (manageToggle) {
+                    manageToggle.addEventListener("click", () => {
+                        renderPasscodeManagePanel(card, project, project.passcode ? "manage" : "set");
+                    });
+                }
             });
         }
 
@@ -296,12 +471,19 @@ if (typeof document !== "undefined") {
             createBox.innerHTML =
                 '<div class="empty-state">' + escapeHtml(t("projects.consultantOnly")) + '</div>';
         } else {
-            document.getElementById("createBtn").addEventListener("click", () => {
+            document.getElementById("createBtn").addEventListener("click", async () => {
                 const name = document.getElementById("pName").value.trim();
                 if (!name) { toast(t("toast.giveProjectName"), "warn"); return; }
 
                 if (bqFileState && !bqFileState.confirmed) {
                     toast(t("toast.confirmBqFileFirst"), "warn");
+                    return;
+                }
+
+                const newPasscode = document.getElementById("pPasscode").value;
+                const newPasscodeConfirm = document.getElementById("pPasscodeConfirm").value;
+                if (newPasscode && newPasscode !== newPasscodeConfirm) {
+                    toast(t("toast.passcodesMismatch"), "warn");
                     return;
                 }
 
@@ -342,8 +524,13 @@ if (typeof document !== "undefined") {
                     });
                 }
 
+                if (newPasscode) {
+                    const ok = await setProjectPasscode(project.id, newPasscode);
+                    if (!ok) toast(t("toast.passcodeUnavailable"), "warn");
+                }
+
                 toast(t("toast.projectCreated", { n: allBqRows.length }));
-                ["pName", "pClient", "pContractNo", "pSum", "pBq", "pContractFile"]
+                ["pName", "pClient", "pContractNo", "pSum", "pBq", "pContractFile", "pPasscode", "pPasscodeConfirm"]
                     .forEach(id => { document.getElementById(id).value = ""; });
                 document.getElementById("pBqFile").value = "";
                 bqFileState = null;

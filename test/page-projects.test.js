@@ -2,6 +2,20 @@ const test = require("node:test");
 const assert = require("node:assert");
 const { renderProjectCard, parseBqPaste, exportProject, validateImport, importProject } =
     require("../js/page-projects.js");
+const {
+    createProject, getProject,
+    setProjectPasscode, verifyProjectPasscode, projectHasPasscode
+} = require("../js/store.js");
+
+if (typeof globalThis.localStorage === "undefined" ||
+    typeof globalThis.localStorage.getItem !== "function") {
+    const backing = new Map();
+    globalThis.localStorage = {
+        getItem: k => (backing.has(k) ? backing.get(k) : null),
+        setItem: (k, v) => backing.set(k, String(v)),
+        removeItem: k => backing.delete(k)
+    };
+}
 
 function sampleProject() {
     return {
@@ -157,6 +171,27 @@ test("importProject suffixes the name when a project of the same name already ex
     assert.match(imported.name, /\(imported 2\)$/);
     assert.strictEqual(db.projects.length, 2);
     assert.strictEqual(db.projects[0].name, existing.name);
+});
+
+test("an exported project retains its passcode hash, and an imported copy still requires it", async () => {
+    const project = createProject({ name: "Locked Project " + Math.random() },
+        { name: "Serena Wong", role: "consultant" });
+    await setProjectPasscode(project.id, "correct-horse");
+    const stored = getProject(project.id);
+    assert.ok(stored.passcode && stored.passcode.hash, "expected the project to have a passcode hash");
+
+    const exported = exportProject(stored);
+    assert.ok(exported.passcode && exported.passcode.hash, "export must retain the passcode hash");
+    assert.strictEqual(JSON.stringify(exported).includes("correct-horse"), false,
+        "the exported JSON must never contain the plain passcode");
+
+    const parsed = JSON.parse(JSON.stringify(exported));
+    const db = { projects: [] };
+    const imported = importProject(parsed, db);
+
+    assert.ok(projectHasPasscode(imported), "the imported project must still be locked");
+    assert.strictEqual(await verifyProjectPasscode(imported, "correct-horse"), true);
+    assert.strictEqual(await verifyProjectPasscode(imported, "wrong-guess"), false);
 });
 
 test("a project name containing markup is escaped when rendered", () => {

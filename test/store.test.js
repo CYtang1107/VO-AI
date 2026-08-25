@@ -1,8 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const {
-    ROLES, newVO, seedDB, PASSCODE_KEY,
-    hasPasscode, setPasscode, verifyPasscode, clearPasscode
+    ROLES, newVO, seedDB, DB_KEY,
+    createProject, getProject,
+    projectHasPasscode, setProjectPasscode, verifyProjectPasscode, clearProjectPasscode
 } = require("../js/store.js");
 const { projectStats } = require("../js/calc.js");
 const { rateSummary, classifyVariation } = require("../js/analysis.js");
@@ -106,39 +107,55 @@ test("the seed project produces sensible dashboard statistics", () => {
     assert.ok(s.value > 0);
 });
 
-/* ---------- device-local passcode ---------- */
+/* ---------- project passcode ----------
+   The passcode moved from a single device-wide sign-in gate to an
+   optional lock on OPENING A PROJECT: the old test/store.test.js
+   device-passcode suite is removed along with that feature, replaced
+   below with the project-scoped equivalent. */
 
-test.afterEach(() => clearPasscode());
+const PC_SESSION = { name: "Serena Wong", role: "consultant" };
 
-test("hasPasscode is false before setting one and true after", async () => {
-    assert.strictEqual(hasPasscode(), false);
-    await setPasscode("hunter2");
-    assert.strictEqual(hasPasscode(), true);
+function makeProject() {
+    return createProject({ name: "Passcode Test Project " + Math.random() }, PC_SESSION);
+}
+
+test("projectHasPasscode is false before setting one and true after", async () => {
+    const project = makeProject();
+    assert.strictEqual(projectHasPasscode(project), false);
+    await setProjectPasscode(project.id, "hunter2");
+    assert.strictEqual(projectHasPasscode(getProject(project.id)), true);
 });
 
-test("verifying the correct passcode succeeds", async () => {
-    await setPasscode("hunter2");
-    assert.strictEqual(await verifyPasscode("hunter2"), true);
+test("verifying the correct project passcode succeeds", async () => {
+    const project = makeProject();
+    await setProjectPasscode(project.id, "hunter2");
+    assert.strictEqual(await verifyProjectPasscode(getProject(project.id), "hunter2"), true);
 });
 
-test("verifying a wrong passcode fails", async () => {
-    await setPasscode("hunter2");
-    assert.strictEqual(await verifyPasscode("wrong-guess"), false);
+test("verifying a wrong project passcode fails", async () => {
+    const project = makeProject();
+    await setProjectPasscode(project.id, "hunter2");
+    assert.strictEqual(await verifyProjectPasscode(getProject(project.id), "wrong-guess"), false);
 });
 
-test("clearing removes the passcode", async () => {
-    await setPasscode("hunter2");
-    clearPasscode();
-    assert.strictEqual(hasPasscode(), false);
-    assert.strictEqual(await verifyPasscode("hunter2"), false);
+test("clearing removes the project passcode", async () => {
+    const project = makeProject();
+    await setProjectPasscode(project.id, "hunter2");
+    clearProjectPasscode(project.id);
+    const reloaded = getProject(project.id);
+    assert.strictEqual(projectHasPasscode(reloaded), false);
+    assert.strictEqual(await verifyProjectPasscode(reloaded, "hunter2"), false);
 });
 
-test("the stored value never contains the plain passcode text", async () => {
+test("the plain passcode appears nowhere in the serialised project", async () => {
+    const project = makeProject();
     const plain = "correct-horse-battery-staple";
-    await setPasscode(plain);
-    const raw = localStorage.getItem(PASSCODE_KEY);
-    assert.ok(raw, "expected a passcode record to be stored");
-    assert.ok(!raw.includes(plain), "the serialised store must not contain the plain passcode");
+    await setProjectPasscode(project.id, plain);
+    const raw = localStorage.getItem(DB_KEY);
+    assert.ok(raw, "expected the database to be stored");
+    assert.ok(!raw.includes(plain), "the serialised store must not contain the plain passcode anywhere");
+    const serialisedProject = JSON.stringify(getProject(project.id));
+    assert.ok(!serialisedProject.includes(plain), "the serialised project must not contain the plain passcode");
 });
 
 test("two different passcodes with the same salt produce different digests", async () => {
@@ -149,17 +166,22 @@ test("two different passcodes with the same salt produce different digests", asy
         const forced = "fixed-salt:" + text.split(":").slice(1).join(":");
         return require("node:crypto").createHash("sha256").update(forced).digest();
     };
-    await setPasscode("passcodeA", fixedSaltDigest);
-    const hashA = JSON.parse(localStorage.getItem(PASSCODE_KEY)).hash;
-    await setPasscode("passcodeB", fixedSaltDigest);
-    const hashB = JSON.parse(localStorage.getItem(PASSCODE_KEY)).hash;
+    const projectA = makeProject();
+    await setProjectPasscode(projectA.id, "passcodeA", fixedSaltDigest);
+    const hashA = getProject(projectA.id).passcode.hash;
+
+    const projectB = makeProject();
+    await setProjectPasscode(projectB.id, "passcodeB", fixedSaltDigest);
+    const hashB = getProject(projectB.id).passcode.hash;
+
     assert.notStrictEqual(hashA, hashB);
 });
 
 test("the same passcode with the same salt produces the same digest", async () => {
     const digestFn = text => require("node:crypto").createHash("sha256").update(text).digest();
-    await setPasscode("repeat-me", digestFn);
-    const record1 = JSON.parse(localStorage.getItem(PASSCODE_KEY));
+    const project = makeProject();
+    await setProjectPasscode(project.id, "repeat-me", digestFn);
+    const record1 = getProject(project.id).passcode;
     /* Re-hash the same salt + passcode text directly and compare, proving
        the digest is a pure function of (salt, passcode). */
     const again = digestFn(record1.salt + ":repeat-me");
@@ -167,11 +189,18 @@ test("the same passcode with the same salt produces the same digest", async () =
     assert.strictEqual(record1.hash, hex);
 });
 
-test("setPasscode uses real Web Crypto SHA-256 by default", async () => {
-    await setPasscode("web-crypto-check");
-    const record = JSON.parse(localStorage.getItem(PASSCODE_KEY));
+test("setProjectPasscode uses real Web Crypto SHA-256 by default", async () => {
+    const project = makeProject();
+    await setProjectPasscode(project.id, "web-crypto-check");
+    const record = getProject(project.id).passcode;
     const expected = await crypto.subtle.digest("SHA-256",
         new TextEncoder().encode(record.salt + ":web-crypto-check"));
     const hex = Array.from(new Uint8Array(expected)).map(b => b.toString(16).padStart(2, "0")).join("");
     assert.strictEqual(record.hash, hex);
+});
+
+test("a newly created project has no passcode", () => {
+    const project = makeProject();
+    assert.strictEqual(project.passcode, null);
+    assert.strictEqual(projectHasPasscode(project), false);
 });
