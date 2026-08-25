@@ -3,7 +3,7 @@
 A decision-support prototype for construction Variation Order management, built for the
 "海之子"杯 AI智能体挑战计划 by Team GUD GUD.
 
-**Live demo:** not yet deployed — see Deploying below
+**Live demo:** https://cytang1107.github.io/VO-AI/
 
 ## Running locally
 
@@ -45,10 +45,9 @@ build, and no figure shown in the UI is invented — see
 
 ## Deploying
 
-This repository is not currently published. To deploy it to GitHub Pages:
+The site is published from `main` at
+**https://cytang1107.github.io/VO-AI/**
 
-1. Push this branch and merge it into `main`.
-2. In the GitHub repo, go to **Settings → Pages → Source: Deploy from a branch → `main` /
-   `/ (root)` → Save**.
-3. Wait for the green tick on the Actions tab, then open
-   `https://serenawong34-rgb.github.io/Project/`.
+It is a static site with no build step, so any push to `main` republishes it within about a
+minute. To point a fork at your own GitHub Pages, go to **Settings > Pages > Source: Deploy
+from a branch > `main` / `/ (root)` > Save**.
