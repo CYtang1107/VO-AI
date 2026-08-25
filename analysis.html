@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VO-AI | AI Analysis</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar"></aside>
+
+<main class="main">
+    <header class="topbar"></header>
+
+    <section class="welcome">
+        <div>
+            <h2>AI Analysis</h2>
+            <p>Describe a proposed change to see its classification, governing clause and
+               cost impact — before any variation order exists.</p>
+        </div>
+    </section>
+
+    <section class="dashboard-grid">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3>Variation Information</h3>
+                    <p>What is changing, and against which priced BQ item</p>
+                </div>
+            </div>
+            <div class="card-body" id="vaFormBody"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3>AI Assessment</h3>
+                    <p>Computed from your input — nothing fabricated</p>
+                </div>
+            </div>
+            <div class="card-body" id="assessmentResult"></div>
+        </div>
+    </section>
+
+    <div class="disclaimer">
+        <strong>⚠ Professional Review Required</strong>
+        <span>
+            AI-generated results are decision-support outputs. Final variation assessment,
+            certification and approval must be reviewed by the appropriate construction professional.
+        </span>
+    </div>
+</main>
+
+<script src="js/calc.js"></script>
+<script src="js/clauses.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/permissions.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/page-analysis.js"></script>
+
+</body>
+</html>

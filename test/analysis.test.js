@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const {
-    classifyVariation, checkRate, rateSummary, analyse
+    classifyVariation, checkRate, rateSummary, analyse, classificationBasis
 } = require("../js/analysis.js");
 
 const bq = [
@@ -115,4 +115,45 @@ test("analyse reports variance between claimed and assessed totals", () => {
 test("analyse never invents a confidence score", () => {
     const a = analyse({ description: "x", measurement: [] }, { bq: [] });
     assert.strictEqual(a.confidence, undefined);
+});
+
+/* ---------- classification basis: no confidence score, just signals ---------- */
+
+test("classificationBasis names both signals for a substitution", () => {
+    const vo = { description: "Change floor finish from ceramic tile to marble tile",
+                 measurement: [{ qty: -10, rate: 85 }, { qty: 10, rate: 265 }] };
+    const b = classificationBasis(vo);
+    assert.strictEqual(classifyVariation(vo).id, "specification");
+    assert.ok(b.signals.some(s => /instruction wording/.test(s)));
+    assert.ok(b.signals.some(s => /measurement shape.*omission and addition/.test(s)));
+    assert.match(b.summary, /material \/ specification change/);
+    assert.strictEqual(b.confidence, undefined);
+});
+
+test("classificationBasis reports measurement shape for an only-negative omission", () => {
+    const vo = { description: "Omit the rear canopy",
+                 measurement: [{ qty: -10, rate: 85 }] };
+    const b = classificationBasis(vo);
+    assert.strictEqual(classifyVariation(vo).id, "omission");
+    assert.ok(b.signals.some(s => /instruction wording/.test(s)));
+    assert.ok(b.signals.some(s => /measurement shape.*negative quantity only/.test(s)));
+});
+
+test("classificationBasis reports measurement shape alone for an all-linked remeasurement", () => {
+    const vo = { description: "Extra quantity of drainage pipe as instructed",
+                 measurement: [{ bqItemId: "BQ1", qty: 20, rate: 85 }] };
+    const b = classificationBasis(vo);
+    assert.strictEqual(classifyVariation(vo).id, "quantity");
+    assert.ok(!b.signals.some(s => /instruction wording/.test(s)),
+        "no wording signal should fire when no keyword matched");
+    assert.ok(b.signals.some(s => /measurement shape.*positive quantity/.test(s)));
+    assert.ok(b.signals.some(s => /measurement shape.*all rows linked/.test(s)));
+});
+
+test("classificationBasis returns no signals for an unclassifiable input", () => {
+    const vo = { description: "Please review", measurement: [] };
+    const b = classificationBasis(vo);
+    assert.strictEqual(classifyVariation(vo).id, "unclassified");
+    assert.deepStrictEqual(b.signals, []);
+    assert.match(b.summary, /too vague/i);
 });

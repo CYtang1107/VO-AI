@@ -53,14 +53,21 @@ test("the sidebar renders no nav items and a select-a-project note until a proje
     assert.match(html, /Select a project to begin/);
 });
 
-test("the sidebar shows Dashboard, VO Register and VO Reports once a project is chosen, but not Projects", () => {
+test("the sidebar shows Dashboard, AI Analysis, VO Register and VO Reports once a project is chosen, but not Projects", () => {
     const html = renderSidebar("dashboard", { name: "serena.wong", role: "consultant" },
         { name: "ABC Residence" });
     assert.match(html, /Dashboard/);
+    assert.match(html, /AI Analysis/);
     assert.match(html, /VO Register/);
     assert.match(html, /VO Reports/);
     assert.ok(!/nav-item[^>]*>[\s\S]{0,40}Projects</.test(html), "Projects must not be a nav item");
     assert.match(html, /ABC Residence/);
+});
+
+test("the sidebar places AI Analysis right after Dashboard", () => {
+    const html = renderSidebar("dashboard", { name: "serena.wong", role: "consultant" },
+        { name: "ABC Residence" });
+    assert.match(html, /Dashboard<\/a><a[^>]*class="nav-item[^"]*"[^>]*>[\s\S]{0,20}AI Analysis/);
 });
 
 test("the sidebar names the current project, per the template rule", () => {

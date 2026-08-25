@@ -6,6 +6,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 
 const NAV = [
     { id: "dashboard", href: "dashboard.html", icon: "⌂", label: "Dashboard" },
+    { id: "analysis",  href: "analysis.html",  icon: "✦", label: "AI Analysis" },
     { id: "register",  href: "register.html",  icon: "▤", label: "VO Register" },
     { id: "report",    href: "report.html",    icon: "▧", label: "VO Reports" }
 ];

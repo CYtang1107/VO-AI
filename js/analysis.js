@@ -143,6 +143,75 @@ function classifyVariation(vo) {
 }
 
 /* -----------------------------------------------------------
+   Classification basis — WHICH signals the engine used, so the UI can
+   show its working instead of a fabricated confidence score. Mirrors
+   classifyVariation's branches exactly: same conditions, same order,
+   so this can never disagree with the classification it explains.
+----------------------------------------------------------- */
+
+function classificationBasis(vo) {
+    const text = (vo.description || "");
+    const rows = vo.measurement || [];
+    const vague = { signals: [], summary: "The description was too vague to classify — " +
+                    "enter more detail about what is changing." };
+
+    if (!text.trim() && rows.length === 0) {
+        return vague;
+    }
+
+    const hasNegative = rows.some(r => (Number(r.qty) || 0) < 0);
+    const hasPositive = rows.some(r => (Number(r.qty) || 0) > 0);
+    const allLinked = rows.length > 0 && rows.every(r => r.bqItemId);
+
+    const wordingSubstitution = /\bfrom\b.+\bto\b|substitut|replace|change of|upgrade/i.test(text);
+    if (wordingSubstitution || (hasNegative && hasPositive)) {
+        const signals = [];
+        if (wordingSubstitution) signals.push("instruction wording (substitution / change-of phrasing)");
+        if (hasNegative && hasPositive) signals.push("measurement shape (omission and addition)");
+        return { signals: signals,
+                 summary: "Classified as a material / specification change because of " +
+                          signals.join(" and ") + "." };
+    }
+
+    const wordingQuantity = /remeasure|remeasurement|quantity variation|approximate quantit|provisional quantit/i.test(text);
+    if (wordingQuantity) {
+        return { signals: ["instruction wording (remeasurement / quantity-variation phrasing)"],
+                 summary: "Classified as a quantity variation because the description used " +
+                          "remeasurement wording." };
+    }
+
+    const wordingOmission = /\bomit|omission|delete|remove\b/i.test(text);
+    if (wordingOmission || (hasNegative && !hasPositive)) {
+        const signals = [];
+        if (wordingOmission) signals.push("instruction wording (omission / deletion phrasing)");
+        if (hasNegative && !hasPositive) signals.push("measurement shape (negative quantity only)");
+        return { signals: signals,
+                 summary: "Classified as an omission of work because of " +
+                          signals.join(" and ") + "." };
+    }
+
+    const wordingDesign = /redesign|design revision|revised design|revision to/i.test(text);
+    if (wordingDesign) {
+        return { signals: ["instruction wording (design-revision phrasing)"],
+                 summary: "Classified as a design revision because the description used " +
+                          "design-revision wording." };
+    }
+
+    const wordingAddition = /additional|extra work|add\b|new\b/i.test(text);
+    if (wordingAddition || hasPositive) {
+        const signals = [];
+        if (wordingAddition) signals.push("instruction wording (additional / extra-work phrasing)");
+        if (hasPositive) signals.push("measurement shape (positive quantity)");
+        if (allLinked) signals.push("measurement shape (all rows linked to existing BQ items)");
+        const label = allLinked ? "a quantity variation" : "additional work";
+        return { signals: signals,
+                 summary: "Classified as " + label + " because of " + signals.join(" and ") + "." };
+    }
+
+    return vague;
+}
+
+/* -----------------------------------------------------------
    Full assessment
 ----------------------------------------------------------- */
 
@@ -199,6 +268,6 @@ function analyse(vo, project) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         RATE_TOLERANCE, checkRate, rateSummary,
-        classifyVariation, affectedWork, analyse
+        classifyVariation, affectedWork, classificationBasis, analyse
     };
 }
