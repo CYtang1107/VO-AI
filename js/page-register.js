@@ -93,7 +93,15 @@ function renderRegisterBody(project, role) {
         '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
         COLUMNS.map(c => {
             const owned = FIELD_OWNER[c.field] === role;
-            return "<td" + (owned ? ' class="owned-col"' : "") + ">" +
+            /* VO NO. and DESCRIPTION double as the card heading at narrow
+               widths (see .register-scroll in style.css) — everything
+               else renders as a labelled pair via data-label + ::before. */
+            const heading = c.field === "no" || c.field === "description";
+            const classes = [];
+            if (owned) classes.push("owned-col");
+            if (heading) classes.push("card-heading");
+            const cls = classes.length ? ' class="' + classes.join(" ") + '"' : "";
+            return "<td" + cls + ' data-label="' + escapeHtml(t(c.labelKey)) + '">' +
                    c.render(v, project) + "</td>";
         }).join("") + "</tr>"
     ).join("");

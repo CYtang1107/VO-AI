@@ -430,6 +430,12 @@ if (typeof document !== "undefined") {
         const { session, project } = ctx;
         const role = session.role;
 
+        /* Narrow screens stack the three role panels; the signed-in
+           role's own panel should come first since that is the one they
+           can edit — see .role-panels[data-active-role] in style.css. */
+        const panelsSection = document.getElementById("rolePanelsSection");
+        if (panelsSection) panelsSection.dataset.activeRole = role;
+
         const voId = new URLSearchParams(location.search).get("id");
         const vo = (project.vos || []).find(v => v.id === voId);
         if (!vo) { toast(t("vo.noLongerExists"), "error");

@@ -1853,3 +1853,203 @@ td.owned-col { background: #fffdf2; }
 .status, .rate-flag, .doc-category-tag, .element-tag {
     white-space: nowrap;
 }
+
+/* =========================================================
+   MOBILE (phone) LAYOUT
+   Appended, additive-only: every rule below either targets a new
+   class/attribute or sits in a media query that comes AFTER the
+   original @media (max-width: 700px) block above, so it wins ties on
+   source order without editing a single existing declaration.
+========================================================= */
+
+/* ---------- off-canvas navigation ---------- */
+
+/* The button itself is invisible on desktop (display:none) so it takes
+   no layout space there; it only becomes a real control below 700px. */
+.nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #dfe3e8;
+    border-radius: 8px;
+    background: white;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+@media (max-width: 700px) {
+
+    .nav-toggle { display: inline-flex; }
+
+    .topbar { flex-wrap: wrap; row-gap: 12px; }
+
+    /* Overrides the earlier "@media (max-width: 700px) { .sidebar {
+       display: none; } }" rule above: same specificity, later in the
+       file, so this wins. The sidebar becomes a slide-in drawer instead
+       of vanishing with nothing to replace it. */
+    .sidebar {
+        display: flex;
+        transform: translateX(-105%);
+        transition: transform .25s ease;
+        z-index: 60;
+        width: 260px;
+        box-shadow: 2px 0 24px rgba(0, 0, 0, .35);
+    }
+
+    body.nav-open .sidebar {
+        transform: translateX(0);
+    }
+
+    /* Dims and blocks the page behind the open drawer; a click here
+       lands on <body> (nothing else occupies the point), which the
+       document-level listener in mountChrome treats as "close". */
+    body.nav-open::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: rgba(17, 24, 39, .5);
+        z-index: 55;
+    }
+}
+
+/* ---------- no page-level horizontal scroll ---------- */
+
+@media (max-width: 700px) {
+    html, body { max-width: 100%; overflow-x: hidden; }
+
+    /* A bare <select>/<input> with no width (report.html's mode/VO
+       pickers) sizes to its longest option and can push the whole
+       .page-actions row wider than the viewport. Cap it; the row
+       already wraps via .page-actions { flex-wrap: wrap }. */
+    .page-actions select,
+    .page-actions input {
+        max-width: 100%;
+        flex: 1 1 220px;
+    }
+
+    select { max-width: 100%; }
+}
+
+/* ---------- tap targets (~44px) and minimum legible text ---------- */
+
+@media (max-width: 700px) {
+    .primary-button, .secondary-button, .danger-button, .signout-button,
+    .banner-button, .accept-match-btn, .assistant-suggestion-btn,
+    .chat-input button, .import-project-label,
+    .field input, .field select, .field textarea,
+    .doc-filters select, #reportMode, #voPicker, .chat-input input {
+        min-height: 44px;
+    }
+
+    /* A handful of chips/captions were set at 9px/10px for a desktop
+       card — bump every one of them to a legible ~12px on a phone
+       without touching their desktop declarations above. */
+    th, td, .status, .rate-flag, .disclaimer, .doc-version-count,
+    .element-tag, .bq-confidence, .deadline-flag, .stat-card small,
+    .ai-header p, .online, .message p, .suggestions button,
+    .chat-input input, .ai-banner p, .banner-button, .assistant-note,
+    .assistant-suggestion-btn, .lock-note, .field .hint,
+    .doc-field .file-item .file-date, .doc-registry-item .file-date,
+    .rate-detail, .result-group-title, .report-totals small,
+    .bq-preview-header, .bq-confidence, .bq-reasons,
+    .bq-preview-table th, .bq-preview-table td, .doc-filters label,
+    .doc-kind-label, .doc-category-tag, .passcode-note, .lang-btn,
+    .role-option span, .view-button, .chip-caret,
+    .project-chip small, .project-chip-menu-info span {
+        font-size: 12px;
+    }
+}
+
+/* ---------- wide tables: a legible minimum column width instead of a
+   squashed one, and rows that read top-to-bottom coherently ---------- */
+
+.table-scroll table { min-width: 560px; }
+.table-scroll td, .table-scroll th { vertical-align: top; }
+
+/* ---------- VO REGISTER: a card per VO instead of 12 cramped columns.
+   VO NO. and DESCRIPTION are the card heading (.card-heading); every
+   other column becomes a labelled row via data-label + ::before,
+   written per <td> in js/page-register.js. ---------- */
+
+@media (max-width: 700px) {
+    .register-scroll table,
+    .register-scroll tbody,
+    .register-scroll tr,
+    .register-scroll td { display: block; width: 100%; }
+
+    .register-scroll { min-width: 0; overflow-x: visible; }
+    .register-scroll table { min-width: 0; }
+
+    .register-scroll thead { display: none; }
+
+    .register-scroll tbody tr {
+        border: 1px solid #e8ebf0;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 6px 14px;
+        background: white;
+    }
+
+    .register-scroll td {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 6px 12px;
+        padding: 8px 0;
+        border-top: 1px solid #eef0f3;
+        font-size: 12px;
+        text-align: right;
+    }
+
+    .register-scroll td:first-child { border-top: none; }
+
+    .register-scroll td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        color: #8992a3;
+        font-size: 11px;
+        flex-shrink: 0;
+        padding-right: 10px;
+    }
+
+    .register-scroll td.card-heading {
+        display: block;
+        border-top: none;
+        padding: 10px 0 4px;
+        text-align: left;
+    }
+
+    .register-scroll td.card-heading::before { content: none; }
+
+    .register-scroll td.card-heading strong { font-size: 15px; }
+
+    .register-scroll td.owned-col { background: #fffdf2; }
+}
+
+/* ---------- VO DETAIL: three role panels stack, signed-in role first ---------- */
+
+/* Guarded to desktop only: below 700px the existing
+   ".dashboard-grid { grid-template-columns: 1fr }" rule (in the
+   original @media (max-width: 700px) block above) must win instead, so
+   the three role panels stack rather than staying three-across. */
+@media (min-width: 701px) {
+    .role-panels { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+@media (max-width: 700px) {
+    .role-panels[data-active-role="contractor"] [data-role="contractor"] { order: -1; }
+    .role-panels[data-active-role="consultant"] [data-role="consultant"] { order: -1; }
+    .role-panels[data-active-role="client"]     [data-role="client"]     { order: -1; }
+}

@@ -33,6 +33,7 @@ var I18N_EN = {
     "nav.register": "VO Register",
     "nav.documents": "Documents",
     "nav.report": "VO Reports",
+    "nav.toggle": "Menu",
 
     "crumb.dashboard": "VO-AI / Dashboard",
     "crumb.register": "VO-AI / VO Register",
@@ -698,6 +699,7 @@ var I18N_ZH = {
     "nav.register": "变更单登记册",
     "nav.documents": "文件",
     "nav.report": "变更单报告",
+    "nav.toggle": "菜单",
 
     "crumb.dashboard": "VO-AI / 仪表板",
     "crumb.register": "VO-AI / 变更单登记册",

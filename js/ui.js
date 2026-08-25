@@ -106,9 +106,16 @@ function renderSidebar(active, session, project) {
 function renderTopbar(title, crumb, session) {
     const role = ROLES[session.role] || ROLES.contractor;
     return '' +
-        "<div>" +
-            '<p class="breadcrumb">' + escapeHtml(crumb) + "</p>" +
-            "<h1>" + escapeHtml(title) + "</h1>" +
+        '<div class="topbar-left">' +
+            /* Hidden on desktop by CSS; becomes the sidebar's replacement
+               below the 700px breakpoint, where the sidebar itself is an
+               off-canvas drawer (see mountChrome's wiring and style.css). */
+            '<button type="button" class="nav-toggle" id="navToggleBtn" aria-expanded="false" aria-label="' +
+                escapeHtml(t("nav.toggle")) + '">&#9776;</button>' +
+            "<div>" +
+                '<p class="breadcrumb">' + escapeHtml(crumb) + "</p>" +
+                "<h1>" + escapeHtml(title) + "</h1>" +
+            "</div>" +
         "</div>" +
         '<div class="top-actions">' +
             '<div class="role" style="border-color:' + role.colour + '">' +
@@ -177,6 +184,32 @@ function mountChrome(active, title, crumb, opts) {
             chipMenu.hidden = !chipMenu.hidden;
         });
         document.addEventListener("click", () => { chipMenu.hidden = true; });
+    }
+
+    /* Below 700px the sidebar is an off-canvas drawer (see style.css);
+       this button is its only way open. body.nav-open drives the CSS
+       transform, and aria-expanded keeps a screen reader in sync. */
+    const navToggleBtn = document.getElementById("navToggleBtn");
+    if (navToggleBtn && aside) {
+        if (!aside.id) aside.id = "primaryNav";
+        navToggleBtn.setAttribute("aria-controls", aside.id);
+        navToggleBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const open = document.body.classList.toggle("nav-open");
+            navToggleBtn.setAttribute("aria-expanded", String(open));
+        });
+        document.addEventListener("click", (e) => {
+            if (!document.body.classList.contains("nav-open")) return;
+            if (aside.contains(e.target) || navToggleBtn.contains(e.target)) return;
+            document.body.classList.remove("nav-open");
+            navToggleBtn.setAttribute("aria-expanded", "false");
+        });
+        aside.addEventListener("click", (e) => {
+            if (e.target.closest && e.target.closest("a.nav-item")) {
+                document.body.classList.remove("nav-open");
+                navToggleBtn.setAttribute("aria-expanded", "false");
+            }
+        });
     }
 
     wireLangSwitch(document.getElementById("langSwitch"));
