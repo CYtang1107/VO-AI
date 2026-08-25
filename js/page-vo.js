@@ -107,6 +107,25 @@ function renderMeasurementRows(vo, project, role) {
         const check = checkRate(row, project.bq || []);
         const claimed = lineTotal(row.qty, row.rate);
 
+        /* An auto-match is a SUGGESTION, not a decision — shown visually
+           distinct (.rate-flag.auto-match, .rate-suggestion) from a
+           user-confirmed match, with an explicit Accept control that
+           routes through updateVO + logHistory like any other edit.
+           Never rendered when the row is already linked, and the accept
+           control only appears when the signed-in role may edit the
+           measurement. */
+        const autoBlock = check.autoMatched
+            ? '<div class="rate-suggestion">' +
+                '<span class="rate-flag auto-match">Suggested match</span> ' +
+                escapeHtml(check.matchedItem.code + " · " + check.matchedItem.description) +
+                '<div class="rate-detail">' + escapeHtml(check.matchBasis) + "</div>" +
+                (conEdit
+                    ? '<button type="button" class="accept-match-btn" data-row="' + i +
+                      '" data-bq-id="' + escapeHtml(check.matchedItem.id) + '">Accept suggested match</button>'
+                    : "") +
+              "</div>"
+            : "";
+
         return '<tr data-row="' + i + '">' +
             '<td><input data-col="description" value="' + escapeHtml(row.description) +
                 '"' + conDis + (conEdit ? ' class="owned"' : "") + ' style="width:220px"></td>' +
@@ -126,7 +145,8 @@ function renderMeasurementRows(vo, project, role) {
                 escapeHtml(row.assessedRate) + '"' + assDis +
                 (assEdit ? ' class="owned"' : "") + ' style="width:90px;margin-top:5px"></td>' +
             '<td><span class="rate-flag ' + check.state + '">' + check.label + "</span>" +
-                '<div class="rate-detail">' + escapeHtml(check.detail) + "</div></td>" +
+                '<div class="rate-detail">' + escapeHtml(check.detail) + "</div>" +
+                autoBlock + "</td>" +
         "</tr>";
     }).join("");
 }
@@ -319,6 +339,23 @@ if (typeof document !== "undefined") {
                 else row[col] = el.value;
             });
             toast("Measurement updated.");
+            draw();
+        });
+
+        /* Accept a suggested BQ match: this is the only place an
+           auto-match becomes stored data — it goes through updateVO and
+           logHistory exactly like a manual dropdown pick, never a
+           silent mutation. */
+        document.getElementById("measurementBody").addEventListener("click", e => {
+            const btn = e.target.closest(".accept-match-btn");
+            if (!btn) return;
+            const i = Number(btn.dataset.row);
+            const bqId = btn.dataset.bqId;
+            updateVO(project.id, voId, v => {
+                v.measurement[i].bqItemId = bqId;
+                logHistory(v, session, "Accepted suggested BQ match for row " + (i + 1));
+            });
+            toast("Suggested BQ match accepted.");
             draw();
         });
 

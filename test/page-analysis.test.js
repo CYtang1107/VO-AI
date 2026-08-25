@@ -135,6 +135,38 @@ test("a null clause is explained in words, with no clause fields rendered", () =
     assert.ok(!/Governing clause/.test(html));
 });
 
+/* ---------- automatic BQ match on the revised item ---------- */
+
+test("a revised item whose description strongly matches another BQ item shows the suggested match", () => {
+    const vo = buildSyntheticVO(ceramicTiles, {
+        description: "Additional skirting works",
+        typeOfInstruction: "Architect's Instruction (AI)",
+        revisedDescription: "Additional skirting to match floor finish",
+        qty: 10,
+        revisedRate: 22
+    });
+    /* Override the synthetic addition row's unit so it matches BQ2 (m),
+       not the omitted item's unit (m2) — the analysis screen always
+       carries the original item's unit onto both synthetic rows, but
+       this test is specifically about the revised item finding its
+       OWN comparable BQ item by description, independent of that. */
+    vo.measurement[1].unit = "m";
+    const a = analyse(vo, project);
+    const basis = classificationBasis(vo);
+    const costs = computeCosts(ceramicTiles, 10, 22);
+    const html = renderAssessmentResult(a, basis, costs, false);
+    assert.match(html, /rate-flag auto-match/);
+    assert.match(html, /Suggested match/);
+    assert.match(html, /B\/4\.2/);
+    assert.match(html, /matched on description/);
+});
+
+test("a revised item with no comparable BQ item shows no suggested match", () => {
+    const html = demoResult("consultant"); /* revised item: "Marble floor tiles" */
+    assert.ok(!/rate-flag auto-match/.test(html),
+        "marble tiles must not auto-match the ceramic BQ item");
+});
+
 /* ---------- role gating on the create-VO button ---------- */
 
 test("a contractor gets a Create-VO button in the result", () => {

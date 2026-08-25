@@ -168,14 +168,25 @@ function renderCostBlock(costs) {
     return html + "</div>";
 }
 
+/* A row with no bqItemId that the matcher found a candidate for gets an
+   extra line naming the match and its basis — visually flagged with the
+   same .auto-match treatment as the VO measurement grid, so a user
+   pasting in a change sees the system find the comparable rate on its
+   own, without mistaking it for a confirmed link. */
 function renderRateRows(a) {
     if (a.rates.rows.length === 0) return '<div class="empty-state">No measurement rows.</div>';
-    return a.rates.rows.map(r =>
-        '<div class="finding"><span class="rate-flag ' + r.check.state + '">' +
-        escapeHtml(r.check.label) + "</span> " +
-        "<span>" + escapeHtml(r.row.description || "") + " — " +
-        escapeHtml(r.check.detail) + "</span></div>"
-    ).join("");
+    return a.rates.rows.map(r => {
+        const autoNote = r.check.autoMatched
+            ? '<div class="rate-detail auto-match-note">' +
+              '<span class="rate-flag auto-match">Suggested match</span> ' +
+              escapeHtml(r.check.matchedItem.code + " · " + r.check.matchedItem.description) +
+              " — " + escapeHtml(r.check.matchBasis) + "</div>"
+            : "";
+        return '<div class="finding"><span class="rate-flag ' + r.check.state + '">' +
+            escapeHtml(r.check.label) + "</span> " +
+            "<span>" + escapeHtml(r.row.description || "") + " — " +
+            escapeHtml(r.check.detail) + "</span>" + autoNote + "</div>";
+    }).join("");
 }
 
 function renderFindings(a) {

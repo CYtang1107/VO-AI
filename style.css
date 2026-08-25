@@ -1276,3 +1276,37 @@ td.owned-col { background: #fffdf2; }
 }
 .cost-highlight .result-label { color: #2563eb; font-weight: bold; font-size: 11px; }
 .cost-highlight .result-value { color: #1d4ed8; font-size: 19px; }
+
+/* =========================
+   AUTOMATIC BQ MATCH — a suggestion, never a confirmed link. Distinct
+   dashed border and amber flag so it can never be mistaken for the
+   solid rate-flag verdicts above, which reflect a link the user chose.
+========================= */
+
+.rate-flag.auto-match { background: #fff7e6; color: #b45309; }
+
+.rate-suggestion {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px dashed #e3b873;
+    border-radius: 7px;
+    background: #fffaf0;
+    font-size: 10px;
+    color: #4b5563;
+}
+.rate-suggestion .rate-detail { margin-top: 4px; }
+
+.accept-match-btn {
+    margin-top: 7px;
+    padding: 4px 10px;
+    border: 1px solid #b45309;
+    border-radius: 6px;
+    background: #fff;
+    color: #b45309;
+    font-size: 9px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.accept-match-btn:hover { background: #fff3dc; }
+
+.auto-match-note { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }

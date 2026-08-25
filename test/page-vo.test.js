@@ -69,6 +69,47 @@ test("the contractor cannot edit assessed columns", () => {
         "assessed rate inputs must be disabled for the contractor");
 });
 
+/* ---------- automatic BQ match suggestion ---------- */
+
+test("a row with no BQ item and a strong description match shows a suggested match", () => {
+    const vo = { evaluateStatus: "Pending", submitted: true, measurement: [
+        { id: "MX", bqItemId: null, description: "Additional skirting to match floor finish",
+          unit: "m", qty: 10, rate: 22, assessedQty: "", assessedRate: "" }
+    ] };
+    const html = renderMeasurementRows(vo, project, "consultant");
+    assert.match(html, /rate-flag auto-match/);
+    assert.match(html, /Suggested match/);
+    assert.match(html, /B\/4\.2/);
+    assert.match(html, /matched on description/);
+});
+
+test("a row with a confirmed BQ item shows no suggestion block", () => {
+    const html = renderMeasurementRows(vo1, project, "consultant");
+    assert.ok(!/rate-flag auto-match/.test(html), "a linked row must not show a suggestion");
+});
+
+test("the accept-match control appears only for a role that may edit the measurement", () => {
+    const vo = { evaluateStatus: "Draft", submitted: false, measurement: [
+        { id: "MX", bqItemId: null, description: "Additional skirting to match floor finish",
+          unit: "m", qty: 10, rate: 22, assessedQty: "", assessedRate: "" }
+    ] };
+    const contractorHtml = renderMeasurementRows(vo, project, "contractor");
+    const consultantHtml = renderMeasurementRows(vo, project, "consultant");
+    /* On a Draft VO the contractor owns measurement; consultant does not. */
+    assert.match(contractorHtml, /accept-match-btn/);
+    assert.ok(!/accept-match-btn/.test(consultantHtml));
+});
+
+test("no comparable BQ item shows no suggestion block, only the star verdict", () => {
+    const vo = { evaluateStatus: "Draft", submitted: false, measurement: [
+        { id: "MX", bqItemId: null, description: "Precast concrete sump 600x600mm with cover",
+          unit: "no", qty: 4, rate: 1250, assessedQty: "", assessedRate: "" }
+    ] };
+    const html = renderMeasurementRows(vo, project, "contractor");
+    assert.match(html, /rate-flag star/);
+    assert.ok(!/rate-flag auto-match/.test(html));
+});
+
 test("history renders every recorded action, newest last", () => {
     const html = renderHistory(vo1);
     assert.match(html, /VO created/);

@@ -1,13 +1,24 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const {
-    classifyVariation, checkRate, rateSummary, analyse, classificationBasis
+    classifyVariation, checkRate, rateSummary, analyse, classificationBasis, matchBqItem
 } = require("../js/analysis.js");
+const { seedDB } = require("../js/store.js");
 
 const bq = [
     { id: "BQ1", code: "B/4.1", description: "Ceramic floor tiles", unit: "m2", rate: 85 },
     { id: "BQ2", code: "B/4.2", description: "Skirting", unit: "m", rate: 22 }
 ];
+
+const seededBq = seedDB().projects[0].bq;
+/* [
+     BQ1 B/4.1  "Ceramic floor tiles 600x600mm to living area"  m2   85
+     BQ2 B/4.2  "Skirting to match floor finish"                m    22
+     BQ3 B/5.1  "Plaster and paint to internal walls"           m2   34
+     BQ4 C/2.3  "Timber flush door 900x2100mm with ironmongery" no   640
+     BQ5 D/1.2  "100mm dia uPVC drainage pipe laid in trench"   m    48
+     BQ6 E/3.1  "Suspended plasterboard ceiling incl. framing"  m2   76
+   ] */
 
 /* ---------- rate cross-check: the consultant's core duty ---------- */
 
@@ -60,6 +71,88 @@ test("rateSummary counts each state across the VO", () => {
     assert.strictEqual(s.star, 1);
     assert.strictEqual(s.different, 1);
     assert.strictEqual(s.rows.length, 3);
+});
+
+/* ---------- automatic BQ matching ---------- */
+
+test("a BQ code found in the description is a definitive match", () => {
+    const m = matchBqItem({ description: "Additional B/4.1 ceramic tiles to balcony",
+                             unit: "m2" }, seededBq);
+    assert.ok(m, "expected a match");
+    assert.strictEqual(m.item.id, "BQ1");
+    assert.match(m.basis, /matched BQ code B\/4\.1/);
+    assert.strictEqual(m.score, 1);
+});
+
+test("a close description match with the same unit succeeds", () => {
+    const m = matchBqItem({ description: "Additional skirting to match floor finish",
+                             unit: "m" }, seededBq);
+    assert.ok(m, "expected a match");
+    assert.strictEqual(m.item.id, "BQ2");
+    assert.match(m.basis, /matched on description \(4 of 5 significant words\)/);
+    assert.match(m.basis, /unit m/);
+});
+
+test("the same description with a conflicting unit does not match", () => {
+    const m = matchBqItem({ description: "Additional skirting to match floor finish",
+                             unit: "no" }, seededBq);
+    assert.strictEqual(m, null);
+});
+
+test("an unrelated description returns null rather than a weak guess", () => {
+    const m = matchBqItem({ description: "Precast concrete sump 600x600mm with cover",
+                             unit: "no" }, seededBq);
+    assert.strictEqual(m, null);
+});
+
+test("a strong word overlap that is really a different, separately-priced item declines to match", () => {
+    /* The seeded VO-001 M2 row: marble tiles replacing the BQ's ceramic
+       tiles. Five of the row's seven significant words (floor, tiles,
+       600x600mm, living, area) are shared with BQ1's ceramic-tile
+       description and the unit matches too — but "marble" is not
+       "ceramic": these are different, separately negotiated items, and
+       an automatic match here would silently compare the marble rate
+       against the ceramic contract rate. Must return null. */
+    const m = matchBqItem({ description: "Add marble floor tiles 600x600mm to living area",
+                             unit: "m2" }, seededBq);
+    assert.strictEqual(m, null);
+});
+
+test("a row already linked to a BQ item is unaffected by the matcher", () => {
+    /* Description text overlaps strongly with BQ2 (skirting), but the
+       row is explicitly linked to BQ1 — the link must win, and no
+       auto-match should be attempted at all. */
+    const c = checkRate({ bqItemId: "BQ1", description: "Additional skirting to match floor finish",
+                           unit: "m", rate: 22 }, seededBq);
+    assert.strictEqual(c.state, "different");
+    assert.strictEqual(c.contractRate, 85);
+    assert.strictEqual(c.autoMatched, undefined);
+});
+
+test("an auto-matched row with a rate equal to the matched item's is a same-rate verdict, marked auto-matched", () => {
+    const c = checkRate({ bqItemId: null, description: "Additional skirting to match floor finish",
+                           unit: "m", rate: 22 }, seededBq);
+    assert.strictEqual(c.state, "same");
+    assert.strictEqual(c.autoMatched, true);
+    assert.strictEqual(c.matchedItem.id, "BQ2");
+    assert.match(c.matchBasis, /matched on description/);
+});
+
+test("an auto-matched row with a different rate is a different-rate verdict, marked auto-matched", () => {
+    const c = checkRate({ bqItemId: null, description: "Additional skirting to match floor finish",
+                           unit: "m", rate: 31 }, seededBq);
+    assert.strictEqual(c.state, "different");
+    assert.strictEqual(c.autoMatched, true);
+    assert.strictEqual(c.contractRate, 22);
+    assert.match(c.detail, /Automatically matched/);
+});
+
+test("no comparable BQ item still returns the unchanged star verdict", () => {
+    const c = checkRate({ bqItemId: null, description: "Precast concrete sump 600x600mm with cover",
+                           unit: "no", rate: 1250 }, seededBq);
+    assert.strictEqual(c.state, "star");
+    assert.strictEqual(c.autoMatched, undefined);
+    assert.match(c.detail, /star rate/i);
 });
 
 /* ---------- classification ---------- */
