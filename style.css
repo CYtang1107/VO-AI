@@ -1339,4 +1339,25 @@ td.owned-col { background: #fffdf2; }
     gap: 7px;
     cursor: pointer;
 }
+
+/* =========================
+   REPORT — evidence-trail document lists (revised drawing / old
+   drawing / supporting document sections) and the all-VO summary.
+========================= */
+
+.report-doc-list { list-style: none; padding: 0; margin: 0 0 8px; }
+.report-doc-list li {
+    padding: 7px 0;
+    border-bottom: 1px solid #eef0f3;
+    font-size: 12px;
+}
+.report-doc-list li:last-child { border-bottom: none; }
+
+@media print {
+    #reportMode, #voPicker { display: none !important; }
+    .report-sheet table { font-size: 10px; }
+    .report-sheet th, .report-sheet td { padding: 8px 10px; }
+    .report-sheet .table-scroll { overflow-x: visible; }
+    .report-sheet tr { break-inside: avoid; }
+}
 .element-check input[type="checkbox"] { margin-top: 3px; }
