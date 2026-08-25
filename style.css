@@ -1492,3 +1492,50 @@ td.owned-col { background: #fffdf2; }
     padding: 9px 12px;
     margin: 0 0 12px;
 }
+
+/* =========================
+   DOCUMENT VERSIONS
+   (js/documents.js — a chain of revisions per attached document)
+========================= */
+
+.doc-current {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.doc-version-count {
+    font-size: 9px;
+    font-weight: bold;
+    color: #2563eb;
+    background: #eaf1ff;
+    border-radius: 20px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.doc-version-upload {
+    font-size: 10.5px;
+    color: #2563eb;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.doc-revisions {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 6px 0 0 14px;
+    border-left: 2px solid #eef1f5;
+}
+
+.doc-revision {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 10.5px;
+    color: #8992a3;
+    padding: 2px 0;
+}
+
+.doc-revision .file-name { color: #687386; }

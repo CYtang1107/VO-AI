@@ -7,6 +7,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill } = require("./ui.js");
     var { deadlinesFor, INFO_RESPONSE_DAYS } = require("./deadlines.js");
+    var { currentVersion, versionCount, addVersion } = require("./documents.js");
 }
 
 /* One labelled control. Editable => .owned (yellow). Locked => .locked + reason. */
@@ -49,6 +50,17 @@ function field(spec) {
    contractor-owned document field, plus a file picker when the field is
    editable for the signed-in role. Records file METADATA only — never the
    file body. */
+function renderDocRevisions(d) {
+    const revisions = d.revisions || [];
+    if (revisions.length === 0) return "";
+    /* Most recent prior version first. */
+    return '<ul class="doc-revisions">' + revisions.slice().reverse().map(r =>
+        '<li class="doc-revision"><span class="file-name">' + escapeHtml(r.name) + "</span>" +
+            '<span class="file-date">' + escapeHtml(prettyDate(r.at)) + " · " +
+            escapeHtml(r.uploadedBy) + "</span></li>"
+    ).join("") + "</ul>";
+}
+
 function renderDocList(vo, fieldName, label, role) {
     const editable = canEdit(fieldName, vo, role);
     const reason = editable ? "" : lockReason(fieldName, vo, role);
@@ -56,16 +68,29 @@ function renderDocList(vo, fieldName, label, role) {
 
     const list = docs.length === 0
         ? '<div class="empty-state">No documents attached.</div>'
-        : '<ul class="doc-list">' + docs.map(d =>
-            '<li class="file-item" data-doc-id="' + escapeHtml(d.id) + '">' +
-                '<span class="file-name">' + escapeHtml(d.name) + "</span>" +
-                '<span class="file-date">' + escapeHtml(prettyDate(d.at)) + "</span>" +
-                (editable
-                    ? '<button type="button" class="file-remove" data-field="' +
-                      escapeHtml(fieldName) + '" data-doc-id="' + escapeHtml(d.id) +
-                      '">Remove</button>'
-                    : "") +
-            "</li>").join("") + "</ul>";
+        : '<ul class="doc-list">' + docs.map(d => {
+            const vCount = versionCount(d);
+            return '<li class="file-item" data-doc-id="' + escapeHtml(d.id) + '">' +
+                '<div class="doc-current">' +
+                    '<span class="file-name">' + escapeHtml(d.name) + "</span>" +
+                    '<span class="file-date">' + escapeHtml(prettyDate(d.at)) + " · " +
+                        escapeHtml(d.uploadedBy) + "</span>" +
+                    (vCount > 1
+                        ? '<span class="doc-version-count">' + vCount + " versions on record</span>"
+                        : "") +
+                    (editable
+                        ? '<label class="doc-version-upload">Upload new version' +
+                          '<input type="file" class="doc-version-picker" data-field="' +
+                          escapeHtml(fieldName) + '" data-doc-id="' + escapeHtml(d.id) +
+                          '" hidden></label>' +
+                          '<button type="button" class="file-remove" data-field="' +
+                          escapeHtml(fieldName) + '" data-doc-id="' + escapeHtml(d.id) +
+                          '">Remove</button>'
+                        : "") +
+                "</div>" +
+                renderDocRevisions(d) +
+            "</li>";
+        }).join("") + "</ul>";
 
     const picker = editable
         ? '<input type="file" multiple class="doc-picker" data-field="' +
@@ -337,7 +362,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory,
         renderDeadlinesPanel, renderInfoRequestControl
     };
@@ -426,6 +451,28 @@ if (typeof document !== "undefined") {
         /* Persist any panel field on change. */
         document.querySelectorAll(".role-panel").forEach(panel => {
             panel.addEventListener("change", e => {
+                const versionPicker = e.target.closest(".doc-version-picker");
+                if (versionPicker) {
+                    const fieldName = versionPicker.dataset.field;
+                    const docId = versionPicker.dataset.docId;
+                    const file = (versionPicker.files || [])[0];
+                    if (!file) return;
+                    let oldName = "";
+                    let newName = "";
+                    updateVO(project.id, voId, v => {
+                        const doc = (v[fieldName] || []).find(d => d.id === docId);
+                        if (!doc) return;
+                        oldName = doc.name;
+                        addVersion(doc, file, session, today());
+                        newName = doc.name;
+                        logHistory(v, session, "Uploaded new version of " + oldName +
+                            " (now " + newName + ") in " + fieldName);
+                    });
+                    toast("New version uploaded.");
+                    draw();
+                    return;
+                }
+
                 const picker = e.target.closest(".doc-picker");
                 if (picker) {
                     const fieldName = picker.dataset.field;
@@ -465,11 +512,14 @@ if (typeof document !== "undefined") {
                 const fieldName = btn.dataset.field;
                 const docId = btn.dataset.docId;
                 let removedName = "";
+                let removedVersions = 1;
                 updateVO(project.id, voId, v => {
                     const doc = (v[fieldName] || []).find(d => d.id === docId);
                     removedName = doc ? doc.name : "document";
+                    removedVersions = doc ? versionCount(doc) : 1;
                     v[fieldName] = (v[fieldName] || []).filter(d => d.id !== docId);
-                    logHistory(v, session, "Removed " + removedName + " from " + fieldName);
+                    logHistory(v, session, "Removed " + removedName + " from " + fieldName +
+                        (removedVersions > 1 ? " (" + removedVersions + " versions)" : ""));
                 });
                 toast("Document removed.");
                 draw();

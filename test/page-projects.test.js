@@ -1,6 +1,26 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { renderProjectCard, parseBqPaste } = require("../js/page-projects.js");
+const { renderProjectCard, parseBqPaste, exportProject, validateImport, importProject } =
+    require("../js/page-projects.js");
+
+function sampleProject() {
+    return {
+        id: "PRJ-1",
+        name: "Cadangan Pembangunan ABC Residence",
+        client: "ABC Development Sdn Bhd",
+        contractNo: "ABC/2026/014",
+        contractSum: 12500000,
+        bq: [{ id: "BQ1", code: "B/4.1", description: "Ceramic floor tiles", unit: "m2", rate: 85 }],
+        documents: [{ id: "D1", name: "Contract.pdf", size: 100, category: "contract",
+                      uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:10:00Z" }],
+        vos: [{
+            id: "VO-1", no: "VO-001", description: "Change of floor finish",
+            measurement: [{ id: "M1", bqItemId: "BQ1", description: "Omit tiles",
+                            unit: "m2", qty: -320, rate: 85, assessedQty: -320, assessedRate: 85 }],
+            revisedDrawing: [], oldDrawing: [], supportingDocs: [], history: []
+        }]
+    };
+}
 
 test("parseBqPaste reads tab separated BQ lines", () => {
     const rows = parseBqPaste("B/4.1\tCeramic floor tiles\tm2\t85\nB/4.2\tSkirting\tm\t22");
@@ -67,4 +87,85 @@ test("parseBqPaste keeps a comma inside a description intact", () => {
     assert.strictEqual(rows[0].description, "Ceramic floor tiles 600x600mm, laid to falls");
     assert.strictEqual(rows[0].unit, "m2");
     assert.strictEqual(rows[0].rate, 85);
+});
+
+/* -----------------------------------------------------------
+   Project export / import
+----------------------------------------------------------- */
+
+test("exportProject round-trips through JSON without loss", () => {
+    const project = sampleProject();
+    const exported = exportProject(project);
+    const parsed = JSON.parse(JSON.stringify(exported));
+
+    const check = validateImport(parsed);
+    assert.deepStrictEqual(check, { ok: true, errors: [] });
+
+    const db = { projects: [] };
+    const imported = importProject(parsed, db);
+
+    assert.strictEqual(imported.vos.length, 1);
+    assert.strictEqual(imported.vos[0].measurement[0].qty, -320);
+    assert.strictEqual(imported.vos[0].measurement[0].rate, 85);
+    assert.strictEqual(imported.bq[0].rate, 85);
+    assert.strictEqual(imported.name, project.name);
+});
+
+test("validateImport rejects a non-object", () => {
+    assert.deepStrictEqual(validateImport(null), { ok: false, errors: ["The file is not a JSON object."] });
+    assert.deepStrictEqual(validateImport("hello"), { ok: false, errors: ["The file is not a JSON object."] });
+    assert.deepStrictEqual(validateImport([1, 2]), { ok: false, errors: ["The file is not a JSON object."] });
+});
+
+test("validateImport rejects an object missing vos", () => {
+    const result = validateImport({ name: "X", bq: [], documents: [] });
+    assert.strictEqual(result.ok, false);
+    assert.ok(result.errors.some(e => e.includes("vos")));
+});
+
+test("validateImport rejects an object whose bq is not an array", () => {
+    const result = validateImport({ name: "X", bq: "not an array", vos: [], documents: [] });
+    assert.strictEqual(result.ok, false);
+    assert.ok(result.errors.some(e => e.includes("bq")));
+});
+
+test("importProject assigns a new id and never overwrites an existing project", () => {
+    const existing = sampleProject();
+    existing.id = "PRJ-1";
+    const db = { projects: [existing] };
+
+    const incoming = sampleProject();
+    incoming.id = "PRJ-1"; /* same id as the existing project, on purpose */
+    incoming.name = "A Different Project Name";
+
+    const imported = importProject(incoming, db);
+
+    assert.notStrictEqual(imported.id, "PRJ-1");
+    assert.strictEqual(db.projects.length, 2);
+    assert.strictEqual(db.projects[0].id, "PRJ-1");
+    assert.strictEqual(db.projects[0].name, existing.name);
+});
+
+test("importProject suffixes the name when a project of the same name already exists", () => {
+    const existing = sampleProject();
+    const db = { projects: [existing] };
+
+    const incoming = sampleProject();
+    const imported = importProject(incoming, db);
+
+    assert.notStrictEqual(imported.name, existing.name);
+    assert.match(imported.name, /\(imported 2\)$/);
+    assert.strictEqual(db.projects.length, 2);
+    assert.strictEqual(db.projects[0].name, existing.name);
+});
+
+test("a project name containing markup is escaped when rendered", () => {
+    const db = { projects: [] };
+    const imported = importProject({
+        name: "<img src=x onerror=1>", bq: [], vos: [], documents: []
+    }, db);
+
+    const html = renderProjectCard(imported, { role: "client" });
+    assert.ok(!html.includes("<img src=x"));
+    assert.match(html, /&lt;img/);
 });

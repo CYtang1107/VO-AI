@@ -11,6 +11,9 @@
         .project-meta small { display: block; font-size: 9px; color: #8992a3; margin-bottom: 4px; }
         .project-meta strong { font-size: 13px; }
         .create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .projects-toolbar { display: flex; gap: 10px; align-items: center; }
+        .import-project-label { cursor: pointer; }
+        .import-hint { font-size: 11px; color: #8992a3; margin: -14px 0 22px; }
         @media (max-width: 900px) {
             .project-list, .create-grid { grid-template-columns: 1fr; }
         }
@@ -28,8 +31,20 @@
             <h2>Choose a project</h2>
             <p>Every variation order belongs to a project. Open one to continue.</p>
         </div>
-        <button class="secondary-button" id="resetBtn">Restore demo data</button>
+        <div class="projects-toolbar">
+            <label class="secondary-button import-project-label" for="importFileInput">
+                Import project (.json)
+            </label>
+            <input type="file" id="importFileInput" accept="application/json,.json" hidden>
+            <button class="secondary-button" id="resetBtn">Restore demo data</button>
+        </div>
     </section>
+
+    <p class="hint import-hint">
+        Import adds a copy of the project to this browser only — it does not sync with
+        anyone else's copy. Use export on a project card to hand a teammate a file they
+        can import to get an identical copy of the register.
+    </p>
 
     <div class="project-list" id="projectList"></div>
 

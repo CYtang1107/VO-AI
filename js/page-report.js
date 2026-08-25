@@ -5,6 +5,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, today, prettyDate, contractorTotal, assessedTotal, voValue } = require("./calc.js");
     var { analyse, checkRate } = require("./analysis.js");
     var { escapeHtml } = require("./ui.js");
+    var { versionCount } = require("./documents.js");
 }
 
 /* -----------------------------------------------------------
@@ -19,10 +20,13 @@ function docSection(files, label) {
     if (!files || files.length === 0) {
         return '<p class="empty-state">No ' + escapeHtml(label) + ' attached.</p>';
     }
-    return '<ul class="report-doc-list">' + files.map(f =>
-        "<li>" + escapeHtml(f.name) +
-        ' <span class="rate-detail">— attached ' + prettyDate(f.at) + "</span></li>"
-    ).join("") + "</ul>";
+    return '<ul class="report-doc-list">' + files.map(f => {
+        const vCount = versionCount(f);
+        return "<li>" + escapeHtml(f.name) +
+        ' <span class="rate-detail">— attached ' + prettyDate(f.at) +
+        (vCount > 1 ? " · " + (vCount - 1) + " prior version(s) on record" : "") +
+        "</span></li>";
+    }).join("") + "</ul>";
 }
 
 /* The consequential-element prompts from js/elements.js, surfaced
