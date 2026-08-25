@@ -37,10 +37,25 @@ function actionItems(project, role) {
     }
 
     if (role === "consultant") {
-        return vos
+        const awaitingAssessment = vos
             .filter(v => v.submitted &&
                 (v.evaluateStatus === "Pending" || v.evaluateStatus === "Under Review"))
             .map(v => ({ vo: v, text: t("dashboard.action.awaitingAssessment") }));
+
+        /* The client asking the consultant for further information (the
+           mirror of the consultant's own info-request to the contractor)
+           has no contractual clock of its own — it belongs on this list
+           purely so the consultant notices it, not because it is overdue. */
+        const clientInfoRequests = vos
+            .filter(v => !!v.clientInfoRequestedAt)
+            .map(v => ({
+                vo: v,
+                text: v.clientInfoRequestNote
+                    ? t("dashboard.action.clientInfoRequested", { note: v.clientInfoRequestNote })
+                    : t("dashboard.action.clientInfoRequestedNoNote")
+            }));
+
+        return awaitingAssessment.concat(clientInfoRequests);
     }
 
     return vos

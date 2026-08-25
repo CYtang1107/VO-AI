@@ -75,6 +75,8 @@ function newVO(seq) {
         certifiedStatus: "Pending",
         finalPrice: null,
         clientRemark: "",
+        clientInfoRequestedAt: null,
+        clientInfoRequestNote: "",
 
         history: []
     };
@@ -355,6 +357,8 @@ function seedDB() {
                     certifiedStatus: "Approved",
                     finalPrice: 55856,
                     clientRemark: "Certified for payment in interim certificate no. 8.",
+                    clientInfoRequestedAt: null,
+                    clientInfoRequestNote: "",
                     history: [
                         { at: "2026-07-14T09:12:00Z", by: "Ong Wei Han", role: "contractor", action: "VO created" },
                         { at: "2026-07-15T16:40:00Z", by: "Ong Wei Han", role: "contractor", action: "Submitted to consultant" },
@@ -394,6 +398,8 @@ function seedDB() {
                     certifiedStatus: "Pending",
                     finalPrice: null,
                     clientRemark: "",
+                    clientInfoRequestedAt: null,
+                    clientInfoRequestNote: "",
                     history: [
                         { at: "2026-07-15T08:30:00Z", by: "Ong Wei Han", role: "contractor", action: "VO created" },
                         { at: "2026-07-16T14:02:00Z", by: "Ong Wei Han", role: "contractor", action: "Submitted to consultant" }
@@ -423,6 +429,8 @@ function seedDB() {
                     certifiedStatus: "Pending",
                     finalPrice: null,
                     clientRemark: "",
+                    clientInfoRequestedAt: null,
+                    clientInfoRequestNote: "",
                     history: [
                         { at: "2026-08-18T09:00:00Z", by: "Ong Wei Han", role: "contractor", action: "VO created" }
                     ]

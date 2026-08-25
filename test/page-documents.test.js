@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const {
-    formatSize, collectDocuments, filterDocuments, renderDocumentGroups
+    formatSize, collectDocuments, filterDocuments, renderDocumentGroups, renderProjectDocList
 } = require("../js/page-documents.js");
 const { seedDB } = require("../js/store.js");
 
@@ -89,6 +89,18 @@ test("collectDocuments handles a project with no documents/vos arrays at all", (
     });
 });
 
+test("an uploaded project document appears in collectDocuments with its category", () => {
+    const fakeProject = { documents: [
+        { id: "D9", name: "Addendum 1.pdf", size: 1200, category: "addendum",
+          uploadedBy: "Serena Wong", role: "consultant", at: "2026-08-20T09:00:00Z" }
+    ], vos: [] };
+    const list = collectDocuments(fakeProject);
+    const doc = list.find(d => d.id === "D9");
+    assert.ok(doc, "the uploaded project document should be found");
+    assert.strictEqual(doc.source, "project");
+    assert.strictEqual(doc.category, "addendum");
+});
+
 /* ---------- filterDocuments ---------- */
 
 test("filterDocuments by kind=project returns only project-level documents", () => {
@@ -163,6 +175,43 @@ test("renderDocumentGroups escapes a document name containing markup", () => {
     const html = renderDocumentGroups(list, { kind: "all", voId: "all" });
     assert.ok(!html.includes("<img src=x"), "raw markup must not appear unescaped");
     assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;\.pdf/);
+});
+
+/* ---------- consultant-only project document upload/removal control ---------- */
+
+test("the consultant sees a remove control on a project document; the other two roles do not", () => {
+    const docs = [{ id: "D9", name: "Addendum 1.pdf", size: 1200, category: "addendum",
+                    uploadedBy: "Serena Wong", at: "2026-08-20T09:00:00Z" }];
+    const consultantHtml = renderProjectDocList(docs, "consultant");
+    assert.match(consultantHtml, /doc-remove-btn/);
+    assert.match(consultantHtml, /data-doc-id="D9"/);
+
+    const contractorHtml = renderProjectDocList(docs, "contractor");
+    assert.ok(!contractorHtml.includes("doc-remove-btn"));
+
+    const clientHtml = renderProjectDocList(docs, "client");
+    assert.ok(!clientHtml.includes("doc-remove-btn"));
+});
+
+test("renderDocumentGroups forwards the role so the remove control only appears for the consultant", () => {
+    const list = [{ id: "D9", name: "Addendum 1.pdf", size: 1200, category: "addendum",
+                    uploadedBy: "Serena Wong", at: "2026-08-20T09:00:00Z",
+                    source: "project", kind: "project", voId: null }];
+    const consultantHtml = renderDocumentGroups(list, { kind: "all", voId: "all" }, "consultant");
+    assert.match(consultantHtml, /doc-remove-btn/);
+
+    const clientHtml = renderDocumentGroups(list, { kind: "all", voId: "all" }, "client");
+    assert.ok(!clientHtml.includes("doc-remove-btn"));
+});
+
+test("removing a project document removes it from collectDocuments' output", () => {
+    const fakeProject = { documents: [
+        { id: "D9", name: "Addendum 1.pdf", size: 1200, category: "addendum",
+          uploadedBy: "Serena Wong", at: "2026-08-20T09:00:00Z" }
+    ], vos: [] };
+    fakeProject.documents = fakeProject.documents.filter(d => d.id !== "D9");
+    const list = collectDocuments(fakeProject);
+    assert.ok(!list.some(d => d.id === "D9"));
 });
 
 test("renderDocumentGroups produces no empty box for a VO with no documents", () => {

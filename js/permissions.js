@@ -45,7 +45,9 @@ var FIELD_OWNER = {
     /* client's columns */
     certifiedStatus: "client",
     finalPrice: "client",
-    clientRemark: "client"
+    clientRemark: "client",
+    clientInfoRequestedAt: "client",
+    clientInfoRequestNote: "client"
 };
 
 function canEdit(field, vo, role) {

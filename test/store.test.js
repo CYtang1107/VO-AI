@@ -44,6 +44,14 @@ test("a new VO carries every field in the data model", () => {
     assert.strictEqual(vo.submitted, false);
 });
 
+test("a new VO carries the client's request-for-further-information fields, unset", () => {
+    const vo = newVO(5);
+    assert.ok("clientInfoRequestedAt" in vo, "missing field: clientInfoRequestedAt");
+    assert.ok("clientInfoRequestNote" in vo, "missing field: clientInfoRequestNote");
+    assert.strictEqual(vo.clientInfoRequestedAt, null);
+    assert.strictEqual(vo.clientInfoRequestNote, "");
+});
+
 test("the seed project matches the demo scenario in the spec", () => {
     const db = seedDB();
     assert.strictEqual(db.projects.length, 1);

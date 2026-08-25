@@ -6,7 +6,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { checkRate, analyse } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill } = require("./ui.js");
-    var { deadlinesFor, INFO_RESPONSE_DAYS } = require("./deadlines.js");
+    var { deadlinesFor, INFO_RESPONSE_DAYS, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { t } = require("./i18n.js");
 }
@@ -346,6 +346,41 @@ function renderInfoRequestControl(vo, role) {
         '<span class="hint">' + escapeHtml(t("vo.infoRequest.hint", { days: INFO_RESPONSE_DAYS })) + "</span></div>";
 }
 
+/* The client-owned mirror of renderInfoRequestControl above: the client
+   asking the consultant for further information. Scenario 3 of the
+   proposal only gives the client approve/reject/request-further-info —
+   no contractual period is stated for this direction, so (unlike the
+   consultant's clock-starting control) this never touches
+   js/deadlines.js. Once made, the request shows only ELAPSED time, never
+   a due date, so it can never be misread as a deadline. Rendered inside
+   the client panel, which every role can see (see draw() below) — that
+   is how the consultant is shown the request without a second control. */
+function renderClientInfoRequestControl(vo, role, todayIso) {
+    const fieldLabel = t("vo.field.clientInfoRequestedAt");
+    if (vo.clientInfoRequestedAt) {
+        const elapsed = daysBetween(vo.clientInfoRequestedAt, todayIso);
+        const elapsedText = elapsed === null || elapsed === undefined
+            ? "" : t("vo.clientInfoRequest.elapsed", { n: elapsed });
+        return '<div class="field locked"><label>' + escapeHtml(fieldLabel) + '</label>' +
+            '<span class="hint">' + escapeHtml(t("vo.clientInfoRequest.requested", { date: prettyDate(vo.clientInfoRequestedAt) })) +
+            (vo.clientInfoRequestNote ? " " + escapeHtml(vo.clientInfoRequestNote) : "") +
+            (elapsedText ? " · " + escapeHtml(elapsedText) : "") +
+            "</span></div>";
+    }
+
+    const editable = canEdit("clientInfoRequestedAt", vo, role);
+    if (!editable) {
+        return '<div class="field locked"><label>' + escapeHtml(fieldLabel) + '</label>' +
+            '<span class="lock-note">🔒 ' + escapeHtml(lockReason("clientInfoRequestedAt", vo, role)) + "</span></div>";
+    }
+
+    return '<div class="field owned"><label>' + escapeHtml(fieldLabel) + '</label>' +
+        '<input type="text" id="clientInfoRequestNoteInput" placeholder="' + escapeHtml(t("vo.clientInfoRequest.placeholder")) + '">' +
+        '<button type="button" class="secondary-button" id="recordClientInfoRequestBtn">' +
+        escapeHtml(t("vo.clientInfoRequest.button")) + '</button>' +
+        '<span class="hint">' + escapeHtml(t("vo.clientInfoRequest.hint")) + "</span></div>";
+}
+
 /* history.action is stored as a plain English sentence (js/store.js's
    logHistory, called from here and elsewhere) — never rewritten in
    place, so an entry written in English stays exactly as written
@@ -366,7 +401,8 @@ var FIELD_LABEL_KEY = {
     timeImpact: "vo.field.timeImpact", evaluateStatus: "vo.field.evaluateStatus",
     consultantRemark: "vo.field.consultantRemark", certifiedStatus: "vo.field.certifiedStatus",
     finalPrice: "vo.field.finalPrice", clientRemark: "vo.field.clientRemark",
-    measurement: "vo.field.measurement", infoRequestedAt: "vo.field.infoRequestedAt"
+    measurement: "vo.field.measurement", infoRequestedAt: "vo.field.infoRequestedAt",
+    clientInfoRequestedAt: "vo.field.clientInfoRequestedAt"
 };
 
 function fieldLabel(name) {
@@ -383,6 +419,10 @@ function translateHistoryAction(action) {
     if (a === "Requested further information") return t("history.infoRequested");
     if ((m = a.match(/^Requested further information: (.+)$/))) {
         return t("history.infoRequestedWithNote", { note: m[1] });
+    }
+    if (a === "Client requested further information") return t("history.clientInfoRequested");
+    if ((m = a.match(/^Client requested further information: (.+)$/))) {
+        return t("history.clientInfoRequestedWithNote", { note: m[1] });
     }
     if ((m = a.match(/^Accepted suggested BQ match for row (\d+)$/))) {
         return t("history.acceptedMatch", { n: m[1] });
@@ -419,7 +459,7 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         field, renderDocList, renderDocRevisions, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory,
-        renderDeadlinesPanel, renderInfoRequestControl
+        renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl
     };
 }
 
@@ -492,7 +532,8 @@ if (typeof document !== "undefined") {
                         type: "number", value: v.finalPrice, vo: v, role: role,
                         hint: t("vo.field.finalPriceHint") }) +
                 field({ field: "clientRemark", label: t("vo.field.clientRemark"), type: "textarea",
-                        value: v.clientRemark, vo: v, role: role });
+                        value: v.clientRemark, vo: v, role: role }) +
+                renderClientInfoRequestControl(v, role, today());
 
             document.getElementById("measurementBody").innerHTML =
                 renderMeasurementRows(v, fresh, role);
@@ -641,6 +682,20 @@ if (typeof document !== "undefined") {
                     (note ? ": " + note : ""));
             });
             toast(t("toast.infoRequestRecorded"));
+            draw();
+        });
+
+        document.getElementById("clientPanel").addEventListener("click", e => {
+            if (e.target.id !== "recordClientInfoRequestBtn") return;
+            const noteInput = document.getElementById("clientInfoRequestNoteInput");
+            const note = noteInput ? noteInput.value : "";
+            updateVO(project.id, voId, v => {
+                v.clientInfoRequestedAt = today();
+                v.clientInfoRequestNote = note;
+                logHistory(v, session, "Client requested further information" +
+                    (note ? ": " + note : ""));
+            });
+            toast(t("toast.clientInfoRequestRecorded"));
             draw();
         });
 

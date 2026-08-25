@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { field, renderDocList, renderMeasurementRows, renderHistory } = require("../js/page-vo.js");
+const { field, renderDocList, renderMeasurementRows, renderHistory, renderClientInfoRequestControl } = require("../js/page-vo.js");
 const { seedDB } = require("../js/store.js");
 
 const project = seedDB().projects[0];
@@ -159,4 +159,42 @@ test("a document name containing markup is escaped", () => {
                                         size: 100, uploadedBy: "x", at: "2026-08-01" }] };
     const html = renderDocList(dirty, "revisedDrawing", "Revised drawing", "contractor");
     assert.ok(!html.includes("<img src=x onerror=alert(1)>.pdf"));
+});
+
+/* ---------- client's request for further information ---------- */
+
+test("the client sees an editable request control on an approved VO", () => {
+    const html = renderClientInfoRequestControl(vo1, "client", "2026-08-01");
+    assert.match(html, /class="field owned"/);
+    assert.match(html, /recordClientInfoRequestBtn/);
+});
+
+test("the contractor and consultant cannot record a client info request", () => {
+    const contractorHtml = renderClientInfoRequestControl(vo1, "contractor", "2026-08-01");
+    assert.match(contractorHtml, /class="field locked"/);
+    assert.ok(!contractorHtml.includes("recordClientInfoRequestBtn"));
+
+    const consultantHtml = renderClientInfoRequestControl(vo1, "consultant", "2026-08-01");
+    assert.match(consultantHtml, /class="field locked"/);
+    assert.ok(!consultantHtml.includes("recordClientInfoRequestBtn"));
+});
+
+test("a recorded client request renders for the consultant with its note and date", () => {
+    const requested = Object.assign({}, vo1, {
+        clientInfoRequestedAt: "2026-07-30",
+        clientInfoRequestNote: "Please clarify the marble supplier's lead time."
+    });
+    const html = renderClientInfoRequestControl(requested, "consultant", "2026-08-06");
+    assert.match(html, /Please clarify the marble supplier/);
+    assert.match(html, /30/); // the recorded date appears somewhere in the rendered text
+    assert.match(html, /7 day\(s\) elapsed since the request/);
+});
+
+test("a client request never shows a due date, only elapsed time", () => {
+    const requested = Object.assign({}, vo1, {
+        clientInfoRequestedAt: "2026-07-30", clientInfoRequestNote: "note"
+    });
+    const html = renderClientInfoRequestControl(requested, "client", "2026-08-06");
+    assert.ok(!/deadline/i.test(html));
+    assert.ok(!/due/i.test(html));
 });

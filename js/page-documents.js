@@ -24,7 +24,11 @@ var VO_DOC_FIELDS = [
 
 var PROJECT_CATEGORY_KEY = {
     contract: "documents.category.contract",
-    bq: "documents.category.bq"
+    bq: "documents.category.bq",
+    addendum: "documents.category.addendum",
+    specification: "documents.category.specification",
+    correspondence: "documents.category.correspondence",
+    other: "documents.category.other"
 };
 
 /* bytes -> a human-readable size: bytes under 1KB, KB under 1MB, MB
@@ -117,18 +121,26 @@ function renderDocEntry(d) {
     "</li>";
 }
 
-function renderProjectDocList(docs) {
+/* `role` is only ever used to decide whether a remove button is shown —
+   the upload/remove permission itself (consultant only) lives here and
+   in the browser wiring below, never a second, competing gate. */
+function renderProjectDocList(docs, role) {
     if (docs.length === 0) {
         return '<div class="empty-state">' + escapeHtml(t("documents.empty.project")) + '</div>';
     }
     return '<ul class="doc-list">' + docs.map(function (d) {
         var label = t(PROJECT_CATEGORY_KEY[d.category] || "documents.category.other");
-        return '<li class="file-item doc-registry-item">' +
+        var removeBtn = role === "consultant"
+            ? '<button type="button" class="file-remove doc-remove-btn" data-doc-id="' +
+              escapeHtml(d.id) + '">' + escapeHtml(t("documents.removeBtn")) + "</button>"
+            : "";
+        return '<li class="file-item doc-registry-item" data-doc-id="' + escapeHtml(d.id) + '">' +
             '<div class="doc-current">' +
                 '<span class="doc-category-tag">' + escapeHtml(label) + "</span>" +
                 '<span class="file-name">' + escapeHtml(d.name) + "</span>" +
                 '<span class="file-date">' + escapeHtml(prettyDate(d.at)) + " · " +
                     escapeHtml(d.uploadedBy || "—") + "</span>" +
+                removeBtn +
             "</div>" +
         "</li>";
     }).join("") + "</ul>";
@@ -170,7 +182,7 @@ function renderVoGroup(voId, voNo, voDescription, docs) {
    grouped by kind. Empty states are explicit for the project section (it
    is always shown) and implicit for VOs (a VO with nothing to show is
    simply not listed — never an empty box). */
-function renderDocumentGroups(list, filters) {
+function renderDocumentGroups(list, filters, role) {
     var filtered = filterDocuments(list, filters);
     var f = filters || {};
 
@@ -187,7 +199,7 @@ function renderDocumentGroups(list, filters) {
         var projectDocs = filtered.filter(function (d) { return d.source === "project"; }).sort(byNewest);
         html += '<div class="doc-group doc-group-project">' +
             '<div class="doc-group-head"><h3>' + escapeHtml(t("documents.projectDocs")) + '</h3></div>' +
-            renderProjectDocList(projectDocs) +
+            renderProjectDocList(projectDocs, role) +
         "</div>";
     }
 
@@ -215,7 +227,7 @@ function renderDocumentGroups(list, filters) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         formatSize, collectDocuments, filterDocuments, renderDocumentGroups,
-        VO_DOC_FIELDS
+        renderProjectDocList, VO_DOC_FIELDS, PROJECT_CATEGORY_KEY
     };
 }
 
@@ -223,41 +235,96 @@ if (typeof document !== "undefined") {
     (function () {
         const ctx = mountChrome("documents", t("nav.documents"), t("crumb.documents"));
         if (!ctx) return;
-        const { project } = ctx;
+        const { session, project } = ctx;
 
-        const list = collectDocuments(project);
-        const totalSize = list.reduce((sum, d) => sum + (d.size || 0), 0);
+        /* Only the Consultant QS holds the contract documents and creates
+           the project — see js/page-projects.js's isConsultant gate,
+           which this mirrors. Contractor and client keep this screen
+           exactly as read-only as it was before. */
+        const isConsultant = session.role === "consultant";
 
-        document.getElementById("docSummary").innerHTML =
-            t("documents.summary", {
-                count: list.length,
-                plural: list.length === 1 ? "" : "s",
-                size: formatSize(totalSize)
-            }) +
-            '<span class="doc-metadata-note">' + escapeHtml(t("documents.summaryNote")) + "</span>";
+        const uploadCard = document.getElementById("projectDocUploadCard");
+        if (uploadCard) uploadCard.hidden = !isConsultant;
 
-        const voOptions = ((project.vos) || []).map(v =>
-            '<option value="' + escapeHtml(v.id) + '">' + escapeHtml(v.no) + "</option>").join("");
-        document.getElementById("voFilter").innerHTML =
-            '<option value="all">' + escapeHtml(t("documents.allVos")) + '</option>' + voOptions;
+        let list = [];
+
+        function refreshSummary() {
+            const totalSize = list.reduce((sum, d) => sum + (d.size || 0), 0);
+            document.getElementById("docSummary").innerHTML =
+                t("documents.summary", {
+                    count: list.length,
+                    plural: list.length === 1 ? "" : "s",
+                    size: formatSize(totalSize)
+                }) +
+                '<span class="doc-metadata-note">' + escapeHtml(t("documents.summaryNote")) + "</span>";
+        }
 
         function draw() {
             const filters = {
                 kind: document.getElementById("kindFilter").value,
                 voId: document.getElementById("voFilter").value
             };
-            document.getElementById("docGroups").innerHTML = renderDocumentGroups(list, filters);
+            document.getElementById("docGroups").innerHTML = renderDocumentGroups(list, filters, session.role);
         }
+
+        /* Re-reads the project from the store and redraws everything —
+           called after every upload/removal so a change is visible
+           immediately (there is no project-level history log to append
+           to, unlike a VO's). */
+        function reload() {
+            const fresh = getProject(project.id);
+            list = collectDocuments(fresh);
+            refreshSummary();
+            draw();
+        }
+
+        const voOptions = ((project.vos) || []).map(v =>
+            '<option value="' + escapeHtml(v.id) + '">' + escapeHtml(v.no) + "</option>").join("");
+        document.getElementById("voFilter").innerHTML =
+            '<option value="all">' + escapeHtml(t("documents.allVos")) + '</option>' + voOptions;
 
         document.getElementById("kindFilter").addEventListener("change", draw);
         document.getElementById("voFilter").addEventListener("change", draw);
 
         document.getElementById("docGroups").addEventListener("click", e => {
+            const removeBtn = e.target.closest(".doc-remove-btn");
+            if (removeBtn) {
+                const docId = removeBtn.dataset.docId;
+                updateProject(project.id, p => {
+                    p.documents = (p.documents || []).filter(d => d.id !== docId);
+                });
+                toast(t("toast.documentRemoved"));
+                reload();
+                return;
+            }
             const head = e.target.closest(".doc-group-head-link");
             if (!head) return;
             window.location.href = "vo.html?id=" + encodeURIComponent(head.dataset.voId);
         });
 
-        draw();
+        if (isConsultant) {
+            const fileInput = document.getElementById("projectDocFileInput");
+            const categorySelect = document.getElementById("projectDocCategorySelect");
+            if (fileInput) {
+                fileInput.addEventListener("change", () => {
+                    const file = (fileInput.files || [])[0];
+                    if (!file) return;
+                    updateProject(project.id, p => {
+                        p.documents = p.documents || [];
+                        p.documents.push({
+                            id: uid("DOC"), name: file.name, size: file.size,
+                            category: categorySelect ? categorySelect.value : "other",
+                            uploadedBy: session.name, role: session.role,
+                            at: new Date().toISOString()
+                        });
+                    });
+                    toast(t("toast.documentAttached"));
+                    fileInput.value = "";
+                    reload();
+                });
+            }
+        }
+
+        reload();
     })();
 }

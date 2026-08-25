@@ -41,6 +41,34 @@
         </div>
     </div>
 
+    <div class="card" id="projectDocUploadCard" hidden>
+        <div class="card-header">
+            <div>
+                <h3 data-i18n="documents.upload.title">Add a project document</h3>
+                <p data-i18n="documents.upload.sub">Only the file's name, size, category and date are recorded — the file itself is never read, parsed or stored.</p>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="doc-upload-row">
+                <label class="field">
+                    <span data-i18n="documents.upload.category">Category</span>
+                    <select id="projectDocCategorySelect">
+                        <option value="contract" data-i18n="documents.category.contract">Contract</option>
+                        <option value="bq" data-i18n="documents.category.bq">Priced BQ</option>
+                        <option value="addendum" data-i18n="documents.category.addendum">Addendum</option>
+                        <option value="specification" data-i18n="documents.category.specification">Specification</option>
+                        <option value="correspondence" data-i18n="documents.category.correspondence">Correspondence</option>
+                        <option value="other" data-i18n="documents.category.other">Other</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span data-i18n="documents.upload.file">File</span>
+                    <input type="file" id="projectDocFileInput">
+                </label>
+            </div>
+        </div>
+    </div>
+
     <div id="docGroups"></div>
 
     <div class="disclaimer">
