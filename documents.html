@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VO-AI | Documents</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar"></aside>
+
+<main class="main">
+    <header class="topbar"></header>
+
+    <section class="welcome">
+        <div>
+            <h2>Documents</h2>
+            <p>Every document recorded against this project, in one place — the contract and
+               priced BQ, and every drawing and supporting document attached to a variation order.</p>
+        </div>
+    </section>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="doc-summary-bar" id="docSummary"></div>
+
+            <div class="doc-filters">
+                <label>Kind
+                    <select id="kindFilter">
+                        <option value="all">All documents</option>
+                        <option value="drawings">Drawings</option>
+                        <option value="supporting">Supporting documents</option>
+                        <option value="project">Project documents</option>
+                    </select>
+                </label>
+                <label>Variation order
+                    <select id="voFilter"></select>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="docGroups"></div>
+
+    <div class="disclaimer">
+        <strong>⚠ Professional Review Required</strong>
+        <span>
+            AI-generated results are decision-support outputs. Final variation assessment,
+            certification and approval must be reviewed by the appropriate construction professional.
+        </span>
+    </div>
+</main>
+
+<script src="js/calc.js"></script>
+<script src="js/clauses.js"></script>
+<script src="js/elements.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/permissions.js"></script>
+<script src="js/deadlines.js"></script>
+<script src="js/store.js"></script>
+<script src="js/documents.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/page-documents.js"></script>
+
+</body>
+</html>
