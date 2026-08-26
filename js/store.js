@@ -263,6 +263,65 @@ function clearProjectPasscode(projectId) {
     });
 }
 
+/* ---------- device passcode (sign-in) ----------
+   Optional, off by default. Locks VO-AI on THIS device only — a
+   personal convenience, independent of any project's passcode above.
+   Stored under its own localStorage key (never inside the project
+   record, and never alongside session data), hashed with the same
+   Web Crypto helpers used for the project passcode: only a per-install
+   salt and the hex digest are ever stored, never the plain passcode.
+   See the honesty note next to the passcode control on the sign-in
+   page. */
+
+/* `var`, not `const`: same parse-time-hoisting hazard as the other
+   module-level keys above. */
+var PASSCODE_KEY = "voai.passcode.v1";
+
+function loadPasscodeRecord() {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(PASSCODE_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (e) { return null; }
+}
+
+function savePasscodeRecord(record) {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(PASSCODE_KEY, JSON.stringify(record));
+}
+
+function hasPasscode() {
+    return !!loadPasscodeRecord();
+}
+
+async function setPasscode(plain, digestFn) {
+    if (!passcodeSupported() && !digestFn) return false;
+    try {
+        const salt = randomSalt();
+        const hash = await digestHex(salt + ":" + plain, digestFn);
+        savePasscodeRecord({ salt: salt, hash: hash });
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function verifyPasscode(plain, digestFn) {
+    const record = loadPasscodeRecord();
+    if (!record) return false;
+    if (!passcodeSupported() && !digestFn) return false;
+    try {
+        const hash = await digestHex(record.salt + ":" + plain, digestFn);
+        return hash === record.hash;
+    } catch (e) {
+        return false;
+    }
+}
+
+function clearPasscode() {
+    if (typeof localStorage === "undefined") return;
+    localStorage.removeItem(PASSCODE_KEY);
+}
+
 /* ---------- projects ---------- */
 
 function createProject(data, session) {
@@ -483,12 +542,13 @@ function seedDB() {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        DB_KEY, SESSION_KEY, UNLOCKED_PROJECTS_KEY, ROLES, uid, newVO,
+        DB_KEY, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
         loadDB, saveDB, resetDB,
         getSession, setSession, clearSession,
         isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,
         passcodeSupported,
         projectHasPasscode, setProjectPasscode, verifyProjectPasscode, clearProjectPasscode,
+        hasPasscode, setPasscode, verifyPasscode, clearPasscode,
         createProject, getProject, updateProject,
         createVO, updateVO, logHistory, seedDB
     };

@@ -1,9 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const {
-    ROLES, newVO, seedDB, DB_KEY,
+    ROLES, newVO, seedDB, DB_KEY, PASSCODE_KEY,
     createProject, getProject,
-    projectHasPasscode, setProjectPasscode, verifyProjectPasscode, clearProjectPasscode
+    projectHasPasscode, setProjectPasscode, verifyProjectPasscode, clearProjectPasscode,
+    hasPasscode, setPasscode, verifyPasscode, clearPasscode
 } = require("../js/store.js");
 const { projectStats } = require("../js/calc.js");
 const { rateSummary, classifyVariation } = require("../js/analysis.js");
@@ -203,4 +204,75 @@ test("a newly created project has no passcode", () => {
     const project = makeProject();
     assert.strictEqual(project.passcode, null);
     assert.strictEqual(projectHasPasscode(project), false);
+});
+
+/* ---------- device passcode (sign-in) ----------
+   A separate, optional lock on THIS device at sign-in, restored
+   alongside the project passcode above. Shares the same hashing
+   helpers (randomSalt/digestHex/passcodeSupported) but is stored
+   under its own key, independent of any project record. */
+
+test.afterEach(() => clearPasscode());
+
+test("hasPasscode is false before setting one and true after", async () => {
+    assert.strictEqual(hasPasscode(), false);
+    await setPasscode("hunter2");
+    assert.strictEqual(hasPasscode(), true);
+});
+
+test("verifying the correct device passcode succeeds", async () => {
+    await setPasscode("hunter2");
+    assert.strictEqual(await verifyPasscode("hunter2"), true);
+});
+
+test("verifying a wrong device passcode fails", async () => {
+    await setPasscode("hunter2");
+    assert.strictEqual(await verifyPasscode("wrong-guess"), false);
+});
+
+test("clearing removes the device passcode", async () => {
+    await setPasscode("hunter2");
+    clearPasscode();
+    assert.strictEqual(hasPasscode(), false);
+    assert.strictEqual(await verifyPasscode("hunter2"), false);
+});
+
+test("the plain device passcode appears nowhere in the serialised store", async () => {
+    const plain = "correct-horse-battery-staple-device";
+    await setPasscode(plain);
+    const raw = localStorage.getItem(PASSCODE_KEY);
+    assert.ok(raw, "expected a passcode record to be stored");
+    assert.ok(!raw.includes(plain), "the serialised store must not contain the plain passcode");
+});
+
+test("setPasscode uses real Web Crypto SHA-256 by default", async () => {
+    await setPasscode("web-crypto-check-device");
+    const record = JSON.parse(localStorage.getItem(PASSCODE_KEY));
+    const expected = await crypto.subtle.digest("SHA-256",
+        new TextEncoder().encode(record.salt + ":web-crypto-check-device"));
+    const hex = Array.from(new Uint8Array(expected)).map(b => b.toString(16).padStart(2, "0")).join("");
+    assert.strictEqual(record.hash, hex);
+});
+
+test("the device passcode and a project passcode are independent", async () => {
+    /* Setting a device passcode must not set, satisfy or clear a
+       project's passcode, and vice versa. */
+    const project = makeProject();
+    await setPasscode("device-only-secret");
+
+    assert.strictEqual(projectHasPasscode(getProject(project.id)), false,
+        "setting a device passcode must not set a project passcode");
+    assert.strictEqual(await verifyProjectPasscode(getProject(project.id), "device-only-secret"), false,
+        "a device passcode must not satisfy a project's (unset) passcode check");
+
+    await setProjectPasscode(project.id, "project-only-secret");
+    assert.strictEqual(hasPasscode(), true, "the device passcode must still be set");
+    assert.strictEqual(await verifyPasscode("project-only-secret"), false,
+        "a project passcode must not satisfy the device passcode check");
+
+    clearProjectPasscode(project.id);
+    assert.strictEqual(hasPasscode(), true, "clearing a project passcode must not clear the device passcode");
+
+    clearPasscode();
+    assert.strictEqual(projectHasPasscode(getProject(project.id)), false);
 });
