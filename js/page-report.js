@@ -290,7 +290,7 @@ function renderSummaryReport(project) {
     const bodyRows = rows.length === 0
         ? '<tr><td colspan="9" class="empty-state">' + escapeHtml(t("report.summary.empty")) + '</td></tr>'
         : rows.map(r => "<tr>" +
-            "<td>" + escapeHtml(r.vo.no) + "</td>" +
+            "<td><span class=\"item-code\">" + escapeHtml(r.vo.no) + "</span></td>" +
             "<td>" + escapeHtml(r.vo.description || "—") + "</td>" +
             "<td>" + prettyDate(r.vo.dateIssued) + "</td>" +
             "<td>" + escapeHtml(statusLabel(r.vo.evaluateStatus)) + "</td>" +

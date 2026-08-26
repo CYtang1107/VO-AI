@@ -156,7 +156,8 @@ function renderMeasurementRows(vo, project, role) {
         const autoBlock = check.autoMatched
             ? '<div class="rate-suggestion">' +
                 '<span class="rate-flag auto-match">' + escapeHtml(t("vo.measurement.suggestedMatch")) + '</span> ' +
-                escapeHtml(check.matchedItem.code + " · " + check.matchedItem.description) +
+                '<span class="item-code">' + escapeHtml(check.matchedItem.code) + "</span> · " +
+                escapeHtml(check.matchedItem.description) +
                 '<div class="rate-detail">' + escapeHtml(check.matchBasis) + "</div>" +
                 (conEdit
                     ? '<button type="button" class="accept-match-btn" data-row="' + i +

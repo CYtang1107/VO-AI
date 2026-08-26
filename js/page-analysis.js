@@ -216,7 +216,8 @@ function renderRateRows(a) {
         const autoNote = r.check.autoMatched
             ? '<div class="rate-detail auto-match-note">' +
               '<span class="rate-flag auto-match">' + escapeHtml(t("vo.measurement.suggestedMatch")) + '</span> ' +
-              escapeHtml(r.check.matchedItem.code + " · " + r.check.matchedItem.description) +
+              '<span class="item-code">' + escapeHtml(r.check.matchedItem.code) + "</span> · " +
+              escapeHtml(r.check.matchedItem.description) +
               " — " + escapeHtml(r.check.matchBasis) + "</div>"
             : "";
         return '<div class="finding"><span class="rate-flag ' + r.check.state + '">' +

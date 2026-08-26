@@ -95,7 +95,7 @@ function renderRecentRows(vos) {
 
     return sorted.slice(0, 6).map(v =>
         '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
-            "<td><strong>" + escapeHtml(v.no) + "</strong></td>" +
+            "<td><strong class=\"item-code\">" + escapeHtml(v.no) + "</strong></td>" +
             "<td>" + escapeHtml(v.description || "—") + "</td>" +
             "<td>" + prettyDate(v.dateIssued) + "</td>" +
             "<td>" + rm(voValue(v)) + "</td>" +
@@ -154,7 +154,7 @@ if (typeof document !== "undefined") {
             : items.map(i =>
                 '<a class="finding" style="text-decoration:none;color:inherit" ' +
                 'href="vo.html?id=' + encodeURIComponent(i.vo.id) + '">' +
-                "<span><strong>" + escapeHtml(i.vo.no) + "</strong> — " +
+                "<span><strong class=\"item-code\">" + escapeHtml(i.vo.no) + "</strong> — " +
                 escapeHtml(i.text) + "</span></a>"
             ).join("");
 
