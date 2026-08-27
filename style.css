@@ -1332,6 +1332,31 @@ td.owned-col { background: #fffdf2; }
 .report-head p { font-size: 13px; color: var(--ink-3); }
 .report-head-id { display: flex; align-items: flex-start; gap: 14px; }
 .report-head-id .logo-mark { flex-shrink: 0; margin-top: 1px; color: var(--ink); }
+
+/* Shown in place of the sheet when building it threw. Deliberately
+   plain and quiet — it is a diagnostic, not a status the user caused. */
+.report-error {
+    background: var(--paper);
+    border: 1px solid var(--rule-strong);
+    border-left: 3px solid var(--ink);
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 22px;
+}
+.report-error h2 { font-size: 16px; margin-bottom: 6px; }
+.report-error p { font-size: 13px; color: var(--ink-3); max-width: 62ch; }
+.report-error pre {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--paper-sunk);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--ink-2);
+}
 .report-ref { text-align: right; }
 .report-ref strong {
     display: block;

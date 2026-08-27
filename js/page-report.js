@@ -365,16 +365,31 @@ if (typeof document !== "undefined") {
         ).join("");
         picker.value = voId || (project.vos[0] || {}).id || "";
 
+        /* Building the sheet is one long string concatenation over the
+           whole VO, so any single bad field throws before the assignment
+           happens and the panel is left blank with nothing said. That
+           reads as a broken feature when it is usually one stale cached
+           script or one unexpected value. Say what actually went wrong
+           instead of showing an empty page. */
         function render() {
-            if (modeSelect.value === "summary") {
-                picker.hidden = true;
-                host.innerHTML = renderSummaryReport(project);
-                return;
+            try {
+                if (modeSelect.value === "summary") {
+                    picker.hidden = true;
+                    host.innerHTML = renderSummaryReport(project);
+                    return;
+                }
+                picker.hidden = false;
+                const vo = (project.vos || []).find(v => v.id === picker.value) || project.vos[0];
+                if (!vo) { host.innerHTML = '<div class="empty-state">' + escapeHtml(t("report.noVos")) + '</div>'; return; }
+                host.innerHTML = renderReport(vo, project, role);
+            } catch (err) {
+                console.error("VO-AI: the report could not be built.", err);
+                host.innerHTML = '<div class="report-error">' +
+                    "<h2>" + escapeHtml(t("report.error.title")) + "</h2>" +
+                    "<p>" + escapeHtml(t("report.error.body")) + "</p>" +
+                    "<pre>" + escapeHtml(String((err && err.stack) || err)) + "</pre>" +
+                "</div>";
             }
-            picker.hidden = false;
-            const vo = (project.vos || []).find(v => v.id === picker.value) || project.vos[0];
-            if (!vo) { host.innerHTML = '<div class="empty-state">' + escapeHtml(t("report.noVos")) + '</div>'; return; }
-            host.innerHTML = renderReport(vo, project, role);
         }
 
         picker.addEventListener("change", render);
