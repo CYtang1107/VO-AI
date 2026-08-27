@@ -14,6 +14,8 @@
        language switch itself — must be usable BEFORE sign-in, so a
        Chinese-speaking judge can switch language first. */
     applyI18n(document);
+    const logoHost = document.getElementById("loginLogo");
+    if (logoHost) logoHost.innerHTML = logoMark(44);
     const langSwitchHost = document.getElementById("langSwitchLogin");
     if (langSwitchHost) {
         langSwitchHost.innerHTML = renderLangSwitch();

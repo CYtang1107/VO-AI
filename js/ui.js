@@ -30,6 +30,48 @@ function initials(name) {
     if (parts.length === 0) return "?";
     return parts.slice(0, 2).map(p => p[0].toUpperCase()).join("");
 }
+/* -----------------------------------------------------------
+   The VO-AI mark
+----------------------------------------------------------- */
+
+/* The three spires rising out of the tower, the tower shoulders running
+   on into the outer roof slope, the inner roof over its four panes, and
+   the ring behind all of it. Traced off the artwork: the geometry below
+   is the artwork's own measurements scaled into a 64-unit box, so the
+   bands there become 2-unit strokes here.
+
+   Drawn as line art in currentColor rather than shipped as coloured
+   bitmaps, so one definition sits correctly on the white sign-in card,
+   on the dark sidebar rail and on a printed report sheet, and stays
+   crisp at any size. */
+function logoMark(size) {
+    const px = Number(size) || 40;
+    return '' +
+    '<svg class="logo-mark" width="' + px + '" height="' + px + '" viewBox="0 0 64 64" ' +
+         'role="img" aria-label="VO-AI" fill="none" stroke="currentColor" ' +
+         'stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter">' +
+        /* The ring, broken where the tower stands on it. Two half arcs
+           rather than one, so the sweep is unambiguous. */
+        '<path d="M24.65 25.5 A18.77 18.77 0 0 0 32 61.5 A18.77 18.77 0 0 0 39.35 25.5" ' +
+              'stroke-width="1.7"/>' +
+        /* The tower: shoulder in to the spire, down the wall, then out
+           along the outer roof slope in one unbroken run. */
+        '<path d="M28.7 19.5 H24.65 V40.9 L9.24 50.2"/>' +
+        '<path d="M35.3 19.5 H39.35 V40.9 L54.76 50.2"/>' +
+        /* The three spires, the middle one tallest. */
+        '<path d="M28.7 8 V32.9 M32 1.5 V32.9 M35.3 8 V32.9"/>' +
+        /* The inner roof, parallel to and below the outer one. */
+        '<path d="M12.4 55.75 L32 43.5 L51.6 55.75"/>' +
+        /* The four panes under the apex. */
+        '<g stroke="none" fill="currentColor">' +
+            '<rect x="28.4" y="49.8" width="2.8" height="3"/>' +
+            '<rect x="32.8" y="49.8" width="2.8" height="3"/>' +
+            '<rect x="28.4" y="54.3" width="2.8" height="3"/>' +
+            '<rect x="32.8" y="54.3" width="2.8" height="3"/>' +
+        '</g>' +
+    '</svg>';
+}
+
 
 const STATUS_CLASS = {
     "Approved": "approved",
@@ -86,7 +128,7 @@ function renderSidebar(active, session, project) {
 
     return '' +
         '<div class="logo">' +
-            '<div class="logo-icon">V</div>' +
+            '<div class="logo-icon">' + logoMark(40) + '</div>' +
             "<div><h2>VO-AI</h2><span>" + escapeHtml(t("app.tagline")) + "</span></div>" +
         "</div>" +
         projectBox +
@@ -224,5 +266,5 @@ function mountChrome(active, title, crumb, opts) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { NAV, escapeHtml, initials, statusPill, renderSidebar, renderTopbar };
+    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar };
 }

@@ -4,7 +4,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, today, prettyDate, contractorTotal, assessedTotal, voValue } = require("./calc.js");
     var { analyse, checkRate } = require("./analysis.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, logoMark } = require("./ui.js");
     var { versionCount } = require("./documents.js");
     var { t } = require("./i18n.js");
 }
@@ -194,9 +194,10 @@ function renderReport(vo, project, role) {
     '<div class="report-sheet">' +
 
       '<div class="report-head">' +
+        '<div class="report-head-id">' + logoMark(38) +
         "<div><h1>" + escapeHtml(t("report.heading")) + "</h1>" +
         "<p>" + escapeHtml(project.name) + "</p>" +
-        "<p>" + t("report.contractLine", { no: escapeHtml(project.contractNo || "—"), client: escapeHtml(project.client || "—") }) + "</p></div>" +
+        "<p>" + t("report.contractLine", { no: escapeHtml(project.contractNo || "—"), client: escapeHtml(project.client || "—") }) + "</p></div></div>" +
         '<div class="report-ref"><strong>' + escapeHtml(vo.no) + "</strong>" +
         "<span>" + t("report.issued", { date: prettyDate(vo.dateIssued) }) + "</span></div>" +
       "</div>" +
@@ -305,12 +306,13 @@ function renderSummaryReport(project) {
     '<div class="report-sheet">' +
 
       '<div class="report-head">' +
+        '<div class="report-head-id">' + logoMark(38) +
         "<div><h1>" + escapeHtml(t("report.summary.heading")) + "</h1>" +
         "<p>" + escapeHtml((project && project.name) || "—") + "</p>" +
         "<p>" + t("report.contractLine", {
             no: escapeHtml((project && project.contractNo) || "—"),
             client: escapeHtml((project && project.client) || "—")
-        }) + "</p></div>" +
+        }) + "</p></div></div>" +
         '<div class="report-ref"><strong>' + escapeHtml(t("report.summary.voCount", { n: rows.length })) + "</strong>" +
         "<span>" + escapeHtml(t("report.summary.printed", { date: prettyDate(today()) })) + "</span></div>" +
       "</div>" +

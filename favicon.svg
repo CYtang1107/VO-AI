@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="VO-AI">
+    <!-- The sign-in mark reduced for a 16px tab: the ring and the window
+         panes are dropped and the strokes thickened until the three
+         spires close into one slab, because at tab size the fine version
+         silts up into a smudge. Tower, stepped skyline and roof survive,
+         which is what makes the mark recognisable small. -->
+    <rect width="64" height="64" rx="12" fill="#12182a"/>
+    <g transform="translate(0 3.2)" fill="none" stroke="#ffffff" stroke-width="5.5"
+       stroke-linecap="butt" stroke-linejoin="miter">
+        <path d="M28.7 19.5 H24.65 V40.9 L9.24 50.2"/>
+        <path d="M35.3 19.5 H39.35 V40.9 L54.76 50.2"/>
+        <path d="M28.7 8 V32.9 M32 1.5 V32.9 M35.3 8 V32.9"/>
+        <path d="M12.4 55.75 L32 43.5 L51.6 55.75"/>
+    </g>
+</svg>
