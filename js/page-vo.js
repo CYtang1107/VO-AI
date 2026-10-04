@@ -478,6 +478,22 @@ if (typeof document !== "undefined") {
         const panelsSection = document.getElementById("rolePanelsSection");
         if (panelsSection) panelsSection.dataset.activeRole = role;
 
+        /* Each role sees only its own panel by default, so the page is
+           just the form they fill in. The other two roles' columns are
+           one click away, read-only, for checking what they entered. */
+        const toggleOthers = document.getElementById("toggleOtherPanels");
+        function setShowOthers(show) {
+            if (!panelsSection || !toggleOthers) return;
+            panelsSection.classList.toggle("show-others", show);
+            toggleOthers.setAttribute("aria-expanded", show ? "true" : "false");
+            toggleOthers.textContent = t(show ? "vo.panel.hideOthers" : "vo.panel.showOthers");
+        }
+        if (toggleOthers) {
+            setShowOthers(false);
+            toggleOthers.addEventListener("click", () =>
+                setShowOthers(!panelsSection.classList.contains("show-others")));
+        }
+
         const voId = new URLSearchParams(location.search).get("id");
         const vo = (project.vos || []).find(v => v.id === voId);
         if (!vo) { toast(t("vo.noLongerExists"), "error");
