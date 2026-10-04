@@ -126,8 +126,8 @@ The contractor records the instruction — Architect's Instruction AI-021 — de
 and enters the measurement: omit 320 m² of ceramic tiling, add 320 m² of marble, and 168 m of
 skirting to match. The revised and superseded drawings (A-201 Rev C and Rev B), the marble
 supplier's quotation, a site photo and the contract the variation is assessed against are
-attached, each kept with its revision history. Every document opens with a click, or downloads
-with ⬇ — the demonstration project carries sample files for all of them. The contractor
+attached, each kept with its revision history. Every document opens with a click — the
+demonstration project carries sample files for all of them. The contractor
 submits, which starts the consultant's 30-day evaluation period.
 
 ---

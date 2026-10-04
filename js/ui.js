@@ -183,8 +183,8 @@ function requireProject() {
     return { session: session, project: project };
 }
 
-/* A document's name as shown in every list, followed by a download
-   button whenever the file itself is available:
+/* A document's name as shown in every list — a link that opens the file
+   whenever the file itself is available:
    - a demo document links to its sample file in demo-files/ (by its
      own `url`, or by id for a register saved before urls existed), so
      it opens on any computer;
@@ -200,18 +200,14 @@ function demoFileUrl(doc) {
 function fileLink(doc) {
     const name = escapeHtml(doc && doc.name);
     const openTitle = escapeHtml(t("file.openTitle"));
-    const dlTitle = escapeHtml(t("file.downloadTitle"));
     const url = doc ? demoFileUrl(doc) : "";
     if (url) {
         return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" class="file-name file-open" title="' +
-            openTitle + '">' + name + "</a>" +
-            '<a href="' + escapeHtml(url) + '" download="' + name + '" class="file-download" title="' + dlTitle +
-            '" aria-label="' + dlTitle + '">⬇</a>';
+            openTitle + '">' + name + "</a>";
     }
     if (doc && doc.stored) {
-        const data = ' data-file-id="' + escapeHtml(doc.id) + '" data-file-name="' + name + '"';
-        return '<a href="#" class="file-name file-open"' + data + ' title="' + openTitle + '">' + name + "</a>" +
-            '<a href="#" class="file-download"' + data + ' title="' + dlTitle + '" aria-label="' + dlTitle + '">⬇</a>';
+        return '<a href="#" class="file-name file-open" data-file-id="' + escapeHtml(doc.id) +
+            '" data-file-name="' + name + '" title="' + openTitle + '">' + name + "</a>";
     }
     return '<span class="file-name">' + name + "</span>" +
         '<span class="file-no-content" title="' + escapeHtml(t("file.nameOnlyTitle")) + '">' +
