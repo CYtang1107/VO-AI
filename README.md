@@ -4,6 +4,10 @@ A decision-support web application for construction **Variation Order** manageme
 the 中国建筑国际集团 "海之子"杯 AI智能体挑战计划 (China State Construction "Hai Zhi Zi Cup" AI
 Agent Challenge) by **Team GUD**.
 
+Challenge theme: **为人民建好房，为工友谋幸福**. VO-AI is a process optimisation for one of
+construction management's most disputed steps — and a work-efficiency and skills tool for the
+quantity surveyors who carry it out.
+
 **▶ Live application: https://cytang1107.github.io/VO-AI/**
 
 No installation, no account, no password. Open the link and it works.
@@ -118,7 +122,8 @@ free-text chatbot: when it cannot answer, it says so and offers what it can.
 ### Also
 
 Role-based permissions — each role sees only its own panel, and a locked panel says once why ·
-dashboard showing what each role owes · VO register with search and status filters · project
+dashboard showing what each role owes · VO register with search and status filters ·
+**export the register to Excel** (every VO and every measured item, with live totals) · project
 export and import as a single file · optional device and project passcodes · **English / 中文
 interface** · works on a phone.
 
@@ -188,6 +193,7 @@ your browser's `localStorage` and attached files in its IndexedDB; nothing is se
 | `js/bqimport.js` | CSV / XLSX parsing and column detection |
 | `js/documents.js` | Document revision history |
 | `js/filestore.js` | Attached files' content (IndexedDB), open and download |
+| `js/xlsxexport.js` | The register as an Excel workbook, written without a library |
 | `js/assistant.js` | Grounded question answering |
 | `js/store.js` | Data model, seed data, persistence |
 | `js/i18n.js` | English / 中文 |

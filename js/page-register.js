@@ -158,6 +158,27 @@ if (typeof document !== "undefined") {
 
         document.getElementById("registerHead").innerHTML = renderRegisterHead(session.role);
 
+        /* The whole register — every VO and every measured item, whatever
+           the filters show — as an Excel workbook (js/xlsxexport.js). */
+        const exportBtn = document.getElementById("registerExportBtn");
+        if (exportBtn) {
+            exportBtn.addEventListener("click", () => {
+                const fresh = getProject(project.id) || project;
+                const day = today();
+                const blob = new Blob([buildRegisterWorkbook(fresh, day)],
+                    { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = registerFileName(fresh, day);
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+                toast(t("export.done"));
+            });
+        }
+
         document.getElementById("ownedLegend").textContent =
             t("register.legend", { role: t("role." + session.role + ".label", {}) });
 

@@ -71,11 +71,13 @@ it is the most important shot in the video.**
 
 ## 1:10 – 1:25 · Element awareness
 
-**Screen:** AI Analysis. Type "Change block wall to brick wall". Click Analyse.
+**Screen:** AI Analysis. Type "Change block wall to brick wall", choose B/5.1 as the original
+item, enter "Brick wall", quantity 120 and rate 95 (fill these in before recording if you are
+short of time), and click Analyse.
 
 > "It also understands that changes spread. Change a block wall to a brick wall and VO-AI
-> asks whether the wall finishes, the damp-proof course, the skirting and the painting need
-> remeasuring too — the things an experienced surveyor remembers, and a junior one does not."
+> asks whether the wall finishes, the damp-proof course and the skirting need remeasuring
+> too — the things an experienced surveyor remembers, and a junior one does not."
 
 ---
 

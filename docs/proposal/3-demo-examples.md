@@ -57,9 +57,11 @@ variation.
 **Question 2 — "The architect has instructed a change from a block wall to a brick wall. What
 else needs measuring?"**
 
-Open **AI Analysis** and enter that description. The system identifies the affected element as
-the Wall and asks you to confirm whether the wall finishes, the damp-proof course, the skirting
-and the painting also require remeasurement, explaining why each is commonly affected. It does
+Open **AI Analysis** and enter that description, choose **B/5.1** as the original item being
+changed, and enter the revised item ("Brick wall"), a quantity and a rate, then click
+**Analyse**. The system identifies the affected element as the Wall and asks you to confirm
+whether the wall finishes, the damp-proof course and the skirting also require remeasurement,
+explaining why — and that the exposed new surface will need repainting. It does
 not assert that they changed — it prompts the surveyor to check, which is what a decision
 support system should do.
 
