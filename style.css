@@ -2480,3 +2480,6 @@ td input:disabled, td select:disabled, td textarea:disabled {
     -webkit-text-fill-color: var(--ink-2);
     opacity: 1;
 }
+
+/* One-line explanation under a document section's label. */
+.doc-field .doc-intro { display: block; margin: -2px 0 8px; }

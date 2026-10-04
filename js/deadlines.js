@@ -133,7 +133,7 @@ function deadlinesFor(vo, todayIso) {
         resNote = t("deadline.note.resNotRequested");
     } else {
         resDue = addDays(vo.infoRequestedAt, INFO_RESPONSE_DAYS);
-        const docs = [].concat(vo.revisedDrawing || [], vo.oldDrawing || [], vo.supportingDocs || []);
+        const docs = [].concat(vo.revisedDrawing || [], vo.oldDrawing || [], vo.supportingDocs || [], vo.contractDocs || []);
         resSatisfied = docs.some(d => d && d.at && d.at >= vo.infoRequestedAt);
         if (resSatisfied) {
             resNote = t("deadline.note.resDone");

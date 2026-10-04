@@ -218,6 +218,7 @@ function renderReport(vo, project, role) {
       elementsBlock(a) +
 
       "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + clauseBlock +
+      docSection(vo.contractDocs, t("report.docLabel.contractDocs")) +
 
       "<h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) +
 

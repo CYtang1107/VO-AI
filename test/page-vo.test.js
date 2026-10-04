@@ -198,3 +198,19 @@ test("a client request never shows a due date, only elapsed time", () => {
     assert.ok(!/deadline/i.test(html));
     assert.ok(!/due/i.test(html));
 });
+
+test("the contract basis section lets the contractor upload and shows its intro", () => {
+    const html = renderDocList(vo3, "contractDocs", "Contract basis document", "contractor",
+                               "Upload the contract");
+    assert.match(html, /doc-field owned/);
+    assert.match(html, /data-field="contractDocs"/);
+    assert.match(html, /class="hint doc-intro">Upload the contract/);
+});
+
+test("a VO saved before the contract basis section existed renders it empty, not broken", () => {
+    const legacy = Object.assign({}, vo3);
+    delete legacy.contractDocs;
+    const html = renderDocList(legacy, "contractDocs", "Contract basis document", "consultant");
+    assert.match(html, /doc-field locked/);
+    assert.match(html, /empty-state/);
+});

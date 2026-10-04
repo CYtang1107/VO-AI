@@ -62,6 +62,7 @@ function newVO(seq) {
         revisedDrawing: [],
         oldDrawing: [],
         supportingDocs: [],
+        contractDocs: [],
         measurement: [],
         contractorRemark: "",
         submitted: false,

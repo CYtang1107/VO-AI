@@ -35,7 +35,7 @@ test("a new VO carries every field in the data model", () => {
     const vo = newVO(4);
     assert.strictEqual(vo.no, "VO-004");
     for (const f of ["description", "dateIssued", "typeOfInstruction", "instructionNo",
-                     "revisedDrawing", "oldDrawing", "supportingDocs", "measurement",
+                     "revisedDrawing", "oldDrawing", "supportingDocs", "contractDocs", "measurement",
                      "contractorRemark", "submitted", "dueDate", "assessmentNote",
                      "timeImpact", "evaluateStatus", "consultantRemark",
                      "certifiedStatus", "finalPrice", "clientRemark", "history"]) {

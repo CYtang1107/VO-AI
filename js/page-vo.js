@@ -74,7 +74,7 @@ function renderDocRevisions(d) {
     ).join("") + "</ul>";
 }
 
-function renderDocList(vo, fieldName, label, role) {
+function renderDocList(vo, fieldName, label, role, intro) {
     const editable = canEdit(fieldName, vo, role);
     const reason = editable ? "" : lockReason(fieldName, vo, role);
     const docs = vo[fieldName] || [];
@@ -113,6 +113,7 @@ function renderDocList(vo, fieldName, label, role) {
 
     return '<div class="field doc-field ' + (editable ? "owned" : "locked") + '">' +
         "<label>" + escapeHtml(label) + "</label>" +
+        (intro ? '<span class="hint doc-intro">' + escapeHtml(intro) + "</span>" : "") +
         list +
         picker +
         (reason ? '<span class="lock-note">🔒 ' + escapeHtml(reason) + "</span>" : "") +
@@ -397,7 +398,7 @@ var FIELD_LABEL_KEY = {
     typeOfInstruction: "vo.field.typeOfInstruction", instructionNo: "vo.field.instructionNo",
     contractorRemark: "vo.field.contractorRemark",
     revisedDrawing: "documents.field.revisedDrawing", oldDrawing: "documents.field.oldDrawing",
-    supportingDocs: "documents.field.supportingDocs",
+    supportingDocs: "documents.field.supportingDocs", contractDocs: "documents.field.contractDocs",
     dueDate: "vo.field.dueDate", assessmentNote: "vo.field.assessmentNote",
     timeImpact: "vo.field.timeImpact", evaluateStatus: "vo.field.evaluateStatus",
     consultantRemark: "vo.field.consultantRemark", certifiedStatus: "vo.field.certifiedStatus",
@@ -506,7 +507,9 @@ if (typeof document !== "undefined") {
                         type: "textarea", value: v.contractorRemark, vo: v, role: role }) +
                 renderDocList(v, "revisedDrawing", t("documents.field.revisedDrawing"), role) +
                 renderDocList(v, "oldDrawing", t("documents.field.oldDrawing"), role) +
-                renderDocList(v, "supportingDocs", t("documents.field.supportingDocs"), role);
+                renderDocList(v, "supportingDocs", t("documents.field.supportingDocs"), role) +
+                renderDocList(v, "contractDocs", t("documents.field.contractDocs"), role,
+                              t("vo.docList.contractIntro"));
 
             document.getElementById("consultantPanel").innerHTML =
                 field({ field: "dueDate", label: t("vo.field.dueDate"), type: "date",
