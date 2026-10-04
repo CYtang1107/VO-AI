@@ -256,6 +256,8 @@ var I18N_EN = {
     "vo.panel.consultantSub": "Consultant QS columns",
     "vo.panel.client": "◉ Client",
     "vo.panel.clientSub": "Client columns",
+    "vo.panel.showOthers": "Show the other roles' columns (read-only)",
+    "vo.panel.hideOthers": "Hide the other roles' columns",
     "vo.untitled": "Untitled variation",
     "vo.noLongerExists": "That variation order no longer exists.",
 
@@ -972,6 +974,8 @@ var I18N_ZH = {
     "vo.panel.consultantSub": "咨询工料测量师栏位",
     "vo.panel.client": "◉ 业主",
     "vo.panel.clientSub": "业主栏位",
+    "vo.panel.showOthers": "显示其他角色的栏位(只读)",
+    "vo.panel.hideOthers": "隐藏其他角色的栏位",
     "vo.untitled": "未命名变更",
     "vo.noLongerExists": "该工程变更令已不存在。",
 
