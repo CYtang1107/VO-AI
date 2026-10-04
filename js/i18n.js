@@ -224,13 +224,14 @@ var I18N_EN = {
     "documents.untitled": "Untitled variation",
     "documents.allVos": "All variation orders",
     "documents.summary": "<strong>{count}</strong> document{plural} on record · <strong>{size}</strong> total",
-    "documents.summaryNote": "Click a file name to open it. Files are kept in this browser; documents marked “name only” were recorded without their content (demo data, or uploaded on another computer).",
+    "documents.summaryNote": "Click a file name to open it, or ⬇ to download it. Your uploads are kept in this browser; a document marked “name only” was uploaded on another computer.",
     "documents.upload.title": "Add a project document",
     "documents.upload.sub": "The file is kept in this browser so it can be opened from this page, the VO and the report.",
     "documents.upload.category": "Category",
     "documents.upload.file": "File",
     "documents.removeBtn": "Remove",
     "file.openTitle": "Open this file",
+    "file.downloadTitle": "Download this file",
     "file.nameOnly": "name only",
     "file.nameOnlyTitle": "Only this document's name is on record — its content was not stored in this browser.",
     "file.notInThisBrowser": "This file's content is not in this browser — it was uploaded on another computer or before files were stored.",
@@ -284,6 +285,7 @@ var I18N_EN = {
     "vo.field.finalPriceHint": "Leave blank to certify at the consultant's assessed value.",
     "vo.field.clientRemark": "Client's remark",
     "vo.field.measurement": "Measurement",
+    "vo.field.assessedMeasurement": "Assessed quantities and rates",
     "vo.field.infoRequestedAt": "Request for further information",
     "vo.field.clientInfoRequestedAt": "Client's request for further information",
 
@@ -316,6 +318,7 @@ var I18N_EN = {
     "vo.infoRequest.requested": "Requested {date}.",
     "vo.infoRequest.placeholder": "What information is requested? (optional note)",
     "vo.infoRequest.button": "Record request for further information",
+    "vo.infoRequest.none": "No request made.",
     "vo.infoRequest.hint": "Sets today's date and starts the contractor's {days}-day response clock.",
 
     "vo.clientInfoRequest.requested": "Requested {date}.",
@@ -516,8 +519,7 @@ var I18N_EN = {
     "assistant.value.notCertified": "Not yet certified — no certified value.",
 
     "assistant.edit.canEdit": "You may currently edit: {list}.",
-    "assistant.edit.canEditNone": "You cannot currently edit any field on this variation.",
-    "assistant.edit.lockedLine": "{field} — {reason}",
+    "assistant.edit.canEditNone": "You cannot edit this variation at the moment.",
 
     "assistant.valuationMethod.none": "The description is too vague to classify, so no valuation clause could be identified. Add detail about what is changing.",
     "assistant.valuationMethod.line": "{form} {ref} — {title}: {entitlement}",
@@ -953,13 +955,14 @@ var I18N_ZH = {
     "documents.untitled": "未命名工程变更令",
     "documents.allVos": "所有工程变更令",
     "documents.summary": "共记录 <strong>{count}</strong> 份文件 · 合计 <strong>{size}</strong>",
-    "documents.summaryNote": "点击文件名即可打开。文件保存在此浏览器中；标有「仅记录名称」的文件没有保存内容（示范数据，或在其他电脑上传）。",
+    "documents.summaryNote": "点击文件名即可打开，点击 ⬇ 可下载。您上传的文件保存在此浏览器中；标有「仅记录名称」的文件是在其他电脑上传的。",
     "documents.upload.title": "新增项目文件",
     "documents.upload.sub": "文件会保存在此浏览器中，可在此页面、工程变更令及报告中打开。",
     "documents.upload.category": "类别",
     "documents.upload.file": "文件",
     "documents.removeBtn": "移除",
     "file.openTitle": "打开此文件",
+    "file.downloadTitle": "下载此文件",
     "file.nameOnly": "仅记录名称",
     "file.nameOnlyTitle": "此文件只记录了名称——内容未保存在此浏览器中。",
     "file.notInThisBrowser": "此文件的内容不在此浏览器中——它是在其他电脑上传的，或在保存文件功能推出之前上传。",
@@ -1012,6 +1015,7 @@ var I18N_ZH = {
     "vo.field.finalPriceHint": "留空则按咨询工料测量师的评估金额核证。",
     "vo.field.clientRemark": "业主备注",
     "vo.field.measurement": "计量",
+    "vo.field.assessedMeasurement": "评估数量与单价",
     "vo.field.infoRequestedAt": "补充资料请求",
     "vo.field.clientInfoRequestedAt": "业主的补充资料请求",
 
@@ -1044,6 +1048,7 @@ var I18N_ZH = {
     "vo.infoRequest.requested": "已于 {date} 提出请求。",
     "vo.infoRequest.placeholder": "请求的具体资料是什么？（可选备注）",
     "vo.infoRequest.button": "记录补充资料请求",
+    "vo.infoRequest.none": "尚未提出请求。",
     "vo.infoRequest.hint": "设定为今天日期，并启动承包商 {days} 天的回复时限。",
 
     "vo.clientInfoRequest.requested": "已于 {date} 提出请求。",
@@ -1240,8 +1245,7 @@ var I18N_ZH = {
     "assistant.value.notCertified": "尚未核证——无核证金额。",
 
     "assistant.edit.canEdit": "您目前可以编辑：{list}。",
-    "assistant.edit.canEditNone": "您目前无法编辑此工程变更令的任何栏位。",
-    "assistant.edit.lockedLine": "{field} — {reason}",
+    "assistant.edit.canEditNone": "您目前无法编辑此工程变更令。",
 
     "assistant.valuationMethod.none": "说明过于模糊，无法分类，因此无法识别计价条款。请补充变更内容的详情。",
     "assistant.valuationMethod.line": "{form} {ref} — {title}：{entitlement}",

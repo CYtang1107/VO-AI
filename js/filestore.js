@@ -72,6 +72,23 @@ var FileStore = (function () {
         return /\.(pdf|png|jpe?g|gif|webp|svg|txt|csv)$/i.test(name || "");
     }
 
+    function download(id, name) {
+        return get(id).then(function (rec) {
+            if (!rec) {
+                if (typeof toast === "function") toast(t("file.notInThisBrowser"), "error");
+                return;
+            }
+            var url = URL.createObjectURL(rec.blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = rec.name || name || "document";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+        });
+    }
+
     function open(id, name) {
         /* Open the tab synchronously, inside the click, so the browser
            does not treat it as a pop-up; fill it once the file is read. */
@@ -99,12 +116,15 @@ var FileStore = (function () {
 
     if (typeof document !== "undefined") {
         document.addEventListener("click", function (e) {
-            var link = e.target.closest && e.target.closest(".file-open");
+            /* Only links to a stored file carry data-file-id; a demo
+               document's link is an ordinary href and is left alone. */
+            var link = e.target.closest && e.target.closest(".file-open[data-file-id], .file-download[data-file-id]");
             if (!link) return;
             e.preventDefault();
-            open(link.dataset.fileId, link.dataset.fileName);
+            if (link.classList.contains("file-download")) download(link.dataset.fileId, link.dataset.fileName);
+            else open(link.dataset.fileId, link.dataset.fileName);
         });
     }
 
-    return { supported: supported, put: put, get: get, remove: remove, open: open };
+    return { supported: supported, put: put, get: get, remove: remove, open: open, download: download };
 })();

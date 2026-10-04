@@ -85,6 +85,29 @@ function lockReason(field, vo, role) {
     return t("lock.clientLocked");
 }
 
+/* Each column's display name (a js/i18n.js key), for anything that names
+   a field to the user: the VO activity log and the assistant's
+   "what can I edit" answer. */
+var FIELD_LABEL_KEY = {
+    description: "vo.field.description", dateIssued: "vo.field.dateIssued",
+    typeOfInstruction: "vo.field.typeOfInstruction", instructionNo: "vo.field.instructionNo",
+    contractorRemark: "vo.field.contractorRemark",
+    revisedDrawing: "documents.field.revisedDrawing", oldDrawing: "documents.field.oldDrawing",
+    supportingDocs: "documents.field.supportingDocs", contractDocs: "documents.field.contractDocs",
+    dueDate: "vo.field.dueDate", assessmentNote: "vo.field.assessmentNote",
+    timeImpact: "vo.field.timeImpact", evaluateStatus: "vo.field.evaluateStatus",
+    consultantRemark: "vo.field.consultantRemark", certifiedStatus: "vo.field.certifiedStatus",
+    finalPrice: "vo.field.finalPrice", clientRemark: "vo.field.clientRemark",
+    measurement: "vo.field.measurement", infoRequestedAt: "vo.field.infoRequestedAt",
+    clientInfoRequestedAt: "vo.field.clientInfoRequestedAt",
+    assessment: "vo.field.assessedMeasurement"
+};
+
+function fieldLabel(name) {
+    const key = FIELD_LABEL_KEY[name];
+    return key ? t(key) : name;
+}
+
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { FIELD_OWNER, ROLE_LABEL, canEdit, lockReason };
+    module.exports = { FIELD_OWNER, ROLE_LABEL, canEdit, lockReason, FIELD_LABEL_KEY, fieldLabel };
 }
