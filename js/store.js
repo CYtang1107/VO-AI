@@ -93,17 +93,65 @@ function loadDB() {
     if (typeof localStorage === "undefined") return seedDB();
     const raw = localStorage.getItem(DB_KEY);
     if (!raw) {
-        const fresh = seedDB();
+        const fresh = demoDB(today());
         saveDB(fresh);
         return fresh;
     }
     try {
         return JSON.parse(raw);
     } catch (e) {
-        const fresh = seedDB();
+        const fresh = demoDB(today());
         saveDB(fresh);
         return fresh;
     }
+}
+
+/* The demo data the browser starts from: seedDB(), with each seeded VO's
+   dates moved so it is issued a set number of days before `todayIso`.
+   seedDB() keeps fixed dates (the tests depend on them); without this
+   shift, a first-time viewer opening the demo months later would see
+   every contractual clock long overdue. VO-001 (fully certified) sits
+   two months back and carries the project's own dates with it; VO-002
+   (awaiting assessment) is three weeks in, inside its 30-day clock;
+   VO-003 (contractor draft) was raised this week. */
+var DEMO_ISSUED_DAYS_AGO = [60, 20, 5];
+
+function shiftIsoDays(value, days) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})(.*)$/.exec(value);
+    if (!m) return value;
+    const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]) + days * 86400000);
+    const pad = n => String(n).padStart(2, "0");
+    return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) + m[4];
+}
+
+function shiftDates(node, days) {
+    if (typeof node === "string") return shiftIsoDays(node, days);
+    if (Array.isArray(node)) return node.map(n => shiftDates(n, days));
+    if (node && typeof node === "object") {
+        const out = {};
+        Object.keys(node).forEach(k => { out[k] = shiftDates(node[k], days); });
+        return out;
+    }
+    return node;
+}
+
+function demoDB(todayIso) {
+    const db = seedDB();
+    const daysFrom = (fromIso, toIso) =>
+        Math.round((Date.parse(toIso.slice(0, 10) + "T00:00:00Z") -
+                    Date.parse(fromIso.slice(0, 10) + "T00:00:00Z")) / 86400000);
+    db.projects = db.projects.map(project => {
+        const vos = project.vos || [];
+        if (vos.length === 0) return project;
+        const offsetFor = i => {
+            const ago = DEMO_ISSUED_DAYS_AGO[Math.min(i, DEMO_ISSUED_DAYS_AGO.length - 1)];
+            return daysFrom(vos[i].dateIssued, shiftIsoDays(todayIso, -ago));
+        };
+        const shifted = shiftDates(Object.assign({}, project, { vos: [] }), offsetFor(0));
+        shifted.vos = vos.map((vo, i) => shiftDates(vo, offsetFor(i)));
+        return shifted;
+    });
+    return db;
 }
 
 function saveDB(db) {
@@ -544,7 +592,7 @@ function seedDB() {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         DB_KEY, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
-        loadDB, saveDB, resetDB,
+        loadDB, saveDB, resetDB, demoDB, shiftIsoDays,
         getSession, setSession, clearSession,
         isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,
         passcodeSupported,

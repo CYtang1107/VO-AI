@@ -2642,3 +2642,32 @@ td input:disabled, td select:disabled, td textarea:disabled {
 @media (min-width: 701px) and (max-width: 1099px) {
     .report-actions #voPicker { min-width: 220px; }
 }
+
+/* VO header: each status pill carries its name (评估状态 / 核证状态). */
+.status-pair { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; }
+.status-pair-label { font-size: 12px; color: var(--ink-3); }
+
+/* Measurement table: each item's rate-check explanation sits on its own
+   full-width line beneath it (js/page-vo.js renderMeasurementRows). */
+#measurementBody tr:not(.rate-detail-row) > td { vertical-align: middle; }
+#measurementBody tr.rate-detail-row > td {
+    border-top: none;
+    border-left: none;
+    padding: 0 20px 14px;
+}
+#measurementBody .rate-detail-row .rate-detail {
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--paper-sunk);
+    border-left: 3px solid var(--rule-strong);
+}
+#measurementBody .rate-detail-row .rate-detail-same      { border-left-color: var(--verdict-same); }
+#measurementBody .rate-detail-row .rate-detail-different { border-left-color: var(--verdict-diff); }
+#measurementBody .rate-detail-row .rate-detail-star      { border-left-color: var(--verdict-star); }
+#measurementBody .rate-detail-row .rate-suggestion { margin-top: 8px; }
+#measurementBody select[data-col="bqItemId"] { width: 100%; min-width: 240px; max-width: 380px; }
+#measurementBody tr:not(.rate-detail-row) > td,
+table:has(#measurementBody) th { padding-left: 12px; padding-right: 12px; }
+#measurementBody tr:not(.rate-detail-row) > td:nth-child(6) { white-space: nowrap; }
+#measurementBody input[data-col="description"] { width: 100% !important; min-width: 180px; }

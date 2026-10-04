@@ -185,9 +185,14 @@ function renderMeasurementRows(vo, project, role) {
              '<input type="number" data-col="assessedRate" value="' +
                 escapeHtml(row.assessedRate) + '"' + assDis +
                 (assEdit ? ' class="owned"' : "") + ' style="width:90px;margin-top:5px"></td>' +
-            '<td><span class="rate-flag ' + check.state + '">' + check.label + "</span>" +
-                '<div class="rate-detail">' + escapeHtml(check.detail) + "</div>" +
-                autoBlock + "</td>" +
+            '<td><span class="rate-flag ' + check.state + '">' + check.label + "</span></td>" +
+        "</tr>" +
+        /* The verdict's explanation runs the full width of the table on
+           its own line under the item, instead of wrapping down a narrow
+           last column and stretching every cell of the row. */
+        '<tr class="rate-detail-row" data-row="' + i + '">' +
+            '<td colspan="8"><div class="rate-detail rate-detail-' + check.state + '">' +
+                escapeHtml(check.detail) + "</div>" + autoBlock + "</td>" +
         "</tr>";
     }).join("");
 }
@@ -315,7 +320,7 @@ function renderDeadlinesPanel(vo, todayIso) {
                 '<span class="deadline-flag">' + escapeHtml(t("deadline.state." + d.state, {}) || d.state) + "</span>" +
             "</div>" +
             '<div class="deadline-detail">' +
-                escapeHtml(t("deadline.ownerLabel")) + " " + escapeHtml(t("role." + d.owner + ".label", {}) || d.owner) +
+                escapeHtml(t("deadline.ownerLabel")) + escapeHtml(t("role." + d.owner + ".label", {}) || d.owner) +
                 (d.dueDate ? " · " + escapeHtml(t("deadline.dueLabel")) + " " + escapeHtml(prettyDate(d.dueDate)) : "") +
                 (daysText ? " · " + escapeHtml(daysText) : "") +
             "</div>" +
@@ -505,8 +510,13 @@ if (typeof document !== "undefined") {
 
             document.getElementById("voTitle").textContent =
                 v.no + " — " + (v.description || t("vo.untitled"));
+            /* Two pills of the same kind side by side read as a duplicate —
+               name each one. */
             document.getElementById("voStatus").innerHTML =
-                statusPill(v.evaluateStatus) + " " + statusPill(v.certifiedStatus);
+                '<span class="status-pair"><span class="status-pair-label">' +
+                    escapeHtml(t("vo.field.evaluateStatus")) + "</span>" + statusPill(v.evaluateStatus) + "</span>" +
+                '<span class="status-pair"><span class="status-pair-label">' +
+                    escapeHtml(t("vo.field.certifiedStatus")) + "</span>" + statusPill(v.certifiedStatus) + "</span>";
 
             document.getElementById("contractorPanel").innerHTML =
                 field({ field: "description", label: t("vo.field.description"),
