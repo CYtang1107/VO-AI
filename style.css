@@ -2671,3 +2671,26 @@ td input:disabled, td select:disabled, td textarea:disabled {
 table:has(#measurementBody) th { padding-left: 12px; padding-right: 12px; }
 #measurementBody tr:not(.rate-detail-row) > td:nth-child(6) { white-space: nowrap; }
 #measurementBody input[data-col="description"] { width: 100% !important; min-width: 180px; }
+
+/* Attached documents: a stored file's name is a link that opens it
+   (js/filestore.js); a name-only record carries a quiet tag instead. */
+a.file-open,
+.file-item a.file-open,
+.doc-field .file-item a.file-open,
+.doc-revision a.file-open {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+a.file-open::before { content: "📄 "; }
+a.file-open:hover { text-decoration: underline; }
+.file-no-content {
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--tag-bg);
+    border-radius: 10px;
+    padding: 1px 7px;
+    margin-left: 6px;
+    white-space: nowrap;
+}
+@media print { a.file-open { color: inherit; font-weight: inherit; } a.file-open::before { content: none; } }

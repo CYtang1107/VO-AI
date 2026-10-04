@@ -54,3 +54,13 @@ test("an untouched document (no revisions field) behaves as if it has an empty r
     assert.strictEqual((d.revisions || []).length, 0);
     assert.strictEqual(versionCount(d), 1);
 });
+
+test("addVersion keeps each version's stored flag and the id it was stored under", () => {
+    const { addVersion } = require("../js/documents.js");
+    const doc = { id: "DOC-A", name: "v1.pdf", size: 1, uploadedBy: "X", at: "2026-01-01", stored: true };
+    addVersion(doc, { id: "DOC-B", name: "v2.pdf", size: 2 }, { name: "Y" }, "2026-01-02");
+    assert.strictEqual(doc.id, "DOC-B");
+    assert.strictEqual(doc.stored, undefined, "the new version was not stored");
+    assert.strictEqual(doc.revisions[0].id, "DOC-A");
+    assert.strictEqual(doc.revisions[0].stored, true, "the prior version stays openable");
+});

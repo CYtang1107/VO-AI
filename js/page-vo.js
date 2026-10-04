@@ -5,7 +5,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { canEdit, lockReason } = require("./permissions.js");
     var { checkRate, analyse } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
-    var { escapeHtml, statusPill } = require("./ui.js");
+    var { escapeHtml, statusPill, fileLink } = require("./ui.js");
     var { deadlinesFor, INFO_RESPONSE_DAYS, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { t } = require("./i18n.js");
@@ -68,7 +68,7 @@ function renderDocRevisions(d) {
     if (revisions.length === 0) return "";
     /* Most recent prior version first. */
     return '<ul class="doc-revisions">' + revisions.slice().reverse().map(r =>
-        '<li class="doc-revision"><span class="file-name">' + escapeHtml(r.name) + "</span>" +
+        '<li class="doc-revision">' + fileLink(r) +
             '<span class="file-date">' + escapeHtml(prettyDate(r.at)) + " · " +
             escapeHtml(r.uploadedBy) + "</span></li>"
     ).join("") + "</ul>";
@@ -85,7 +85,7 @@ function renderDocList(vo, fieldName, label, role, intro) {
             const vCount = versionCount(d);
             return '<li class="file-item" data-doc-id="' + escapeHtml(d.id) + '">' +
                 '<div class="doc-current">' +
-                    '<span class="file-name">' + escapeHtml(d.name) + "</span>" +
+                    fileLink(d) +
                     '<span class="file-date">' + escapeHtml(prettyDate(d.at)) + " · " +
                         escapeHtml(d.uploadedBy) + "</span>" +
                     (vCount > 1
@@ -589,19 +589,23 @@ if (typeof document !== "undefined") {
                     const docId = versionPicker.dataset.docId;
                     const file = (versionPicker.files || [])[0];
                     if (!file) return;
-                    let oldName = "";
-                    let newName = "";
-                    updateVO(project.id, voId, v => {
-                        const doc = (v[fieldName] || []).find(d => d.id === docId);
-                        if (!doc) return;
-                        oldName = doc.name;
-                        addVersion(doc, file, session, today());
-                        newName = doc.name;
-                        logHistory(v, session, "Uploaded new version of " + oldName +
-                            " (now " + newName + ") in " + fieldName);
+                    const newId = uid("DOC");
+                    FileStore.put(newId, file).then(stored => {
+                        let oldName = "";
+                        let newName = "";
+                        updateVO(project.id, voId, v => {
+                            const doc = (v[fieldName] || []).find(d => d.id === docId);
+                            if (!doc) return;
+                            oldName = doc.name;
+                            addVersion(doc, { id: newId, name: file.name, size: file.size, stored: stored },
+                                       session, today());
+                            newName = doc.name;
+                            logHistory(v, session, "Uploaded new version of " + oldName +
+                                " (now " + newName + ") in " + fieldName);
+                        });
+                        toast(stored ? t("toast.newVersionUploaded") : t("file.notStored"), stored ? undefined : "error");
+                        draw();
                     });
-                    toast(t("toast.newVersionUploaded"));
-                    draw();
                     return;
                 }
 
@@ -610,18 +614,23 @@ if (typeof document !== "undefined") {
                     const fieldName = picker.dataset.field;
                     const files = Array.from(picker.files || []);
                     if (files.length === 0) return;
-                    updateVO(project.id, voId, v => {
-                        v[fieldName] = v[fieldName] || [];
-                        files.forEach(f => {
-                            v[fieldName].push({
-                                id: uid("DOC"), name: f.name, size: f.size,
-                                uploadedBy: session.name, at: today()
+                    const ids = files.map(() => uid("DOC"));
+                    Promise.all(files.map((f, k) => FileStore.put(ids[k], f))).then(stored => {
+                        updateVO(project.id, voId, v => {
+                            v[fieldName] = v[fieldName] || [];
+                            files.forEach((f, k) => {
+                                const doc = { id: ids[k], name: f.name, size: f.size,
+                                              uploadedBy: session.name, at: today() };
+                                if (stored[k]) doc.stored = true;
+                                v[fieldName].push(doc);
+                                logHistory(v, session, "Attached " + f.name + " to " + fieldName);
                             });
-                            logHistory(v, session, "Attached " + f.name + " to " + fieldName);
                         });
+                        toast(stored.every(Boolean)
+                            ? (files.length > 1 ? t("toast.documentsAttached") : t("toast.documentAttached"))
+                            : t("file.notStored"), stored.every(Boolean) ? undefined : "error");
+                        draw();
                     });
-                    toast(files.length > 1 ? t("toast.documentsAttached") : t("toast.documentAttached"));
-                    draw();
                     return;
                 }
 
@@ -649,6 +658,7 @@ if (typeof document !== "undefined") {
                     const doc = (v[fieldName] || []).find(d => d.id === docId);
                     removedName = doc ? doc.name : "document";
                     removedVersions = doc ? versionCount(doc) : 1;
+                    if (doc) FileStore.remove([doc.id].concat((doc.revisions || []).map(r => r.id)));
                     v[fieldName] = (v[fieldName] || []).filter(d => d.id !== docId);
                     logHistory(v, session, "Removed " + removedName + " from " + fieldName +
                         (removedVersions > 1 ? " (" + removedVersions + " versions)" : ""));

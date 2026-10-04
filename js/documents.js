@@ -13,8 +13,10 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 /* The current version of a document, as a plain {id, name, size,
    uploadedBy, at} object (the `revisions` chain stripped off). */
 function currentVersion(doc) {
-    return { id: doc.id, name: doc.name, size: doc.size,
-             uploadedBy: doc.uploadedBy, at: doc.at };
+    const v = { id: doc.id, name: doc.name, size: doc.size,
+                uploadedBy: doc.uploadedBy, at: doc.at };
+    if (doc.stored) v.stored = true;
+    return v;
 }
 
 /* 1 (the current version) plus however many prior versions are on
@@ -25,16 +27,18 @@ function versionCount(doc) {
 
 /* Attach a new version of an existing document. The previous current
    version is pushed onto `revisions` (oldest first) and the new
-   version — built from `file` {name, size} and `session` {name} —
+   version — built from `file` {name, size, and optionally the id it
+   was stored under and stored: true} and `session` {name} —
    takes its place as the current version. Never discards a prior
    version. Mutates and returns `doc`. `today` is a pre-computed date
    string (e.g. from calc.js's today()), not a function. */
 function addVersion(doc, file, session, today) {
     doc.revisions = doc.revisions || [];
     doc.revisions.push(currentVersion(doc));
-    doc.id = uid("DOC");
+    doc.id = file.id || uid("DOC");
     doc.name = file.name;
     doc.size = file.size;
+    if (file.stored) doc.stored = true; else delete doc.stored;
     doc.uploadedBy = session.name;
     doc.at = today;
     return doc;
