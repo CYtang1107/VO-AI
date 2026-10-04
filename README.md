@@ -4,6 +4,10 @@ A decision-support web application for construction **Variation Order** manageme
 the 中国建筑国际集团 "海之子"杯 AI智能体挑战计划 (China State Construction "Hai Zhi Zi Cup" AI
 Agent Challenge) by **Team GUD**.
 
+Challenge theme: **为人民建好房，为工友谋幸福**. VO-AI is a process optimisation for one of
+construction management's most disputed steps — and a work-efficiency and skills tool for the
+quantity surveyors who carry it out.
+
 **▶ Live application: https://cytang1107.github.io/VO-AI/**
 
 No installation, no account, no password. Open the link and it works.

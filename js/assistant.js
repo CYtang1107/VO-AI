@@ -133,11 +133,17 @@ function answerCertify(context) {
         : t("assistant.certify.certOther", { status: t("status." + (vo.certifiedStatus || "Pending"), {}) }));
 
     const summary = rateSummary(vo, bq);
+    /* The contractor reads this as a pre-submission self-check, so its
+       version says what to do with the claim; the consultant's says what
+       to do with the assessment. */
+    const asContractor = context.role === "contractor";
     if (summary.star > 0) {
-        lines.push(t("assistant.certify.starUnresolved", { n: summary.star }));
+        lines.push(t(asContractor ? "assistant.certify.starUnresolvedContractor" : "assistant.certify.starUnresolved",
+                     { n: summary.star }));
     }
     if (summary.different > 0) {
-        lines.push(t("assistant.certify.rateDifferent", { n: summary.different }));
+        lines.push(t(asContractor ? "assistant.certify.rateDifferentContractor" : "assistant.certify.rateDifferent",
+                     { n: summary.different }));
     }
 
     if ((vo.revisedDrawing || []).length === 0) {

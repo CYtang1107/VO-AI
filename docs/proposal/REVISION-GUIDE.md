@@ -85,7 +85,7 @@ That was true when written. It is now a serious undersell — the system is depl
 publicly usable.
 
 **Replace with** `docs/proposal/2.5-overall-completion-quality.md`, which leads with the
-measurable state (321 automated tests, 21 modules, 9 screens, zero dependencies, live URL),
+measurable state (322 automated tests, 21 modules, 9 screens, zero dependencies, live URL),
 lists what is complete, and then states the limitations honestly — no document-content
 parsing, no PDF extraction, no drawing comparison, no authentication, local-only data.
 
@@ -209,6 +209,10 @@ and a specific instance where they rejected or corrected AI output.
 | 2-minute video | Record | ⚠️ Missing deliverable |
 
 Drafts for every "Replace with" row are in `docs/proposal/`.
+
+**`defence-QA.md`** prepares the presentation: the questions a panel is most likely to ask —
+above all "where is the AI?" — with answers in Chinese and what to show in the live system for
+each.
 
 **These drafts were brought up to date with the application on 4 October 2026** (document
 storage and download, the demo's sample documents, the contract-basis section, role-focused

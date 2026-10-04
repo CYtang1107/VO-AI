@@ -153,3 +153,16 @@ test("suggestions is empty with no VO in context", () => {
     const list = suggestions({ vo: null, project: project, role: "consultant" });
     assert.deepStrictEqual(list, []);
 });
+
+test("the contractor's pre-submission check says what to do with the claim, not the assessment", () => {
+    const vo = JSON.parse(JSON.stringify(vo3));
+    vo.measurement.push({ id: "MX", bqItemId: "BQ2", description: "Skirting", unit: "m",
+                          qty: 10, rate: 30, assessedQty: "", assessedRate: "" });
+    const asContractor = answer("What is missing before this can be certified?",
+                                { vo: vo, project: project, role: "contractor" }).lines.join("\n");
+    assert.match(asContractor, /correct the claimed rate/);
+    assert.ok(!/correct the assessed rate/.test(asContractor));
+    const asConsultant = answer("What is missing before this can be certified?",
+                                { vo: vo, project: project, role: "consultant" }).lines.join("\n");
+    assert.match(asConsultant, /correct the assessed rate/);
+});
