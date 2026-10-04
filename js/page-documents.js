@@ -7,7 +7,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { prettyDate } = require("./calc.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, fileLink } = require("./ui.js");
     var { versionCount } = require("./documents.js");
     var { t, getLang } = require("./i18n.js");
 }
@@ -51,7 +51,7 @@ function collectDocuments(project) {
 
     ((project && project.documents) || []).forEach(function (d) {
         list.push({
-            id: d.id, name: d.name, size: d.size || 0,
+            id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored,
             uploadedBy: d.uploadedBy, at: d.at,
             source: "project", kind: "project",
             category: d.category || "other",
@@ -64,7 +64,7 @@ function collectDocuments(project) {
         VO_DOC_FIELDS.forEach(function (f) {
             (vo[f.field] || []).forEach(function (d) {
                 list.push({
-                    id: d.id, name: d.name, size: d.size || 0,
+                    id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored,
                     uploadedBy: d.uploadedBy, at: d.at,
                     source: "vo", kind: f.field, bucket: f.bucket,
                     voId: vo.id, voNo: vo.no, voDescription: vo.description,
@@ -102,7 +102,7 @@ function renderRevisions(doc) {
     var revs = doc.revisions || [];
     if (revs.length === 0) return "";
     return '<ul class="doc-revisions">' + revs.slice().reverse().map(function (r) {
-        return '<li class="doc-revision"><span class="file-name">' + escapeHtml(r.name) + "</span>" +
+        return '<li class="doc-revision">' + fileLink(r) +
             '<span class="file-date">' + escapeHtml(prettyDate(r.at)) + " · " +
             escapeHtml(r.uploadedBy) + "</span></li>";
     }).join("") + "</ul>";
@@ -111,7 +111,7 @@ function renderRevisions(doc) {
 function renderDocEntry(d) {
     return '<li class="file-item doc-registry-item">' +
         '<div class="doc-current">' +
-            '<span class="file-name">' + escapeHtml(d.name) + "</span>" +
+            fileLink(d) +
             '<span class="file-date">' + escapeHtml(prettyDate(d.at)) + " · " +
                 escapeHtml(d.uploadedBy || "—") + "</span>" +
             (d.revisionCount > 0
@@ -138,7 +138,7 @@ function renderProjectDocList(docs, role) {
         return '<li class="file-item doc-registry-item" data-doc-id="' + escapeHtml(d.id) + '">' +
             '<div class="doc-current">' +
                 '<span class="doc-category-tag">' + escapeHtml(label) + "</span>" +
-                '<span class="file-name">' + escapeHtml(d.name) + "</span>" +
+                fileLink(d) +
                 '<span class="file-date">' + escapeHtml(prettyDate(d.at)) + " · " +
                     escapeHtml(d.uploadedBy || "—") + "</span>" +
                 removeBtn +
@@ -291,6 +291,7 @@ if (typeof document !== "undefined") {
             const removeBtn = e.target.closest(".doc-remove-btn");
             if (removeBtn) {
                 const docId = removeBtn.dataset.docId;
+                FileStore.remove([docId]);
                 updateProject(project.id, p => {
                     p.documents = (p.documents || []).filter(d => d.id !== docId);
                 });
@@ -310,18 +311,23 @@ if (typeof document !== "undefined") {
                 fileInput.addEventListener("change", () => {
                     const file = (fileInput.files || [])[0];
                     if (!file) return;
-                    updateProject(project.id, p => {
-                        p.documents = p.documents || [];
-                        p.documents.push({
-                            id: uid("DOC"), name: file.name, size: file.size,
-                            category: categorySelect ? categorySelect.value : "other",
-                            uploadedBy: session.name, role: session.role,
-                            at: new Date().toISOString()
+                    const id = uid("DOC");
+                    FileStore.put(id, file).then(stored => {
+                        updateProject(project.id, p => {
+                            p.documents = p.documents || [];
+                            const doc = {
+                                id: id, name: file.name, size: file.size,
+                                category: categorySelect ? categorySelect.value : "other",
+                                uploadedBy: session.name, role: session.role,
+                                at: new Date().toISOString()
+                            };
+                            if (stored) doc.stored = true;
+                            p.documents.push(doc);
                         });
+                        toast(stored ? t("toast.documentAttached") : t("file.notStored"), stored ? undefined : "error");
+                        fileInput.value = "";
+                        reload();
                     });
-                    toast(t("toast.documentAttached"));
-                    fileInput.value = "";
-                    reload();
                 });
             }
         }

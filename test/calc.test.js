@@ -73,3 +73,17 @@ test("projectStats counts by status and excludes drafts from value", () => {
     assert.strictEqual(s.value, 500);      // 200 + 300, draft excluded
     assert.strictEqual(s.timeImpact, 7);   // approved only
 });
+
+test("prettyDate writes Sep (never Sept) and pads the day", () => {
+    assert.strictEqual(prettyDate("2026-09-17"), "17 Sep 2026");
+    assert.strictEqual(prettyDate("2026-07-04"), "04 Jul 2026");
+});
+
+test("prettyDate writes Chinese dates as 年月日 when the language is Chinese", () => {
+    global.getLang = () => "zh";
+    try {
+        assert.strictEqual(prettyDate("2026-07-14"), "2026年7月14日");
+    } finally {
+        delete global.getLang;
+    }
+});

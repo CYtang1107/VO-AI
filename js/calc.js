@@ -14,13 +14,26 @@ function today() {
     return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
 }
 
+/* "14 Jul 2026" in English, "2026年7月14日" in Chinese. Formatted by hand
+   rather than with toLocaleDateString, whose month abbreviations vary by
+   browser (some write "Sept", others "Sep"). A bare date is read as the
+   calendar date it names; a timestamp is shown in the viewer's local day. */
+var MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 function prettyDate(iso) {
     if (!iso) return "—";
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString("en-MY", {
-        day: "2-digit", month: "short", year: "numeric"
-    });
+    let y, m, day;
+    const bare = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso));
+    if (bare) {
+        y = +bare[1]; m = +bare[2]; day = +bare[3];
+    } else {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        y = d.getFullYear(); m = d.getMonth() + 1; day = d.getDate();
+    }
+    if (typeof getLang === "function" && getLang() === "zh") return y + "年" + m + "月" + day + "日";
+    return String(day).padStart(2, "0") + " " + MONTHS_SHORT[m - 1] + " " + y;
 }
 
 function lineTotal(qty, rate) {

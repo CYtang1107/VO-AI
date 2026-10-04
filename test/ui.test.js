@@ -104,3 +104,14 @@ test("the sidebar shows no chip menu content when no project is selected", () =>
     assert.ok(!/project-chip-menu/.test(html), "no chip menu should render with no project");
     assert.ok(!/Switch project/.test(html), "no switch-project action should render with no project");
 });
+
+test("a stored document's name is a link that opens it; a name-only one is tagged", () => {
+    const { fileLink } = require("../js/ui.js");
+    const stored = fileLink({ id: "DOC-1", name: "A-201 <Rev C>.pdf", stored: true });
+    assert.match(stored, /class="file-name file-open"/);
+    assert.match(stored, /data-file-id="DOC-1"/);
+    assert.match(stored, /A-201 &lt;Rev C&gt;\.pdf/);
+    const nameOnly = fileLink({ id: "DOC-2", name: "old.pdf" });
+    assert.ok(!/file-open/.test(nameOnly));
+    assert.match(nameOnly, /file-no-content/);
+});

@@ -276,3 +276,13 @@ test("the device passcode and a project passcode are independent", async () => {
     clearPasscode();
     assert.strictEqual(projectHasPasscode(getProject(project.id)), false);
 });
+
+test("demo data is dated relative to today so its clocks are not long overdue", () => {
+    const { demoDB } = require("../js/store.js");
+    const vos = demoDB("2026-10-04").projects[0].vos;
+    assert.deepStrictEqual(vos.map(v => v.dateIssued), ["2026-08-05", "2026-09-14", "2026-09-29"]);
+    /* a VO's own history moves with it, timestamps keep their time of day */
+    assert.strictEqual(vos[1].history[0].at, "2026-09-14T08:30:00Z");
+    /* the fixed seed the other tests rely on is untouched */
+    assert.strictEqual(seedDB().projects[0].vos[1].dateIssued, "2026-07-15");
+});

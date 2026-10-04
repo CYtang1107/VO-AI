@@ -39,7 +39,13 @@ function docSection(files, label) {
     }
     return '<ul class="report-doc-list">' + files.map(f => {
         const vCount = versionCount(f);
-        return "<li>" + escapeHtml(f.name) +
+        /* A stored file opens from the report too; the printed page shows
+           just the name either way. */
+        const name = f.stored
+            ? '<a href="#" class="file-open" data-file-id="' + escapeHtml(f.id) + '" data-file-name="' +
+              escapeHtml(f.name) + '">' + escapeHtml(f.name) + "</a>"
+            : escapeHtml(f.name);
+        return "<li>" + name +
         ' <span class="rate-detail">— ' + t("report.docSection.attached", { date: prettyDate(f.at) }) +
         (vCount > 1 ? " · " + t("report.docSection.priorVersions", { n: vCount - 1 }) : "") +
         "</span></li>";

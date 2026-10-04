@@ -183,6 +183,21 @@ function requireProject() {
     return { session: session, project: project };
 }
 
+/* A document's name as shown in every list. When its content was stored
+   in this browser (js/filestore.js) the name is a link that opens the
+   file; otherwise (seed data, or a file uploaded on another computer) it
+   is plain text with a small note saying only the name is on record. */
+function fileLink(doc) {
+    const name = escapeHtml(doc && doc.name);
+    if (doc && doc.stored) {
+        return '<a href="#" class="file-name file-open" data-file-id="' + escapeHtml(doc.id) +
+            '" data-file-name="' + name + '" title="' + escapeHtml(t("file.openTitle")) + '">' + name + "</a>";
+    }
+    return '<span class="file-name">' + name + "</span>" +
+        '<span class="file-no-content" title="' + escapeHtml(t("file.nameOnlyTitle")) + '">' +
+        escapeHtml(t("file.nameOnly")) + "</span>";
+}
+
 function toast(message, kind) {
     let host = document.getElementById("toastHost");
     if (!host) {
@@ -266,5 +281,5 @@ function mountChrome(active, title, crumb, opts) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar };
+    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink };
 }
