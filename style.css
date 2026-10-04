@@ -17,13 +17,13 @@
 :root {
     /* ink (text), paper (surfaces), rule (hairlines) */
     --ink:        #161d2e;
-    --ink-2:      #333c4d;
-    --ink-3:      #4b5568;
+    --ink-2:      #262f40;
+    --ink-3:      #3a4357;
     --paper:      #ffffff;
-    --paper-sunk: #f4f5f8;
+    --paper-sunk: #eceff4;
     --paper-warm: #faf6ec;
-    --rule:       #dde1e8;
-    --rule-strong:#c3c9d4;
+    --rule:       #cdd3de;
+    --rule-strong:#a9b1c0;
 
     /* the sidebar rail — a darker ledger cover, not a generic slate */
     --side-bg:      #12182a;
@@ -31,25 +31,25 @@
     --side-surface-2:#29334a;
     --side-hover:   #212a3d;
     --side-deep:    #21306b;
-    --side-mute:    #9aa3b8;
+    --side-mute:    #c2c9d8;
 
     /* interactive accent — reserved for links, focus and selection;
        buttons take ink instead, so blue never competes with the
        verdict colours below */
-    --accent:       #3355d8;
-    --accent-press: #26409e;
+    --accent:       #2546c4;
+    --accent-press: #1b3494;
 
     /* the rate cross-check verdict — the strongest colour in the app */
-    --verdict-same:     #0f7a45;
-    --verdict-same-bg:  #e3f4ea;
+    --verdict-same:     #0b6b3b;
+    --verdict-same-bg:  #d3eedd;
     --verdict-diff:     #b3261e;
-    --verdict-diff-bg:  #fbeae8;
-    --verdict-star:     #7c3aed;
-    --verdict-star-bg:  #f1ecfd;
+    --verdict-diff-bg:  #f8dad6;
+    --verdict-star:     #6527d1;
+    --verdict-star-bg:  #e7defb;
 
     /* classification tags — deliberately quieter than the verdict */
     --tag-ink: #3c4666;
-    --tag-bg:  #eceef4;
+    --tag-bg:  #e0e4ed;
 
     /* type */
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -454,14 +454,14 @@ nav {
 
 
 .blue {
-    background: #e8f0ff;
+    background: #dbe4ff;
     color: var(--accent);
 }
 
 
 .orange {
-    background: #fff4df;
-    color: #f59e0b;
+    background: #fde7bf;
+    color: #b45309;
 }
 
 
@@ -501,7 +501,7 @@ nav {
 
 
 .stat-card small.warning {
-    color: #f59e0b;
+    color: #b45309;
 }
 
 
@@ -632,8 +632,8 @@ table:has(#measurementBody) th:nth-child(6),
 
 
 .pending {
-    background: #fff4df;
-    color: #d97706;
+    background: #fde7bf;
+    color: #92400e;
 }
 
 
@@ -644,7 +644,7 @@ table:has(#measurementBody) th:nth-child(6),
 
 
 .review {
-    background: #e8f0ff;
+    background: #dbe4ff;
     color: var(--accent);
 }
 
@@ -721,7 +721,7 @@ table:has(#measurementBody) th:nth-child(6),
 
     border-radius: 50%;
 
-    background: #e8f0ff;
+    background: #dbe4ff;
 
     color: var(--accent);
 
@@ -830,7 +830,7 @@ table:has(#measurementBody) th:nth-child(6),
 .ai-banner {
     margin-top: 20px;
 
-    background: #eef4ff;
+    background: #dbe4ff;
 
     border: 1px solid #d9e5ff;
 
@@ -1044,7 +1044,7 @@ table:has(#measurementBody) th:nth-child(6),
 .field label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
 .field input, .field select, .field textarea {
     width: 100%;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--rule-strong);
     border-radius: 7px;
     padding: 11px;
     font-family: inherit;
@@ -1061,12 +1061,12 @@ table:has(#measurementBody) th:nth-child(6),
 .field.owned input, .field.owned select, .field.owned textarea,
 input.owned, select.owned, textarea.owned {
     background: #fffdf2;
-    border-color: #f0d98a;
+    border-color: #d4a72c;
 }
 
 .field.locked input, .field.locked select, .field.locked textarea {
-    background: #f4f6f9;
-    color: var(--ink-3);
+    background: var(--paper-sunk);
+    color: var(--ink-2);
     cursor: not-allowed;
 }
 
@@ -1191,7 +1191,7 @@ input.owned, select.owned, textarea.owned {
 ========================= */
 
 .rejected { background: var(--verdict-diff-bg); color: var(--verdict-diff); }
-.draft    { background: var(--rule); color: var(--ink-3); }
+.draft    { background: var(--tag-bg); color: var(--ink-2); }
 
 /* =========================
    RATE CROSS-CHECK
@@ -1300,7 +1300,7 @@ input.owned, select.owned, textarea.owned {
 @media print {
     .sidebar, .topbar, .page-actions, .toast-host, .signout-button { display: none !important; }
     .main { margin-left: 0; padding: 0; }
-    .card { border: 1px solid #ccc; break-inside: avoid; }
+    .card { border: 1px solid var(--rule-strong); break-inside: avoid; }
 }
 th.owned-col { background: #fdf6dd; color: #92400e; }
 td.owned-col { background: #fffdf2; }
@@ -1382,7 +1382,7 @@ td.owned-col { background: #fffdf2; }
 
 @media print {
     .report-sheet { border: none; padding: 0; }
-    .report-totals { background: none; border: 1px solid #ccc; }
+    .report-totals { background: none; border: 1px solid var(--rule-strong); }
 }
 
 /* =========================
@@ -1446,7 +1446,7 @@ td.owned-col { background: #fffdf2; }
    solid rate-flag verdicts above, which reflect a link the user chose.
 ========================= */
 
-.rate-flag.auto-match { background: #fff7e6; color: #b45309; }
+.rate-flag.auto-match { background: #fde7bf; color: #b45309; }
 
 .rate-suggestion {
     margin-top: 8px;
@@ -1627,10 +1627,10 @@ td.owned-col { background: #fffdf2; }
 .deadline-overdue .deadline-flag    { background: var(--verdict-diff-bg); color: var(--verdict-diff); }
 
 .deadline-due-soon    { border-left-color: #b45309; }
-.deadline-due-soon .deadline-flag    { background: #fff7e6; color: #b45309; }
+.deadline-due-soon .deadline-flag    { background: #fde7bf; color: #b45309; }
 
 .deadline-open        { border-left-color: var(--accent); }
-.deadline-open .deadline-flag        { background: #eaf1ff; color: var(--accent); }
+.deadline-open .deadline-flag        { background: #dbe4ff; color: var(--accent); }
 
 .deadline-satisfied   { border-left-color: var(--verdict-same); }
 .deadline-satisfied .deadline-flag   { background: var(--verdict-same-bg); color: var(--verdict-same); }
@@ -1642,15 +1642,15 @@ td.owned-col { background: #fffdf2; }
    "manual" tag and the computed deadline's state tag. */
 .rate-flag.manual-due            { background: var(--rule); color: var(--ink-3); }
 .rate-flag.deadline-overdue      { background: var(--verdict-diff-bg); color: var(--verdict-diff); }
-.rate-flag.deadline-due-soon     { background: #fff7e6; color: #b45309; }
-.rate-flag.deadline-open         { background: #eaf1ff; color: var(--accent); }
+.rate-flag.deadline-due-soon     { background: #fde7bf; color: #b45309; }
+.rate-flag.deadline-open         { background: #dbe4ff; color: var(--accent); }
 .rate-flag.deadline-satisfied    { background: var(--verdict-same-bg); color: var(--verdict-same); }
 .rate-flag.deadline-not-started  { background: var(--rule); color: var(--ink-3); }
 
 .deadline-summary {
     font-size: 13px;
     color: #b45309;
-    background: #fff7e6;
+    background: #fde7bf;
     border-radius: 8px;
     padding: 9px 12px;
     margin: 0 0 12px;
@@ -1672,7 +1672,7 @@ td.owned-col { background: #fffdf2; }
     font-size: 12px;
     font-weight: bold;
     color: var(--accent);
-    background: #eaf1ff;
+    background: #dbe4ff;
     border-radius: 20px;
     padding: 2px 8px;
     white-space: nowrap;
@@ -1779,7 +1779,7 @@ td.owned-col { background: #fffdf2; }
 }
 
 .bq-confidence.ok { background: var(--verdict-same-bg); color: var(--verdict-same); }
-.bq-confidence.warn { background: #fff4df; color: #92400e; }
+.bq-confidence.warn { background: #fde7bf; color: #92400e; }
 
 .bq-reasons {
     margin: 0 0 14px 18px;
@@ -1958,7 +1958,7 @@ td.owned-col { background: #fffdf2; }
     font-size: 12px;
     font-weight: bold;
     color: var(--accent);
-    background: #eaf1ff;
+    background: #dbe4ff;
     border-radius: 20px;
     padding: 2px 8px;
     white-space: nowrap;
@@ -2405,4 +2405,78 @@ td.owned-col { background: #fffdf2; }
     #passcodeField input[type="password"] {
         min-height: 44px;
     }
+}
+
+/* =========================================================
+   VISIBILITY PASS
+   Firmer edges and heavier weights so states, icons and controls read
+   at a glance: every coloured pill carries an outline in its own
+   colour, cards lift off the page, and secondary controls have a
+   border you can actually see.
+========================================================= */
+
+.status, .rate-flag, .deadline-flag, .doc-category-tag, .element-tag {
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.card, .stat-card {
+    border-color: var(--rule);
+    box-shadow: 0 1px 3px rgba(22, 29, 46, 0.08);
+}
+
+.deadline-item {
+    background: var(--paper);
+    border-left-width: 5px;
+}
+.deadline-label { font-size: 14px; }
+.deadline-detail, .deadline-note { color: var(--ink-2); }
+
+th {
+    background: #e3e7ee;
+    color: var(--ink-2);
+}
+
+.secondary-button {
+    border-color: var(--rule-strong);
+    font-weight: 600;
+}
+
+.card-header p, .breadcrumb { color: var(--ink-3); }
+
+/* Nav glyphs are text characters; give them a fixed, larger box so they
+   read as icons rather than stray punctuation. */
+.nav-item > span:first-child {
+    width: 20px;
+    font-size: 17px;
+    line-height: 1;
+    text-align: center;
+    color: #ffffff;
+}
+.nav-item { font-weight: 500; }
+
+/* Stat tiles: solid colour with a white glyph, so the icon is the first
+   thing the eye lands on rather than a pale wash. */
+.stat-icon { font-size: 18px; box-shadow: none; }
+.stat-icon.blue   { background: var(--accent);       color: #fff; }
+.stat-icon.orange { background: #b45309;             color: #fff; }
+.stat-icon.green  { background: var(--verdict-same); color: #fff; }
+.stat-icon.purple { background: var(--verdict-star); color: #fff; }
+
+/* Inline cells in the measurement table: a visible box, and read-only
+   values kept in full ink instead of the browser's washed-out grey. */
+td input, td select, td textarea {
+    border: 1px solid var(--rule-strong);
+    border-radius: 5px;
+    padding: 5px 7px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--paper);
+}
+td input:disabled, td select:disabled, td textarea:disabled {
+    background: var(--paper-sunk);
+    color: var(--ink-2);
+    -webkit-text-fill-color: var(--ink-2);
+    opacity: 1;
 }
