@@ -4,7 +4,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, today, prettyDate, contractorTotal, assessedTotal, voValue } = require("./calc.js");
     var { analyse, checkRate } = require("./analysis.js");
-    var { escapeHtml, logoMark } = require("./ui.js");
+    var { escapeHtml, logoMark, fileLink } = require("./ui.js");
     var { versionCount } = require("./documents.js");
     var { t } = require("./i18n.js");
 }
@@ -39,13 +39,8 @@ function docSection(files, label) {
     }
     return '<ul class="report-doc-list">' + files.map(f => {
         const vCount = versionCount(f);
-        /* A stored file opens from the report too; the printed page shows
-           just the name either way. */
-        const name = f.stored
-            ? '<a href="#" class="file-open" data-file-id="' + escapeHtml(f.id) + '" data-file-name="' +
-              escapeHtml(f.name) + '">' + escapeHtml(f.name) + "</a>"
-            : escapeHtml(f.name);
-        return "<li>" + name +
+        /* Opens from the report too; print shows just the name. */
+        return "<li>" + fileLink(f) +
         ' <span class="rate-detail">— ' + t("report.docSection.attached", { date: prettyDate(f.at) }) +
         (vCount > 1 ? " · " + t("report.docSection.priorVersions", { n: vCount - 1 }) : "") +
         "</span></li>";

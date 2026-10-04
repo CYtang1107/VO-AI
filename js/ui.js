@@ -1,7 +1,7 @@
 /* VO-AI | ui.js — shared page chrome, guards and small render helpers. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { ROLES } = require("./store.js");
+    var { ROLES, DEMO_FILES } = require("./store.js");
     var { t, renderLangSwitch, wireLangSwitch, applyI18n } = require("./i18n.js");
 }
 
@@ -183,15 +183,35 @@ function requireProject() {
     return { session: session, project: project };
 }
 
-/* A document's name as shown in every list. When its content was stored
-   in this browser (js/filestore.js) the name is a link that opens the
-   file; otherwise (seed data, or a file uploaded on another computer) it
-   is plain text with a small note saying only the name is on record. */
+/* A document's name as shown in every list, followed by a download
+   button whenever the file itself is available:
+   - a demo document links to its sample file in demo-files/ (by its
+     own `url`, or by id for a register saved before urls existed), so
+     it opens on any computer;
+   - an upload whose content was stored in this browser
+     (js/filestore.js) opens from there;
+   - anything else (a file uploaded on another computer) is plain text
+     with a small note saying only the name is on record. */
+function demoFileUrl(doc) {
+    if (doc.url) return doc.url;
+    return (typeof DEMO_FILES !== "undefined" && DEMO_FILES[doc.id]) || "";
+}
+
 function fileLink(doc) {
     const name = escapeHtml(doc && doc.name);
+    const openTitle = escapeHtml(t("file.openTitle"));
+    const dlTitle = escapeHtml(t("file.downloadTitle"));
+    const url = doc ? demoFileUrl(doc) : "";
+    if (url) {
+        return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" class="file-name file-open" title="' +
+            openTitle + '">' + name + "</a>" +
+            '<a href="' + escapeHtml(url) + '" download="' + name + '" class="file-download" title="' + dlTitle +
+            '" aria-label="' + dlTitle + '">⬇</a>';
+    }
     if (doc && doc.stored) {
-        return '<a href="#" class="file-name file-open" data-file-id="' + escapeHtml(doc.id) +
-            '" data-file-name="' + name + '" title="' + escapeHtml(t("file.openTitle")) + '">' + name + "</a>";
+        const data = ' data-file-id="' + escapeHtml(doc.id) + '" data-file-name="' + name + '"';
+        return '<a href="#" class="file-name file-open"' + data + ' title="' + openTitle + '">' + name + "</a>" +
+            '<a href="#" class="file-download"' + data + ' title="' + dlTitle + '" aria-label="' + dlTitle + '">⬇</a>';
     }
     return '<span class="file-name">' + name + "</span>" +
         '<span class="file-no-content" title="' + escapeHtml(t("file.nameOnlyTitle")) + '">' +

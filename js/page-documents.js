@@ -51,7 +51,7 @@ function collectDocuments(project) {
 
     ((project && project.documents) || []).forEach(function (d) {
         list.push({
-            id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored,
+            id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored, url: d.url,
             uploadedBy: d.uploadedBy, at: d.at,
             source: "project", kind: "project",
             category: d.category || "other",
@@ -64,7 +64,7 @@ function collectDocuments(project) {
         VO_DOC_FIELDS.forEach(function (f) {
             (vo[f.field] || []).forEach(function (d) {
                 list.push({
-                    id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored,
+                    id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored, url: d.url,
                     uploadedBy: d.uploadedBy, at: d.at,
                     source: "vo", kind: f.field, bucket: f.bucket,
                     voId: vo.id, voNo: vo.no, voDescription: vo.description,

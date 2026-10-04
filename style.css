@@ -2694,3 +2694,20 @@ a.file-open:hover { text-decoration: underline; }
     white-space: nowrap;
 }
 @media print { a.file-open { color: inherit; font-weight: inherit; } a.file-open::before { content: none; } }
+
+a.file-download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    margin-left: 6px;
+    border-radius: 6px;
+    border: 1px solid var(--rule-strong);
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 13px;
+    flex: none;
+}
+a.file-download:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media print { a.file-download, .file-no-content { display: none; } }
