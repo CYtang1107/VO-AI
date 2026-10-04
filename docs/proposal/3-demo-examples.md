@@ -38,7 +38,9 @@ the sidebar.
    different role. The same project will look different, and different fields will be editable.
 
 If you wish to return to the original demonstration data at any point, the **Restore demo data**
-control on the Projects screen resets everything.
+control on the Projects screen resets everything. To try the BQ import, a sample priced BQ in
+the shape a real one takes — title rows, bill headings, subtotals — is in the source code at
+`demo-files/sample-priced-bq.csv`.
 
 ### Three test questions
 
@@ -78,15 +80,17 @@ The demonstration follows the worked example from Section 1.2: **a client instru
 living-area floor finish from ceramic tile to marble tile.** It is carried through all three
 roles, exactly as it would proceed on a project.
 
-> **Note for the team:** capture each screenshot at 1440px width from the live site, with the
-> seeded demonstration data. Save them into `docs/screenshots/` and insert them at the marked
-> points below. Each is described so the accompanying text stands on its own.
+> **Note for the team:** the screenshots below are in `docs/screenshots/`, captured at 1440px
+> width from the current version with the seeded demonstration data (retake them with
+> `tools/make-screenshots.js`). Each is also described, so the text stands on its own.
 
 ---
 
 ### Step 1 — Sign in and select a role
 
 **[Screenshot 1: the sign-in screen showing the three role cards]**
+
+![Screenshot 1](../screenshots/01-sign-in.jpg)
 
 The user enters a user ID and chooses the role they are acting as. There is no password
 barrier — the role determines what they may edit, not what they may see. The language toggle is
@@ -97,6 +101,8 @@ available before sign-in.
 ### Step 2 — The consultant sets up the project
 
 **[Screenshot 2: the create-project panel with the BQ import]**
+
+![Screenshot 2](../screenshots/02-create-project-bq-import.jpg)
 
 The Consultant QS creates the project and uploads the priced Bills of Quantities. The system
 reads the file — CSV or XLSX — and determines which column holds the code, description, unit
@@ -109,14 +115,18 @@ subsequent claim is checked.
 
 ### Step 3 — The contractor raises the variation
 
-**[Screenshot 3: VO detail, contractor's panel, showing the measurement rows and attached
+**[Screenshot 3: VO detail, the contractor's panel, showing the instruction and the attached
 documents]**
+
+![Screenshot 3](../screenshots/03-contractor-panel-documents.jpg)
 
 The contractor records the instruction — Architect's Instruction AI-021 — describes the change,
 and enters the measurement: omit 320 m² of ceramic tiling, add 320 m² of marble, and 168 m of
-skirting to match. Revised and superseded drawings and a supplier quotation are attached, each
-kept with its revision history. The contractor submits, which starts the consultant's 30-day
-evaluation period.
+skirting to match. The revised and superseded drawings (A-201 Rev C and Rev B), the marble
+supplier's quotation, a site photo and the contract the variation is assessed against are
+attached, each kept with its revision history. Every document opens with a click, or downloads
+with ⬇ — the demonstration project carries sample files for all of them. The contractor
+submits, which starts the consultant's 30-day evaluation period.
 
 ---
 
@@ -124,6 +134,8 @@ evaluation period.
 
 **[Screenshot 4: the measurement table showing all three rate verdicts — this is the central
 image of the demonstration]**
+
+![Screenshot 4](../screenshots/04-rate-cross-check.jpg)
 
 This is the system's core function. Each claimed rate is compared against the priced contract
 BQ:
@@ -143,12 +155,16 @@ has claimed **RM 62,808.00**.
 
 **[Screenshot 5: the assessment panel showing the governing clause, findings and variance]**
 
+![Screenshot 5](../screenshots/05-assessment-clause-findings.jpg)
+
 The consultant reviews the classification — a material and specification change affecting
 Finishes — and the governing clause, PAM 2018 Clause 11.1, with the entitlement and the
 evidence required. The findings state which rows need correction and why.
 
 The consultant applies the contract rate to the skirting, agrees a star rate of RM 248.00/m² for
-the marble against the supplier quotation, and records a time impact of 7 days. The assessed
+the marble against the supplier quotation — which opens from the variation's supporting
+documents and shows the build-up, RM 190.00 supply plus RM 58.00 laying — and records a time
+impact of 7 days. The assessed
 value is **RM 55,856.00** — a reduction of **RM 6,952.00** that the system identified and
 evidenced, and that a manual check could easily have missed.
 
@@ -159,10 +175,13 @@ evidenced, and that a manual check could easily have missed.
 **[Screenshot 6: the client's view of the same variation, with the certification fields now
 editable]**
 
+![Screenshot 6](../screenshots/06-client-certification.jpg)
+
 The client sees the same facts presented for a decision: what changed, why it is contractually a
-variation, the claimed and assessed values, and the time impact. Their certification fields —
-locked until the consultant approved — are now editable. Fields belonging to the other roles are
-shown read-only, with the reason stated. The client certifies at the assessed value.
+variation, the claimed and assessed values, and the time impact. Their own panel holds only the
+certification fields — locked until the consultant approved, and now editable. The contractor's
+and consultant's columns are a click away, read-only, under "Show the other roles' columns". The
+client certifies at the assessed value.
 
 ---
 
@@ -170,8 +189,11 @@ shown read-only, with the reason stated. The client certifies at the assessed va
 
 **[Screenshot 7: the printed report showing the section order and the rate verdicts]**
 
+![Screenshot 7](../screenshots/07-vo-report.jpg)
+
 The system assembles a draft report in the order a submission requires: instruction,
-classification and affected elements, contractual basis, revised drawing, superseded drawing,
+classification and affected elements, contractual basis (with the contract relied on), revised
+drawing, superseded drawing,
 measurement and valuation, supporting documents, findings, time impact, and status with
 signature blocks for all three parties. Each role receives a report weighted to its needs, all
 rendered from the same record so they cannot disagree.
@@ -184,11 +206,14 @@ been certified shows no certified value.
 
 ### Step 8 — Tracking
 
-**[Screenshot 8: the dashboard showing outstanding and overdue deadlines, and the all-variations
-summary]**
+**[Screenshot 8: the dashboard showing outstanding deadlines, and the all-variations summary]**
 
-The dashboard shows each role what is waiting on them and what is overdue against the
-contractual periods. The summary report totals every variation on the project — claimed,
+![Screenshot 8 — dashboard](../screenshots/08-dashboard.jpg)
+
+![Screenshot 8 — all-variations summary](../screenshots/08b-summary-report.jpg)
+
+The dashboard shows each role what is waiting on them and the contractual periods running
+against it; a period that is overdue or due within seven days is flagged. The summary report totals every variation on the project — claimed,
 assessed and certified — against the contract sum, which is a client's first question about
 variations.
 

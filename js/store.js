@@ -452,6 +452,9 @@ var DEMO_FILES = {
     F4: "demo-files/site-photo-living-area.jpg",
     F5: "demo-files/C-104-revA-external-drainage.pdf",
     F6: "demo-files/site-instruction-EI-008.pdf",
+    /* each VO's contract basis: the project's own contract */
+    F7: "demo-files/contract-agreement-pam2018.pdf",
+    F8: "demo-files/contract-agreement-pam2018.pdf",
 };
 
 
@@ -495,6 +498,7 @@ function seedDB() {
                         { id: "F3", name: "Marble supplier quotation.pdf", size: 81540, url: DEMO_FILES.F3, uploadedBy: "Ong Wei Han", at: "2026-07-15" },
                         { id: "F4", name: "Site photos - living area.jpg", size: 51860, url: DEMO_FILES.F4, uploadedBy: "Ong Wei Han", at: "2026-07-15" }
                     ],
+                    contractDocs: [{ id: "F7", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.F7, uploadedBy: "Ong Wei Han", at: "2026-07-14" }],
                     measurement: [
                         /* same: omitted at the contract BQ rate */
                         { id: "M1", bqItemId: "BQ1", description: "Omit ceramic floor tiles to living area",
@@ -545,6 +549,7 @@ function seedDB() {
                     revisedDrawing: [{ id: "F5", name: "C-104 Rev A - External Drainage.pdf", size: 95122, url: DEMO_FILES.F5, uploadedBy: "Ong Wei Han", at: "2026-07-15" }],
                     oldDrawing: [],
                     supportingDocs: [{ id: "F6", name: "Site instruction EI-008.pdf", size: 77160, url: DEMO_FILES.F6, uploadedBy: "Ong Wei Han", at: "2026-07-15" }],
+                    contractDocs: [{ id: "F8", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.F8, uploadedBy: "Ong Wei Han", at: "2026-07-15" }],
                     measurement: [
                         { id: "M4", bqItemId: "BQ5", description: "100mm dia uPVC drainage pipe laid in trench to rear boundary",
                           unit: "m", qty: 142, rate: 62, assessedQty: "", assessedRate: "" },
@@ -577,7 +582,7 @@ function seedDB() {
                     dateIssued: "2026-08-18",
                     typeOfInstruction: "Architect's Instruction (AI)",
                     instructionNo: "AI-027",
-                    revisedDrawing: [], oldDrawing: [], supportingDocs: [],
+                    revisedDrawing: [], oldDrawing: [], supportingDocs: [], contractDocs: [],
                     measurement: [
                         { id: "M6", bqItemId: "BQ6", description: "Suspended plasterboard ceiling with additional cove detail",
                           unit: "m2", qty: 96, rate: 76, assessedQty: "", assessedRate: "" }

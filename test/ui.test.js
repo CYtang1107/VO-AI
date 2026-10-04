@@ -121,8 +121,10 @@ test("every demo document links to a sample file that exists, with its real size
     const path = require("path");
     const { seedDB } = require("../js/store.js");
     const p = seedDB().projects[0];
-    const docs = [].concat(p.documents, ...p.vos.map(v => [].concat(v.revisedDrawing, v.oldDrawing, v.supportingDocs)));
-    assert.ok(docs.length >= 8);
+    const docs = [].concat(p.documents, ...p.vos.map(v =>
+        [].concat(v.revisedDrawing, v.oldDrawing, v.supportingDocs, v.contractDocs || [])));
+    assert.ok(docs.length >= 10);
+    assert.ok(p.vos[0].contractDocs.length > 0, "VO-001 shows the contract it is assessed against");
     docs.forEach(d => {
         assert.ok(d.url, d.name + " has no sample file");
         const file = path.join(__dirname, "..", d.url);
