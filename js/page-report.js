@@ -240,7 +240,7 @@ function renderReport(vo, project, role) {
       "<h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
       "<p>" + t("report.evaluationLine", { status: "<strong>" + escapeHtml(t("status." + vo.evaluateStatus, {})) + "</strong>" }) + "<br>" +
       t("report.certificationLine", { status: "<strong>" + escapeHtml(t("status." + vo.certifiedStatus, {})) + "</strong>" }) + "</p>" +
-      (vo.assessmentNote ? '<p class="rate-detail"><strong>' + t("vo.field.assessmentNote") + ':</strong> ' +
+      (vo.assessmentNote ? '<p class="rate-detail"><strong>' + t("report.assessmentNoteLabel") + '</strong> ' +
         escapeHtml(vo.assessmentNote) + "</p>" : "") +
       (showRecommendation ? '<p class="rate-detail"><strong>' + t("report.recommendationLabel") + '</strong> ' +
         escapeHtml(vo.consultantRemark) + "</p>" : "") +

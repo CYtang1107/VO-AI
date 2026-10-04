@@ -18,7 +18,7 @@ function deadlinePositionText(project, role, todayIso) {
     const bits = [t("dashboard.deadline.outstanding", { n: outstanding.length })];
     if (summary.overdue > 0) bits.push(t("dashboard.deadline.overdue", { n: summary.overdue }));
     if (summary.dueSoon > 0) bits.push(t("dashboard.deadline.dueSoon", { n: summary.dueSoon }));
-    return bits.join(", ") + ".";
+    return bits.join(t("common.clauseSep")) + t("common.fullStop");
 }
 
 /* What does this role have to do next? */

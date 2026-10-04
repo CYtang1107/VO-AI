@@ -163,7 +163,7 @@ function renderVoGroup(voId, voNo, voDescription, docs) {
         return '<div class="doc-kind-group">' +
             '<h4 class="doc-kind-label">' + escapeHtml(t(f.labelKey)) +
                 (typeof getLang === "function" && getLang() === "zh" ? "" : "s") +
-                ' (' + kindDocs.length + ')</h4>' +
+                escapeHtml(t("common.count", { n: kindDocs.length })) + '</h4>' +
             '<ul class="doc-list">' + kindDocs.map(renderDocEntry).join("") + "</ul>" +
         "</div>";
     }).join("");

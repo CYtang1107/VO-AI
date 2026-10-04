@@ -251,7 +251,7 @@ function checkRate(row, bq) {
             claimed: rm(claimed), code: item.code, rate: rm(contractRate), unit: item.unit,
             word: t(diff > 0 ? "rate.overstated" : "rate.understated"),
             diff: rm(Math.abs(diff)),
-            pct: pct === null ? "" : " (" + Math.abs(pct).toFixed(1) + "%)",
+            pct: pct === null ? "" : t("rate.pctNote", { pct: Math.abs(pct).toFixed(1) }),
             autoNote: autoNote
         }),
         contractRate: contractRate,

@@ -82,7 +82,7 @@ test("placeholder substitution works", () => {
     };
     try {
         setLang("zh");
-        assert.strictEqual(t("dashboard.greeting", { name: "Serena" }), "您好,Serena");
+        assert.strictEqual(t("dashboard.greeting", { name: "Serena" }), "您好，Serena");
     } finally {
         delete global.localStorage;
     }
