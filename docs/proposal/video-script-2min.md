@@ -6,10 +6,12 @@
 timings assume you already know where everything is.
 
 **Before recording**
-- Open the app in a private window so `localStorage` is empty and the seeded demo is fresh.
+- Open the app in a private window so the browser storage is empty and the seeded demo is
+  fresh. The demo dates itself relative to the day you record, so its deadlines are live.
 - Zoom the browser to ~110% so text is legible after compression.
 - Close other tabs; hide bookmarks; full-screen the window.
-- Have the messy BQ CSV ready on the desktop if you include the import shot.
+- If you include the import shot, have `demo-files/sample-priced-bq.csv` (from the repository)
+  ready on the desktop — it has the title rows, bill headings and subtotals a real BQ has.
 - Record at 1920×1080.
 
 ---
@@ -36,27 +38,30 @@ timings assume you already know where everything is.
 
 ## 0:22 – 0:38 · The dashboard and the time bars
 
-**Screen:** dashboard. Point at the "needs your attention" list and the overdue count.
+**Screen:** dashboard. Point at the "Needs your attention" list and the deadline count, then
+open VO-002 and rest on the Contractual deadlines panel ("10 days remaining").
 
-> "Signing in as the consultant, the system shows what is waiting on me — and what is
-> already late. Under the contract I have thirty days to evaluate a variation. VO-AI tracks
-> that clock, and the twenty-eight day clocks for requesting and receiving further
-> information."
+> "Signing in as the consultant, the system shows what is waiting on me — and how long I
+> have. Under the contract I have thirty days to evaluate a variation. VO-AI tracks that
+> clock, and the twenty-eight day clocks for requesting and receiving further information."
 
 ---
 
 ## 0:38 – 1:10 · The rate cross-check — the core feature
 
-**Screen:** open VO-001. Scroll to the measurement table. Let each verdict sit on screen
-long enough to read. **Do not rush this — it is the most important shot in the video.**
+**Screen:** open VO-001. Scroll to the measurement table — each item shows its verdict, with
+the explanation on its own line beneath. Let each sit on screen long enough to read. At the
+marble, click **Marble supplier quotation.pdf** in the contractor's supporting documents for
+two seconds: the RM 248 build-up is the evidence behind the star rate. **Do not rush this —
+it is the most important shot in the video.**
 
 > "This is the heart of it. For every measured item, VO-AI compares the rate the contractor
 > claimed against the rate in the priced contract bills.
 >
 > The omitted ceramic tiling matches the contract rate — same rate.
 >
-> The marble has no comparable item in the bills, so it is flagged as a star rate that must
-> be agreed separately.
+> The marble has no comparable item in the bills, so it is flagged as a star rate, agreed
+> against the supplier's quotation — one click away.
 >
 > And the skirting is claimed at thirty-one ringgit against a contract rate of twenty-two.
 > VO-AI states which rate governs, and by how much the claim is overstated. That single line
@@ -89,7 +94,7 @@ long enough to read. **Do not rush this — it is the most important shot in the
 **Screen:** quickly switch to the Client role, show the summary report totals.
 
 > "The client sees the same facts, presented for a decision: what changed, what it is worth,
-> and what it adds up to against the contract sum."
+> and the total against the contract sum."
 
 ---
 
@@ -111,7 +116,8 @@ long enough to read. **Do not rush this — it is the most important shot in the
   construction professionals; a demonstrated control is worth more than the adjective.
 - The closing line is the differentiator. Say it plainly, without a flourish.
 - If you subtitle in Chinese, switch the app to 中文 for one shot around 1:40 so the
-  bilingual interface is visible rather than merely claimed.
+  bilingual interface is visible rather than merely claimed. In Chinese a variation order is
+  「工程变更令」 — use the same term in the subtitles as on screen.
 
 ## Shot list (for editing)
 
@@ -119,8 +125,9 @@ long enough to read. **Do not rush this — it is the most important shot in the
 |---|---|---|
 | 0:00 | Sign-in | — |
 | 0:12 | Project list → open project | Project name |
-| 0:22 | Dashboard | "overdue" count |
+| 0:22 | Dashboard → VO-002 deadlines | Deadline count, "10 days remaining" |
 | 0:38 | VO-001 measurement table | All three rate verdicts |
+| ~0:55 | Marble supplier quotation (PDF) | "RM 248.00 per m2" |
 | 1:10 | AI Analysis result | Element prompts |
 | 1:25 | Clause block → Reports | "PAM 2018 Clause 11.1" |
 | 1:40 | Client summary report | Totals row |

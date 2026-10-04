@@ -85,7 +85,7 @@ That was true when written. It is now a serious undersell — the system is depl
 publicly usable.
 
 **Replace with** `docs/proposal/2.5-overall-completion-quality.md`, which leads with the
-measurable state (303+ automated tests, 20 modules, 9 screens, zero dependencies, live URL),
+measurable state (321 automated tests, 21 modules, 9 screens, zero dependencies, live URL),
 lists what is complete, and then states the limitations honestly — no document-content
 parsing, no PDF extraction, no drawing comparison, no authentication, local-only data.
 
@@ -128,18 +128,22 @@ things a competitor cannot copy from a description:
 - **§3.2** — an eight-step case demonstration following the ceramic-to-marble variation through
   all three roles.
 
-**You must add eight screenshots.** The slots are marked in the file and each is described, so
-the text stands on its own. Capture at 1440px width from the live site using the seeded demo
-data:
+**Eight screenshots are ready in `docs/screenshots/`**, captured at 1440px from the current
+version with the seeded demo data. Insert each at its marked slot in §3.2:
 
-1. Sign-in screen with the three role cards
-2. Create-project panel with the BQ import
-3. VO detail — contractor's panel with measurement and documents
-4. **The measurement table showing all three rate verdicts** — the most important image
-5. Assessment panel with governing clause and findings
-6. Client's view with certification fields editable
-7. The printed report
-8. Dashboard with deadlines, plus the all-variations summary
+| Slot | File |
+|---|---|
+| 1. Sign-in screen with the three role cards | `01-sign-in.jpg` |
+| 2. Create-project panel with the BQ import | `02-create-project-bq-import.jpg` |
+| 3. VO detail — contractor's panel with documents | `03-contractor-panel-documents.jpg` |
+| 4. **The measurement table showing all three rate verdicts** — the most important image | `04-rate-cross-check.jpg` |
+| 5. Assessment panel with governing clause and findings | `05-assessment-clause-findings.jpg` |
+| 6. Client's certification fields | `06-client-certification.jpg` |
+| 7. The VO report | `07-vo-report.jpg` |
+| 8. Dashboard, plus the all-variations summary | `08-dashboard.jpg`, `08b-summary-report.jpg` |
+
+If the interface changes again, retake them all with `tools/make-screenshots.js` (instructions
+at the top of that file) — pass `zh` to capture the Chinese interface instead.
 
 ---
 
@@ -205,3 +209,8 @@ and a specific instance where they rejected or corrected AI output.
 | 2-minute video | Record | ⚠️ Missing deliverable |
 
 Drafts for every "Replace with" row are in `docs/proposal/`.
+
+**These drafts were brought up to date with the application on 4 October 2026** (document
+storage and download, the demo's sample documents, the contract-basis section, role-focused
+panels, the ten-section report, current test and module counts). The Word versions on your own
+computer were made from the earlier drafts — regenerate or edit them before submitting.

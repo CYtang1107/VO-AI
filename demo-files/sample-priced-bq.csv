@@ -1,0 +1,18 @@
+"VO-AI DEMO SAMPLE - Cadangan Pembangunan ABC Residence",,,,,
+"Contract ABC/2026/014 - Bills of Quantities (Priced)",,,,,
+,,,,,
+Item,Description,Unit,Qty,Rate (RM),Amount (RM)
+,BILL B - FINISHES,,,,
+B/4.1,Ceramic floor tiles 600x600mm to living area,m2,320,85.00,"27,200.00"
+B/4.2,Skirting to match floor finish,m,168,22.00,"3,696.00"
+B/5.1,Plaster and paint to internal walls,m2,860,34.00,"29,240.00"
+,Sub-total Bill B carried to summary,,,,"60,136.00"
+,BILL C - DOORS AND WINDOWS,,,,
+C/2.3,Timber flush door 900x2100mm with ironmongery,no,14,640.00,"8,960.00"
+,Sub-total Bill C carried to summary,,,,"8,960.00"
+,BILL D - EXTERNAL WORKS AND DRAINAGE,,,,
+D/1.2,100mm dia uPVC drainage pipe laid in trench,m,210,48.00,"10,080.00"
+,Sub-total Bill D carried to summary,,,,"10,080.00"
+,BILL E - CEILINGS,,,,
+E/3.1,Suspended plasterboard ceiling incl. framing,m2,410,76.00,"31,160.00"
+,Sub-total Bill E carried to summary,,,,"31,160.00"

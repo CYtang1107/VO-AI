@@ -1,7 +1,7 @@
 # VO-AI — 2 Minute Video Narration
 
-**Just the words.** 308 words. At a natural speaking pace of roughly 150 words per minute
-that is about **2 minutes 3 seconds** — marginally over. Read briskly and it fits; if you
+**Just the words.** 309 words. At a natural speaking pace of roughly 150 words per minute
+that is about **2 minutes 4 seconds** — marginally over. Read briskly and it fits; if you
 prefer to read slowly, drop the [1:10] paragraph, which takes it to about 1 minute 48.
 
 Time markers show where you should be, so you can tell mid-recording whether you are running
@@ -24,8 +24,8 @@ Each sees the same register, and each edits only their own columns.
 
 **[0:26]**
 
-As the consultant, I see what is waiting on me — and what is already late. The contract gives
-me thirty days to evaluate a variation. VO-AI tracks that clock.
+As the consultant, I see what is waiting on me — and how long I have. The contract gives me
+thirty days to evaluate a variation. VO-AI tracks that clock.
 
 **[0:38]**
 
@@ -34,8 +34,8 @@ claimed against the rate in the priced contract bills.
 
 The omitted ceramic tiling matches the contract rate. Same rate.
 
-The marble has no comparable item in the bills. It is flagged as a star rate, to be agreed
-separately.
+The marble has no comparable item in the bills. It is flagged as a star rate, agreed against
+the supplier's quotation — one click away.
 
 And the skirting is claimed at thirty-one ringgit, against a contract rate of twenty-two.
 VO-AI states which rate governs, and by how much the claim is overstated. That single line is
@@ -53,8 +53,8 @@ the evidence required — then a draft variation order report, ready to print.
 
 **[1:34]**
 
-The client sees the same facts, put for a decision: what changed, what it is worth, and what
-it adds up to against the contract sum.
+The client sees the same facts, put for a decision: what changed, what it is worth, and the
+total against the contract sum.
 
 **[1:43]**
 
@@ -98,7 +98,8 @@ the script never claims intelligence — it shows a rate being checked.
 
 **Subtitles.** Recommended by the submission rules. If you subtitle in Chinese, switch the
 app to 中文 for one shot around 1:34 so the bilingual interface is visible rather than
-merely claimed.
+merely claimed. On screen a variation order is 「工程变更令」 — use the same term in the
+subtitles.
 
 **Recording.** Record the screen silently first, then narrate over it. Clicking and talking
 at once is how you end up with twelve takes.
