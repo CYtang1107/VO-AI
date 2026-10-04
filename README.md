@@ -122,7 +122,8 @@ free-text chatbot: when it cannot answer, it says so and offers what it can.
 ### Also
 
 Role-based permissions — each role sees only its own panel, and a locked panel says once why ·
-dashboard showing what each role owes · VO register with search and status filters · project
+dashboard showing what each role owes · VO register with search and status filters ·
+**export the register to Excel** (every VO and every measured item, with live totals) · project
 export and import as a single file · optional device and project passcodes · **English / 中文
 interface** · works on a phone.
 
@@ -192,6 +193,7 @@ your browser's `localStorage` and attached files in its IndexedDB; nothing is se
 | `js/bqimport.js` | CSV / XLSX parsing and column detection |
 | `js/documents.js` | Document revision history |
 | `js/filestore.js` | Attached files' content (IndexedDB), open and download |
+| `js/xlsxexport.js` | The register as an Excel workbook, written without a library |
 | `js/assistant.js` | Grounded question answering |
 | `js/store.js` | Data model, seed data, persistence |
 | `js/i18n.js` | English / 中文 |
