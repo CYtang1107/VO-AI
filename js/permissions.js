@@ -29,6 +29,7 @@ var FIELD_OWNER = {
     revisedDrawing: "contractor",
     oldDrawing: "contractor",
     supportingDocs: "contractor",
+    contractDocs: "contractor",
     measurement: "contractor",
     contractorRemark: "contractor",
 

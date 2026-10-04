@@ -12,14 +12,15 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t, getLang } = require("./i18n.js");
 }
 
-/* The three VO-level document fields, in the order they appear on the VO
+/* The four VO-level document fields, in the order they appear on the VO
    detail page, each with the label this screen shows (labelKey — see
    js/i18n.js) and the filter bucket ("drawings" or "supporting") it
    belongs to. */
 var VO_DOC_FIELDS = [
     { field: "revisedDrawing", label: "Revised drawing",    labelKey: "documents.field.revisedDrawing", bucket: "drawings" },
     { field: "oldDrawing",     label: "Superseded drawing", labelKey: "documents.field.oldDrawing",      bucket: "drawings" },
-    { field: "supportingDocs", label: "Supporting document", labelKey: "documents.field.supportingDocs", bucket: "supporting" }
+    { field: "supportingDocs", label: "Supporting document", labelKey: "documents.field.supportingDocs", bucket: "supporting" },
+    { field: "contractDocs",   label: "Contract basis document", labelKey: "documents.field.contractDocs", bucket: "supporting" }
 ];
 
 var PROJECT_CATEGORY_KEY = {
