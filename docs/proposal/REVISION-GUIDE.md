@@ -215,6 +215,6 @@ above all "where is the AI?" — with answers in Chinese and what to show in the
 each.
 
 **These drafts were brought up to date with the application on 4 October 2026** (document
-storage and download, the demo's sample documents, the contract-basis section, role-focused
+storage and opening, the demo's sample documents, the contract-basis section, role-focused
 panels, the ten-section report, current test and module counts). The Word versions on your own
 computer were made from the earlier drafts — regenerate or edit them before submitting.

@@ -133,10 +133,9 @@ test("every demo document links to a sample file that exists, with its real size
     });
 });
 
-test("a demo document saved before urls existed still opens and downloads by its id", () => {
+test("a demo document saved before urls existed still opens by its id", () => {
     const { fileLink } = require("../js/ui.js");
     const html = fileLink({ id: "F1", name: "A-201 Rev C - Floor Finishes.pdf" });
     assert.match(html, /href="demo-files\/A-201-revC-floor-finishes\.pdf"/);
-    assert.match(html, /class="file-download"/);
     assert.ok(!/file-no-content/.test(html));
 });

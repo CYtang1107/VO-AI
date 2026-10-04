@@ -96,7 +96,7 @@ Project documents (contract, priced BQ, addenda, specifications) and variation d
 assessed against) with **revision history** — upload a newer version and the previous one is
 retained. A project-wide Documents view shows the whole evidence trail.
 
-**Every document opens.** Click a file name to open it, or ⬇ to download it — from the VO, the
+**Every document opens.** Click a file name to open it — from the VO, the
 Documents page or the report. An uploaded file is kept in the browser (IndexedDB), so it opens
 on the computer it was uploaded from. The demo project's documents — drawings A-201 Rev B/C and
 C-104, the marble supplier quotation, engineer's instruction EI-008, a site photo, the contract
@@ -192,7 +192,7 @@ your browser's `localStorage` and attached files in its IndexedDB; nothing is se
 | `js/deadlines.js` | Contractual time bars |
 | `js/bqimport.js` | CSV / XLSX parsing and column detection |
 | `js/documents.js` | Document revision history |
-| `js/filestore.js` | Attached files' content (IndexedDB), open and download |
+| `js/filestore.js` | Attached files' content (IndexedDB), opened from their names |
 | `js/xlsxexport.js` | The register as an Excel workbook, written without a library |
 | `js/assistant.js` | Grounded question answering |
 | `js/store.js` | Data model, seed data, persistence |
