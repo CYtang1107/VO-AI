@@ -2598,3 +2598,26 @@ td input:disabled, td select:disabled, td textarea:disabled {
 .assistant-unmatched .finding { border-left-color: var(--verdict-diff); }
 
 .ai-card[class*="tone-"] .ai-logo { background: var(--tone); }
+
+/* ---------- VO REGISTER: tidy desktop columns ----------
+   Twelve columns in a fixed-width card squeezed the Chinese headers and
+   short values down to one character per line. On desktop, headers and
+   every short value (number, dates, type, money, days, statuses) stay
+   on one line, the description gets a readable measure, and the table
+   scrolls sideways inside its card when the window is too narrow. */
+@media (min-width: 701px) {
+    .register-scroll th,
+    .register-scroll td { padding: 13px 12px; vertical-align: middle; }
+    .register-scroll th { word-break: keep-all; }  /* Chinese stays whole; English wraps at spaces */
+    #registerBody td:nth-child(1), #registerBody td:nth-child(3),
+    #registerBody td:nth-child(4), #registerBody td:nth-child(5),
+    #registerBody td:nth-child(6), #registerBody td:nth-child(7),
+    #registerBody td:nth-child(9), #registerBody td:nth-child(10),
+    #registerBody td:nth-child(11), #registerBody td:nth-child(12) { white-space: nowrap; }
+    #registerBody td:nth-child(2) { min-width: 165px; max-width: 250px; line-height: 1.5; }
+    /* Rate cross-check: one pill per line, each on a single line. */
+    #registerBody td:nth-child(8) { min-width: 130px; }
+    #registerBody td:nth-child(8) .rate-flag { display: block; width: max-content; margin: 3px 0; }
+    /* Due date's "manual" tag sits under the date rather than beside it. */
+    #registerBody td:nth-child(4) .rate-flag { display: block; width: max-content; margin-top: 4px; }
+}
