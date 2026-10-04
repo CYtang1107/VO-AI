@@ -2515,3 +2515,86 @@ td input:disabled, td select:disabled, td textarea:disabled {
 
 /* One-line explanation under a document section's label. */
 .doc-field .doc-intro { display: block; margin: -2px 0 8px; }
+
+/* =========================================================
+   CARD TONES
+   Each card can carry a tone (tone-blue, tone-amber, …) that tints its
+   header and gives it a coloured top edge, so the sections of a page
+   are told apart by colour before they are read. The verdict colours
+   keep their meaning: tones only touch card chrome, never figures.
+========================================================= */
+
+.tone-blue   { --tone: #2546c4; --tone-bg: #e4eaff; }
+.tone-amber  { --tone: #b45309; --tone-bg: #fdebc8; }
+.tone-green  { --tone: #0b6b3b; --tone-bg: #d6f0e0; }
+.tone-purple { --tone: #6527d1; --tone-bg: #ebe2fd; }
+.tone-teal   { --tone: #0e7490; --tone-bg: #d5eff5; }
+.tone-rose   { --tone: #be123c; --tone-bg: #fde0e7; }
+
+.card[class*="tone-"] { border-top: 4px solid var(--tone); }
+.card[class*="tone-"] > .card-header {
+    background: linear-gradient(120deg, var(--tone-bg) 0%, var(--paper) 75%);
+    border-bottom: 1px solid var(--rule);
+}
+.card[class*="tone-"] > .card-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.card[class*="tone-"] > .card-header h3::before {
+    content: "";
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: var(--tone);
+}
+.card[class*="tone-"] > .card-header p { color: var(--ink-2); }
+.card[class*="tone-"] .view-button { color: var(--tone); font-weight: 600; }
+
+/* Role panels already lead with their own glyph (▲ ✦ ◉); colour the
+   glyph instead of adding a second marker. */
+.role-panel[class*="tone-"] > .card-header h3::before { display: none; }
+.role-panel[class*="tone-"] > .card-header h3 { color: var(--tone); }
+
+/* ---------- the "ask about this variation" helper ---------- */
+
+.assistant-suggestion-btn {
+    --chip: var(--accent);
+    --chip-bg: #e4eaff;
+    background: var(--chip-bg);
+    color: var(--chip);
+    border-color: color-mix(in srgb, var(--chip) 35%, transparent);
+    font-weight: 600;
+}
+.assistant-suggestion-btn:nth-child(5n+2) { --chip: #0e7490; --chip-bg: #d5eff5; }
+.assistant-suggestion-btn:nth-child(5n+3) { --chip: #6527d1; --chip-bg: #ebe2fd; }
+.assistant-suggestion-btn:nth-child(5n+4) { --chip: #b45309; --chip-bg: #fdebc8; }
+.assistant-suggestion-btn:nth-child(5n+5) { --chip: #0b6b3b; --chip-bg: #d6f0e0; }
+.assistant-suggestion-btn:hover {
+    background: var(--chip);
+    color: #fff;
+    border-color: var(--chip);
+}
+
+.assistant-ask-row input { border-color: var(--rule-strong); }
+.assistant-ask-row input:focus { border-color: var(--accent); outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+#assistantAskBtn {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+#assistantAskBtn:hover { background: var(--accent-press); color: #fff; }
+
+/* Findings inside a toned card take the card's tint and a coloured
+   leading edge, instead of a flat grey box. */
+.card[class*="tone-"] .finding {
+    background: color-mix(in srgb, var(--tone-bg) 55%, var(--paper));
+    border-color: color-mix(in srgb, var(--tone) 22%, transparent);
+    border-left: 3px solid var(--tone);
+}
+.card[class*="tone-"] .finding::before { color: var(--tone); }
+.assistant-unmatched .finding { border-left-color: var(--verdict-diff); }
+
+.ai-card[class*="tone-"] .ai-logo { background: var(--tone); }
