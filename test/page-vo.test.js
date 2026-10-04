@@ -15,20 +15,23 @@ test("a field the role owns and may edit renders as an editable input", () => {
     assert.ok(!/lock-note/.test(html));
 });
 
-test("a field owned by another role renders locked with a reason", () => {
+test("a field owned by another role renders read-only, without a whose-column note", () => {
     const html = field({ field: "finalPrice", label: "Final price", type: "number",
                          value: "", vo: vo1, role: "contractor" });
     assert.match(html, /class="field locked"/);
     assert.match(html, /disabled/);
-    assert.match(html, /lock-note/);
-    assert.match(html, /Client/);
+    assert.ok(!/lock-note/.test(html), "another role's column needs no note — its panel says whose it is");
 });
 
-test("a contractor field on an approved VO is locked with the right reason", () => {
+test("a contractor field on an approved VO is locked, its reason given once for the panel", () => {
+    const { panelLockNote } = require("../js/page-vo.js");
     const html = field({ field: "description", label: "Description", type: "text",
                          value: "x", vo: vo1, role: "contractor" });
     assert.match(html, /class="field locked"/);
-    assert.match(html, /already assessed/i);
+    assert.ok(!/lock-note/.test(html), "no per-field note");
+    assert.match(panelLockNote(vo1, "contractor", "contractor"), /already assessed/i);
+    assert.strictEqual(panelLockNote(vo1, "contractor", "client"), "", "another role's panel gets no note");
+    assert.strictEqual(panelLockNote(vo3, "contractor", "contractor"), "", "an editable panel gets no note");
 });
 
 test("select fields render their options and mark the current one", () => {
@@ -128,18 +131,17 @@ test("a contractor on a Draft VO gets a file picker and remove controls", () => 
     assert.ok(!/lock-note/.test(html));
 });
 
-test("a consultant on the same VO gets the list read-only, with a lock note and no picker", () => {
+test("a consultant on the same VO gets the list read-only, with no note and no picker", () => {
     const html = renderDocList(vo3, "revisedDrawing", "Revised drawing", "consultant");
     assert.match(html, /class="field doc-field locked"/);
-    assert.match(html, /lock-note/);
+    assert.ok(!/lock-note/.test(html));
     assert.ok(!/<input type="file"/.test(html));
 });
 
-test("a contractor on an Approved VO gets it read-only with a lock note", () => {
+test("a contractor on an Approved VO gets it read-only (the panel carries the reason)", () => {
     const html = renderDocList(vo1, "revisedDrawing", "Revised drawing", "contractor");
     assert.match(html, /class="field doc-field locked"/);
-    assert.match(html, /lock-note/);
-    assert.match(html, /already assessed/i);
+    assert.ok(!/lock-note/.test(html));
     assert.ok(!/<input type="file"/.test(html));
 });
 

@@ -285,6 +285,7 @@ var I18N_EN = {
     "vo.field.finalPriceHint": "Leave blank to certify at the consultant's assessed value.",
     "vo.field.clientRemark": "Client's remark",
     "vo.field.measurement": "Measurement",
+    "vo.field.assessedMeasurement": "Assessed quantities and rates",
     "vo.field.infoRequestedAt": "Request for further information",
     "vo.field.clientInfoRequestedAt": "Client's request for further information",
 
@@ -317,6 +318,7 @@ var I18N_EN = {
     "vo.infoRequest.requested": "Requested {date}.",
     "vo.infoRequest.placeholder": "What information is requested? (optional note)",
     "vo.infoRequest.button": "Record request for further information",
+    "vo.infoRequest.none": "No request made.",
     "vo.infoRequest.hint": "Sets today's date and starts the contractor's {days}-day response clock.",
 
     "vo.clientInfoRequest.requested": "Requested {date}.",
@@ -517,8 +519,7 @@ var I18N_EN = {
     "assistant.value.notCertified": "Not yet certified — no certified value.",
 
     "assistant.edit.canEdit": "You may currently edit: {list}.",
-    "assistant.edit.canEditNone": "You cannot currently edit any field on this variation.",
-    "assistant.edit.lockedLine": "{field} — {reason}",
+    "assistant.edit.canEditNone": "You cannot edit this variation at the moment.",
 
     "assistant.valuationMethod.none": "The description is too vague to classify, so no valuation clause could be identified. Add detail about what is changing.",
     "assistant.valuationMethod.line": "{form} {ref} — {title}: {entitlement}",
@@ -1014,6 +1015,7 @@ var I18N_ZH = {
     "vo.field.finalPriceHint": "留空则按咨询工料测量师的评估金额核证。",
     "vo.field.clientRemark": "业主备注",
     "vo.field.measurement": "计量",
+    "vo.field.assessedMeasurement": "评估数量与单价",
     "vo.field.infoRequestedAt": "补充资料请求",
     "vo.field.clientInfoRequestedAt": "业主的补充资料请求",
 
@@ -1046,6 +1048,7 @@ var I18N_ZH = {
     "vo.infoRequest.requested": "已于 {date} 提出请求。",
     "vo.infoRequest.placeholder": "请求的具体资料是什么？（可选备注）",
     "vo.infoRequest.button": "记录补充资料请求",
+    "vo.infoRequest.none": "尚未提出请求。",
     "vo.infoRequest.hint": "设定为今天日期，并启动承包商 {days} 天的回复时限。",
 
     "vo.clientInfoRequest.requested": "已于 {date} 提出请求。",
@@ -1242,8 +1245,7 @@ var I18N_ZH = {
     "assistant.value.notCertified": "尚未核证——无核证金额。",
 
     "assistant.edit.canEdit": "您目前可以编辑：{list}。",
-    "assistant.edit.canEditNone": "您目前无法编辑此工程变更令的任何栏位。",
-    "assistant.edit.lockedLine": "{field} — {reason}",
+    "assistant.edit.canEditNone": "您目前无法编辑此工程变更令。",
 
     "assistant.valuationMethod.none": "说明过于模糊，无法分类，因此无法识别计价条款。请补充变更内容的详情。",
     "assistant.valuationMethod.line": "{form} {ref} — {title}：{entitlement}",

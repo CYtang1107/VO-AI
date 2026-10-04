@@ -2,7 +2,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
-    var { canEdit, lockReason } = require("./permissions.js");
+    var { canEdit, lockReason, fieldLabel, FIELD_OWNER } = require("./permissions.js");
     var { checkRate, analyse } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill, fileLink } = require("./ui.js");
@@ -23,10 +23,21 @@ function optionDisplayText(value) {
     return value;
 }
 
-/* One labelled control. Editable => .owned (yellow). Locked => .locked + reason. */
+/* Why the signed-in role's own panel is locked at this stage (e.g.
+   "waiting for the consultant's approval"), said once at the top of
+   that panel rather than under every field. Another role's panel gets
+   no note: its heading already says whose columns they are. */
+function panelLockNote(vo, role, panelRole) {
+    if (role !== panelRole) return "";
+    const own = Object.keys(FIELD_OWNER).filter(f => FIELD_OWNER[f] === role);
+    if (own.length === 0 || own.some(f => canEdit(f, vo, role))) return "";
+    return '<div class="panel-lock-note">🔒 ' + escapeHtml(lockReason(own[0], vo, role)) + "</div>";
+}
+
+/* One labelled control. Editable => .owned (yellow). Locked => .locked
+   (the reason, if it is the role's own panel, is panelLockNote()'s). */
 function field(spec) {
     const editable = canEdit(spec.field, spec.vo, spec.role);
-    const reason = editable ? "" : lockReason(spec.field, spec.vo, spec.role);
     const dis = editable ? "" : " disabled";
     const val = escapeHtml(spec.value === null || spec.value === undefined ? "" : spec.value);
 
@@ -55,7 +66,6 @@ function field(spec) {
         "<label>" + escapeHtml(spec.label) + "</label>" +
         control +
         (spec.hint ? '<span class="hint">' + escapeHtml(spec.hint) + "</span>" : "") +
-        (reason ? '<span class="lock-note">🔒 ' + escapeHtml(reason) + "</span>" : "") +
     "</div>";
 }
 
@@ -76,7 +86,6 @@ function renderDocRevisions(d) {
 
 function renderDocList(vo, fieldName, label, role, intro) {
     const editable = canEdit(fieldName, vo, role);
-    const reason = editable ? "" : lockReason(fieldName, vo, role);
     const docs = vo[fieldName] || [];
 
     const list = docs.length === 0
@@ -116,7 +125,6 @@ function renderDocList(vo, fieldName, label, role, intro) {
         (intro ? '<span class="hint doc-intro">' + escapeHtml(intro) + "</span>" : "") +
         list +
         picker +
-        (reason ? '<span class="lock-note">🔒 ' + escapeHtml(reason) + "</span>" : "") +
     "</div>";
 }
 
@@ -343,7 +351,7 @@ function renderInfoRequestControl(vo, role) {
     const editable = canEdit("infoRequestedAt", vo, role);
     if (!editable) {
         return '<div class="field locked"><label>' + escapeHtml(fieldLabel) + '</label>' +
-            '<span class="lock-note">🔒 ' + escapeHtml(lockReason("infoRequestedAt", vo, role)) + "</span></div>";
+            '<span class="hint">' + escapeHtml(t("vo.infoRequest.none")) + "</span></div>";
     }
 
     return '<div class="field owned"><label>' + escapeHtml(fieldLabel) + '</label>' +
@@ -378,7 +386,7 @@ function renderClientInfoRequestControl(vo, role, todayIso) {
     const editable = canEdit("clientInfoRequestedAt", vo, role);
     if (!editable) {
         return '<div class="field locked"><label>' + escapeHtml(fieldLabel) + '</label>' +
-            '<span class="lock-note">🔒 ' + escapeHtml(lockReason("clientInfoRequestedAt", vo, role)) + "</span></div>";
+            '<span class="hint">' + escapeHtml(t("vo.infoRequest.none")) + "</span></div>";
     }
 
     return '<div class="field owned"><label>' + escapeHtml(fieldLabel) + '</label>' +
@@ -395,28 +403,9 @@ function renderClientInfoRequestControl(vo, role, todayIso) {
    generates back to a translation key, with the dynamic parts (file
    names, field names) extracted and passed through as params: file
    names are user data and are never translated; field names are
-   translated via FIELD_LABEL_KEY. Anything that does not match a known
+   translated via fieldLabel() (js/permissions.js). Anything that does not match a known
    pattern (a legacy or hand-edited entry) falls back to the original
    English text — never blank, never a raw key. */
-var FIELD_LABEL_KEY = {
-    description: "vo.field.description", dateIssued: "vo.field.dateIssued",
-    typeOfInstruction: "vo.field.typeOfInstruction", instructionNo: "vo.field.instructionNo",
-    contractorRemark: "vo.field.contractorRemark",
-    revisedDrawing: "documents.field.revisedDrawing", oldDrawing: "documents.field.oldDrawing",
-    supportingDocs: "documents.field.supportingDocs", contractDocs: "documents.field.contractDocs",
-    dueDate: "vo.field.dueDate", assessmentNote: "vo.field.assessmentNote",
-    timeImpact: "vo.field.timeImpact", evaluateStatus: "vo.field.evaluateStatus",
-    consultantRemark: "vo.field.consultantRemark", certifiedStatus: "vo.field.certifiedStatus",
-    finalPrice: "vo.field.finalPrice", clientRemark: "vo.field.clientRemark",
-    measurement: "vo.field.measurement", infoRequestedAt: "vo.field.infoRequestedAt",
-    clientInfoRequestedAt: "vo.field.clientInfoRequestedAt"
-};
-
-function fieldLabel(name) {
-    const key = FIELD_LABEL_KEY[name];
-    return key ? t(key) : name;
-}
-
 function translateHistoryAction(action) {
     const a = String(action === null || action === undefined ? "" : action);
     let m;
@@ -466,7 +455,7 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         field, renderDocList, renderDocRevisions, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory,
-        renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl
+        renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote
     };
 }
 
@@ -519,6 +508,7 @@ if (typeof document !== "undefined") {
                     escapeHtml(t("vo.field.certifiedStatus")) + "</span>" + statusPill(v.certifiedStatus) + "</span>";
 
             document.getElementById("contractorPanel").innerHTML =
+                panelLockNote(v, role, "contractor") +
                 field({ field: "description", label: t("vo.field.description"),
                         type: "textarea", value: v.description, vo: v, role: role }) +
                 field({ field: "dateIssued", label: t("vo.field.dateIssued"), type: "date",
@@ -538,6 +528,7 @@ if (typeof document !== "undefined") {
                               t("vo.docList.contractIntro"));
 
             document.getElementById("consultantPanel").innerHTML =
+                panelLockNote(v, role, "consultant") +
                 field({ field: "dueDate", label: t("vo.field.dueDate"), type: "date",
                         value: v.dueDate, vo: v, role: role }) +
                 field({ field: "assessmentNote", label: t("vo.field.assessmentNote"),
@@ -555,6 +546,7 @@ if (typeof document !== "undefined") {
                 renderDeadlinesPanel(v, today());
 
             document.getElementById("clientPanel").innerHTML =
+                panelLockNote(v, role, "client") +
                 field({ field: "certifiedStatus", label: t("vo.field.certifiedStatus"), type: "select",
                         options: ["Pending", "Approved", "Rejected"],
                         value: v.certifiedStatus, vo: v, role: role }) +

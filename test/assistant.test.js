@@ -83,9 +83,25 @@ test("the edit question differs by role", () => {
     assert.notStrictEqual(contractorAnswer.lines.join("\n"), clientAnswer.lines.join("\n"));
 });
 
-test("a role that may edit a field is told so, plainly", () => {
+test("a role that may edit a field is told so, plainly, by the field's display name", () => {
     const r = answer("edit", { vo: vo1, project: project, role: "client" });
-    assert.match(r.lines[0], /finalPrice/);
+    assert.match(r.lines[0], /Final certified price/);
+    assert.ok(!/finalPrice/.test(r.lines[0]), "no internal field names");
+});
+
+test("the edit answer lists only the asking role's own fields", () => {
+    const r = answer("edit", { vo: vo3, project: project, role: "contractor" });
+    const text = r.lines.join("\n");
+    assert.strictEqual(r.lines.length, 1);
+    assert.match(text, /Description of the change/);
+    assert.ok(!/Consultant|Client|Read-only/.test(text), "other roles' columns are not listed");
+});
+
+test("a role whose fields are locked is told the one reason why", () => {
+    const r = answer("edit", { vo: vo1, project: project, role: "contractor" });
+    assert.match(r.lines[0], /cannot edit/);
+    assert.match(r.lines[1], /already assessed/);
+    assert.strictEqual(r.lines.length, 2);
 });
 
 /* ---------- Intent 7: how variations are valued ---------- */

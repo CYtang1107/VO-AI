@@ -22,7 +22,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, contractorTotal, assessedTotal } = require("./calc.js");
     var { rateSummary, analyse } = require("./analysis.js");
     var { clausesFor } = require("./clauses.js");
-    var { FIELD_OWNER, canEdit, lockReason } = require("./permissions.js");
+    var { FIELD_OWNER, canEdit, lockReason, fieldLabel } = require("./permissions.js");
     var { t, joinList } = require("./i18n.js");
 }
 
@@ -187,27 +187,26 @@ function answerValue(context) {
 
 /* -----------------------------------------------------------
    Intent 6 — "What can I edit here?"
-   Makes the permission model self-explaining: what the signed-in role
-   may edit right now, and for everything else, lockReason()'s answer.
+   Answers for the signed-in role only: the fields it may edit right
+   now, by their display names. Other roles' columns are not listed —
+   each role only ever works in its own. When the role's own fields are
+   locked at this stage, the one reason why (e.g. waiting for the
+   consultant's approval) is given instead.
 ----------------------------------------------------------- */
+
+/* A request's optional note is edited together with the request itself,
+   so it is not listed as a field of its own. */
+var EDIT_ANSWER_SKIP = { infoRequestNote: true, clientInfoRequestNote: true };
 
 function answerEdit(context) {
     const vo = context.vo;
     const role = context.role;
-    const editable = [];
-    const locked = [];
+    const own = Object.keys(FIELD_OWNER).filter(f => FIELD_OWNER[f] === role && !EDIT_ANSWER_SKIP[f]);
+    const editable = own.filter(f => canEdit(f, vo, role));
 
-    Object.keys(FIELD_OWNER).forEach(f => {
-        if (canEdit(f, vo, role)) editable.push(f);
-        else locked.push({ field: f, reason: lockReason(f, vo, role) });
-    });
-
-    const lines = [
-        editable.length > 0
-            ? t("assistant.edit.canEdit", { list: editable.join(", ") })
-            : t("assistant.edit.canEditNone")
-    ];
-    locked.forEach(l => lines.push(t("assistant.edit.lockedLine", { field: l.field, reason: l.reason })));
+    const lines = editable.length > 0
+        ? [t("assistant.edit.canEdit", { list: joinList(editable.map(fieldLabel)) })]
+        : [t("assistant.edit.canEditNone")].concat(own.length ? [lockReason(own[0], vo, role)] : []);
 
     return { title: t("assistant.edit.label"), lines: lines };
 }
