@@ -312,7 +312,11 @@ function mountChrome(active, title, crumb, opts) {
     if (header) header.innerHTML = renderTopbar(title, crumb, ctx.session);
 
     const btn = document.getElementById("signOutBtn");
-    if (btn) btn.addEventListener("click", () => {
+    if (btn) btn.addEventListener("click", async () => {
+        if (typeof Cloud !== "undefined" && Cloud.active()) {
+            await Cloud.flush();
+            await Cloud.signOut();
+        }
         clearSession();
         window.location.href = "index.html";
     });

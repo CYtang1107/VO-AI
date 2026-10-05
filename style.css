@@ -3070,3 +3070,79 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .row-verdict-norate { color: #8a4b00; }
 /* A flag beside wrapping text keeps its own size, never stretches. */
 .finding > .rate-flag { align-self: flex-start; flex-shrink: 0; }
+
+/* =========================
+   TEAM ACCOUNTS (js/cloud.js)
+========================= */
+
+.login-mode {
+    display: flex;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 0 0 16px;
+}
+.login-mode-btn {
+    flex: 1;
+    padding: 9px 10px;
+    border: 0;
+    background: var(--paper);
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.login-mode-btn + .login-mode-btn { border-left: 1px solid var(--rule); }
+.login-mode-btn.active { background: var(--ink); color: var(--paper); }
+#teamLogin select { width: 100%; }
+
+.cloud-banner {
+    position: fixed;
+    left: 50%;
+    top: 12px;
+    transform: translateX(-50%);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100vw - 32px);
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+}
+.cloud-banner.warn  { background: #92400e; }
+.cloud-banner.error { background: var(--verdict-diff); }
+.cloud-banner button {
+    border: 1px solid rgba(255, 255, 255, .6);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.cloud-banner .cloud-banner-close { border: 0; padding: 0 2px; font-size: 16px; line-height: 1; }
+
+.project-members {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+}
+.project-members h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+.member-list { list-style: none; }
+.member-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+}
+.member-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-role { color: var(--ink-3); font-size: 11px; }
+.member-add { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.member-add .member-email { flex: 1 1 160px; min-width: 0; }

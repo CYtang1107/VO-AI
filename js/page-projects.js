@@ -58,10 +58,41 @@ function renderPasscodeManageBlock(project) {
     "</div>";
 }
 
+/* A team project's members (js/cloud.js), with the consultant's form to
+   add someone by the email of their VO-AI account. */
+function renderMembersBlock(project, session) {
+    const members = project.members || [];
+    const canManage = project.cloudRole === "consultant";
+    const rows = members.map(m =>
+        '<li class="member-row"><span class="member-name">' + escapeHtml(m.name || m.email) + "</span>" +
+            '<span class="member-role">' + escapeHtml(t("role." + m.role + ".label", {})) + "</span>" +
+            (canManage && m.userId !== session.userId
+                ? '<button type="button" class="link-button member-remove" data-user="' + escapeHtml(m.userId) + '">' +
+                    escapeHtml(t("cloud.members.remove")) + "</button>"
+                : "") +
+        "</li>").join("");
+    return '<div class="project-members">' +
+        "<h4>" + escapeHtml(t("cloud.members.title")) + "</h4>" +
+        '<ul class="member-list">' + rows + "</ul>" +
+        (canManage
+            ? '<div class="member-add">' +
+                '<input type="email" class="member-email" placeholder="' + escapeHtml(t("cloud.members.emailPlaceholder")) + '">' +
+                '<select class="member-role-select">' +
+                    ["contractor", "consultant", "client"].map(r =>
+                        '<option value="' + r + '">' + escapeHtml(t("role." + r + ".label", {})) + "</option>").join("") +
+                "</select>" +
+                '<button type="button" class="secondary-button member-add-btn">' + escapeHtml(t("cloud.members.add")) + "</button>" +
+              "</div>"
+            : "") +
+    "</div>";
+}
+
 function renderProjectCard(project, session) {
     const s = projectStats(project);
-    const locked = !!project.passcode;
-    const isConsultant = session.role === "consultant";
+    const team = !!session.cloud;
+    const locked = !team && !!project.passcode;
+    const isConsultant = !team && session.role === "consultant";
+    const role = (team && project.cloudRole) || session.role;
     return '' +
         '<div class="card project-card" data-project="' + escapeHtml(project.id) + '">' +
           '<div class="card-body">' +
@@ -78,11 +109,12 @@ function renderProjectCard(project, session) {
             "</div>" +
             '<div class="project-passcode-gate-slot"></div>' +
             '<button class="primary-button open-project" style="width:100%;margin-top:16px">' +
-                escapeHtml(t("projects.openAs", { role: t("role." + session.role + ".label", {}) })) +
+                escapeHtml(t("projects.openAs", { role: t("role." + role + ".label", {}) })) +
             "</button>" +
             '<button type="button" class="secondary-button export-project" ' +
                 'style="width:100%;margin-top:8px">' + escapeHtml(t("projects.exportBtn")) + '</button>' +
             (isConsultant ? renderPasscodeManageBlock(project) : "") +
+            (team ? renderMembersBlock(project, session) : "") +
           "</div>" +
         "</div>";
 }
@@ -155,7 +187,7 @@ function importProject(parsed, db) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { parseBqPaste, renderProjectCard, exportProject, validateImport, importProject };
+    module.exports = { parseBqPaste, renderProjectCard, renderMembersBlock, exportProject, validateImport, importProject };
 }
 
 /* ---------- browser wiring ---------- */
@@ -283,7 +315,10 @@ if (typeof document !== "undefined") {
 /* Navigates into the project — the only place opening happens, so this
    is the one gate a passcode gets checked at. */
         function openProject(projectId) {
-            setSession(Object.assign({}, getSession(), { projectId: projectId }));
+            /* A team member opens a project as their role there. */
+            const opened = loadDB().projects.find(p => p.id === projectId);
+            const role = (getSession().cloud && opened && opened.cloudRole) || getSession().role;
+            setSession(Object.assign({}, getSession(), { projectId: projectId, role: role }));
             window.location.href = "dashboard.html";
         }
 
@@ -425,7 +460,7 @@ if (typeof document !== "undefined") {
                 if (!project) return;
 
                 card.querySelector(".open-project").addEventListener("click", () => {
-                    if (project.passcode && !isProjectUnlocked(project.id)) {
+                    if (!session.cloud && project.passcode && !isProjectUnlocked(project.id)) {
                         showPasscodeGate(card, project);
                         return;
                     }
@@ -435,6 +470,30 @@ if (typeof document !== "undefined") {
                 card.querySelector(".export-project").addEventListener("click", () => {
                     downloadProjectJson(exportProject(project));
                     toast(t("toast.projectExported"));
+                });
+
+                const addBtn = card.querySelector(".member-add-btn");
+                if (addBtn) {
+                    addBtn.addEventListener("click", async () => {
+                        const email = card.querySelector(".member-email").value.trim();
+                        const role = card.querySelector(".member-role-select").value;
+                        if (!email) { toast(t("cloud.members.enterEmail"), "warn"); return; }
+                        addBtn.disabled = true;
+                        try {
+                            const result = await Cloud.addMember(project.id, email, role);
+                            if (result === "no-account") toast(t("cloud.members.noAccount", { email: email }), "warn");
+                            else { toast(t("cloud.members.added", { email: email })); refresh(); }
+                        } catch (e) {
+                            toast(e.message || String(e), "error");
+                        }
+                        addBtn.disabled = false;
+                    });
+                }
+                card.querySelectorAll(".member-remove").forEach(btn => {
+                    btn.addEventListener("click", async () => {
+                        try { await Cloud.removeMember(project.id, btn.dataset.user); refresh(); }
+                        catch (e) { toast(e.message || String(e), "error"); }
+                    });
                 });
 
                 const manageToggle = card.querySelector(".project-passcode-manage-toggle");
@@ -597,6 +656,8 @@ if (typeof document !== "undefined") {
             });
         }
 
+        /* The team's shared register has no demo data to restore. */
+        if (session.cloud) document.getElementById("resetBtn").hidden = true;
         document.getElementById("resetBtn").addEventListener("click", () => {
             resetDB();
             toast(t("toast.demoDataRestored"));

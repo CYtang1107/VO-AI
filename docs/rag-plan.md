@@ -1,6 +1,14 @@
 # Plan A: VO-AI with a knowledge base, shared data and cited answers
 
-**Status:** planned, not started. Written at the end of the session that built the
+**Status (5 Oct 2026, presentation 13 Oct):** in progress on branch `claude/eager-ramanujan-6i2lox`.
+Done, tested locally, **not yet applied to Supabase**: `supabase/migrations/0001_init.sql` (31 RLS checks pass,
+`supabase/tests/run.sh`), `js/cloud.js` + store/filestore/sign-in/members wiring (`test/cloud.test.js`),
+`tools/ingest-contract.js` (Node, not Python, so it reuses `js/contractread.js`; finds 197 of 218 contents-page clauses
+in the team's OCR text, all of clause 11). Verified: `text-embedding-v4` = 1024 dims; `qwen-plus` free quota is used up,
+`qwen3.7-plus` works. Next: apply the migration (needs a valid `sbp_…` `SUPABASE_ACCESS_TOKEN`), import PAM 2018,
+then step 3 (`ask-contract` + 「问合同」).
+
+Original status: planned, not started. Written at the end of the session that built the
 contract reader, so the next session can start straight away.
 **For the next session:** read this file first, then check the
 [Before you start](#before-you-start) list. Ask the team for the presentation date. It

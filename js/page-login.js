@@ -173,6 +173,76 @@
 
     document.getElementById("signInBtn").addEventListener("click", () => { attemptSignIn(); });
 
+    /* ---------- team account (js/cloud.js) ----------
+       Only when js/config.js names a Supabase project. The offline demo
+       above stays one click away and works without any network. */
+    if (typeof Cloud !== "undefined" && Cloud.enabled()) {
+        const modeBar = document.getElementById("loginMode");
+        const teamPanel = document.getElementById("teamLogin");
+        const demoPanel = document.getElementById("demoLogin");
+        const MODE_KEY = "voai.loginMode.v1";
+        let signingUp = false;
+
+        function showMode(mode) {
+            teamPanel.hidden = mode !== "team";
+            demoPanel.hidden = mode === "team";
+            modeBar.querySelectorAll(".login-mode-btn").forEach(b =>
+                b.classList.toggle("active", b.dataset.mode === mode));
+            try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* ignore */ }
+        }
+        modeBar.hidden = false;
+        modeBar.addEventListener("click", e => {
+            const btn = e.target.closest(".login-mode-btn");
+            if (btn) showMode(btn.dataset.mode);
+        });
+        let saved = null;
+        try { saved = localStorage.getItem(MODE_KEY); } catch (e) { /* ignore */ }
+        showMode(saved === "demo" ? "demo" : "team");
+
+        document.getElementById("teamRole").innerHTML = Object.values(ROLES).map(r =>
+            '<option value="' + r.id + '">' + escapeHtml(t("role." + r.id + ".label", {})) + "</option>").join("");
+
+        const signInBtn = document.getElementById("teamSignInBtn");
+        const toggle = document.getElementById("teamSignUpToggle");
+        toggle.addEventListener("click", () => {
+            signingUp = !signingUp;
+            document.getElementById("teamSignUpFields").hidden = !signingUp;
+            signInBtn.textContent = t(signingUp ? "cloud.login.signUp" : "cloud.login.signIn");
+            toggle.textContent = t(signingUp ? "cloud.login.haveAccount" : "cloud.login.newAccount");
+            document.getElementById("teamPassword").setAttribute("autocomplete", signingUp ? "new-password" : "current-password");
+        });
+
+        async function teamSignIn() {
+            const email = document.getElementById("teamEmail").value.trim();
+            const password = document.getElementById("teamPassword").value;
+            if (!email || !password) { toast(t("cloud.login.needEmailPassword"), "warn"); return; }
+            const role = document.getElementById("teamRole").value;
+            signInBtn.disabled = true;
+            const label = signInBtn.textContent;
+            signInBtn.textContent = t("cloud.login.working");
+            try {
+                if (signingUp) {
+                    const name = document.getElementById("teamName").value.trim();
+                    if (!name) { toast(t("cloud.login.needName"), "warn"); return; }
+                    const result = await Cloud.signUp(email, password, name, role);
+                    if (result === "confirm-email") { toast(t("cloud.login.confirmEmail"), "ok"); return; }
+                } else {
+                    await Cloud.signIn(email, password, role);
+                }
+                window.location.href = "projects.html";
+            } catch (e) {
+                toast(t("cloud.login.failed", { reason: e.message || String(e) }), "error");
+            } finally {
+                signInBtn.disabled = false;
+                signInBtn.textContent = label;
+            }
+        }
+        signInBtn.addEventListener("click", teamSignIn);
+        document.getElementById("teamPassword").addEventListener("keydown", e => {
+            if (e.key === "Enter") teamSignIn();
+        });
+    }
+
     /* Enter submits. */
     nameInput.addEventListener("keydown", e => {
         if (e.key === "Enter") document.getElementById("signInBtn").click();
