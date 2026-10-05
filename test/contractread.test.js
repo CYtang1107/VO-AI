@@ -161,18 +161,3 @@ test("the deadline clocks follow the project's contract, and keep the default wh
     /* without a project, exactly as before */
     assert.strictEqual(deadlinesFor(vo, "2026-07-20")[0].dueDate, "2026-08-14");
 });
-
-test("the printed report gets the contract in brief: one line per clause and one line of periods", async () => {
-    const db = seedDB();
-    const p = db.projects[0];
-    const r = await contractFileText("c.pdf", demo("conditions-of-contract-demo.pdf"));
-    p.contractReadings = { D3: makeReading({ id: "D3", name: "Conditions.pdf" }, r.text, "2026-10-05") };
-    const c = contractAnalysis(p.vos[1], p);
-    const full = renderContractBlock(c);
-    const brief = renderContractBlock(c, { compact: true });
-    assert.ok(brief.length < full.length / 2, "less than half the length of the full block");
-    assert.strictEqual((brief.match(/<li>/g) || []).length, 3);               /* 11.1, 11.3, 23.1 */
-    assert.ok(brief.includes("Clause 11.5 30 days"));
-    assert.ok(!brief.includes("<blockquote>"));
-    assert.ok(brief.includes("“In these Conditions a Variation means"));
-});

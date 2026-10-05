@@ -599,7 +599,6 @@ function renderContractBlock(c, opts) {
     if (c.state === "noText") {
         return '<p class="rate-detail contract-missing">' + escapeHtml(t("contract.noClauses")) + "</p>";
     }
-    if (opts && opts.compact) return renderContractCompact(c);
     const seen = {};
     const topics = c.topics.filter(tp => tp.clause).map(tp => {
         const key = tp.clause.docName + "|" + tp.clause.no;
@@ -637,43 +636,6 @@ function renderContractBlock(c, opts) {
     return '<div class="contract-block">' +
         '<div class="contract-source">' + escapeHtml(t("contract.basedOn", { docs: c.docNames.join("、") })) + "</div>" +
         body + "</div>";
-}
-
-/* The printed report's version: each relevant clause on one line with
-   its first sentence, and the periods as one line of clause and days —
-   the full wording stays on the VO page. */
-function firstSentence(text, max) {
-    const ends = sentenceEnds(text || "");
-    const cut = ends.length ? text.slice(0, ends[0] + 1) : (text || "");
-    const limit = max || 200;
-    return cut.length > limit ? cut.slice(0, limit - 1) + "…" : cut;
-}
-
-function renderContractCompact(c) {
-    const seen = {};
-    const items = c.topics.filter(tp => tp.clause).map(tp => {
-        const key = tp.clause.docName + "|" + tp.clause.no;
-        if (seen[key]) return "";
-        seen[key] = true;
-        const labels = c.topics.filter(o => o.clause && o.clause.docName + "|" + o.clause.no === key)
-            .map(o => t("contract.topic." + o.id)).join(" · ");
-        return "<li><strong>" + escapeHtml(t("contract.clauseRef", { no: tp.clause.no })) +
-            (tp.clause.title ? " " + escapeHtml(tp.clause.title) : "") + "</strong>" +
-            ' <span class="contract-compact-topic">' + escapeHtml(labels) + "</span>" +
-            '<br><span class="contract-compact-quote">“' + escapeHtml(firstSentence(tp.clause.text, 200)) + "”</span></li>";
-    }).join("");
-    const periods = [];
-    c.periods.forEach(p => {
-        const label = t("contract.clauseRef", { no: p.clause }) + " " + t("contract.days", { n: p.days });
-        if (periods.indexOf(label) === -1) periods.push(label);
-    });
-    return '<div class="contract-compact">' +
-        '<p class="contract-source">' + escapeHtml(t("contract.basedOn", { docs: c.docNames.join("、") })) + "</p>" +
-        (items ? '<ul class="contract-compact-list">' + items + "</ul>"
-               : '<p class="rate-detail">' + escapeHtml(t("contract.noTopics")) + "</p>") +
-        (periods.length ? '<p class="contract-compact-periods"><strong>' + escapeHtml(t("contract.periods") + t("common.colon")) + "</strong>" +
-            escapeHtml(periods.join(" · ")) + "</p>" : "") +
-        '<p class="rate-detail clause-note">' + escapeHtml(t("contract.note")) + "</p></div>";
 }
 
 /* ---------------- browser: read what has not been read ---------------- */
