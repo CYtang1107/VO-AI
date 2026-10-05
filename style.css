@@ -3012,3 +3012,18 @@ td.nowrap, .nowrap { white-space: nowrap; }
 @media print {
     .main > section.welcome { display: none !important; }
 }
+
+/* ---------- documents: outlines strong enough to see ----------
+   Each file row, each group card and the filter card get a clearly
+   visible edge, and a file row a slightly tinted ground, so the list
+   reads as separate items rather than faint lines on white. */
+.doc-group, .main > .card:has(.doc-summary-bar) {
+    border: 1.5px solid #8f9ab0;
+}
+.doc-registry-item, .doc-field .file-item {
+    border: 1.5px solid #9aa4b8;
+    background: #fbfcfe;
+}
+.doc-registry-item:hover { border-color: var(--accent); }
+
+.doc-summary-bar { border-bottom-color: #9aa4b8; }
