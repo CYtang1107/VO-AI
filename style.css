@@ -3013,17 +3013,47 @@ td.nowrap, .nowrap { white-space: nowrap; }
     .main > section.welcome { display: none !important; }
 }
 
-/* ---------- documents: outlines strong enough to see ----------
-   Each file row, each group card and the filter card get a clearly
-   visible edge, and a file row a slightly tinted ground, so the list
-   reads as separate items rather than faint lines on white. */
+/* ---------- documents: outlines you can see, kept light ----------
+   Each file row, each group card and the filter card get a soft but
+   visible edge (between the faint default rule and a hard line), and a
+   file row a barely tinted ground, so the list reads as separate items. */
 .doc-group, .main > .card:has(.doc-summary-bar) {
-    border: 1.5px solid #8f9ab0;
+    border: 1px solid #bcc4d2;
 }
 .doc-registry-item, .doc-field .file-item {
-    border: 1.5px solid #9aa4b8;
+    border: 1px solid #c3cad7;
     background: #fbfcfe;
 }
 .doc-registry-item:hover { border-color: var(--accent); }
+.doc-summary-bar { border-bottom-color: #d3d9e3; }
 
-.doc-summary-bar { border-bottom-color: #9aa4b8; }
+/* Register filters on a phone: the search box's flex-basis (260px)
+   became a 260px HEIGHT once the bar stacked vertically, leaving a big
+   blank gap under it. Lay the bar out as a grid instead: search full
+   width, the two status filters side by side. */
+@media (max-width: 700px) {
+    .register-filter-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+    }
+    .register-filter-search { grid-column: 1 / -1; flex: none; }
+    .register-filter-bar .link-button, .register-result-count { grid-column: 1 / -1; }
+}
+
+/* ---------- the report arranges itself across pages ----------
+   A section is never split between two pages and a heading never sits
+   alone at a page foot; the measurement (which may be longer than a
+   page) breaks only between rows. The closing block (time, status,
+   notes, signatures, disclaimer) stays together. The totals' labels
+   may wrap, so each value sits at the foot of its cell and the four
+   amounts line up. */
+.report-totals > div { display: flex; flex-direction: column; justify-content: space-between; }
+@media print {
+    .report-sec, .report-close, .report-pair > div { break-inside: avoid; page-break-inside: avoid; }
+    .report-sec-long { break-inside: auto; page-break-inside: auto; }
+    .report-sheet h3 { break-after: avoid; page-break-after: avoid; }
+    .report-sheet thead { display: table-header-group; }
+    .report-sheet tr, .report-totals, .report-doc-list li, .report-list li { break-inside: avoid; page-break-inside: avoid; }
+    .report-sec-long h3 + .table-scroll { break-before: avoid; }
+}
