@@ -2930,3 +2930,18 @@ details.fold[open] .fold-less { display: inline; }
 @media (min-width: 1000px) {
     #deadlinesPanel .deadline-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 }
+
+/* ---------- phone fixes: names that wrap as words, figures that don't ---------- */
+/* A file name takes a sensible minimum width and breaks between words
+   (or inside a very long word only when it must), so on a phone the
+   date moves under it instead of squeezing it to one letter a line. */
+.doc-registry-item .file-name,
+.doc-field .file-item .file-name {
+    flex: 1 1 180px;
+    min-width: 0;
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+td.nowrap, .nowrap { white-space: nowrap; }
+.deadline-source { margin-top: 4px; font-size: 11.5px; color: var(--ink-3); }
+.deadline-source.from-contract { color: var(--accent-press); font-weight: 600; }

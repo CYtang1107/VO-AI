@@ -6,7 +6,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { checkRate, analyse } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill, fileLink, fold } = require("./ui.js");
-    var { deadlinesFor, INFO_RESPONSE_DAYS, daysBetween } = require("./deadlines.js");
+    var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate } = require("./ratehistory.js");
     var { renderContractBlock } = require("./contractread.js");
@@ -419,8 +419,8 @@ function renderAssistantPanel(context) {
    js/deadlines.js's t() calls — only the state flag and owner name are
    translated here. */
 
-function renderDeadlinesPanel(vo, todayIso) {
-    const items = deadlinesFor(vo, todayIso);
+function renderDeadlinesPanel(vo, todayIso, project) {
+    const items = deadlinesFor(vo, todayIso, project);
     return '<div class="deadline-list">' + items.map(d => {
         const daysText = d.daysRemaining === null ? ""
             : d.daysRemaining < 0
@@ -437,6 +437,10 @@ function renderDeadlinesPanel(vo, todayIso) {
                 (daysText ? " · " + escapeHtml(daysText) : "") +
             "</div>" +
             (d.note ? '<div class="deadline-note">' + escapeHtml(d.note) + "</div>" : "") +
+            '<div class="deadline-source' + (d.period && d.period.clause ? " from-contract" : "") + '">' +
+                escapeHtml(d.period && d.period.clause
+                    ? t("deadline.fromContract", { no: d.period.clause, n: d.period.days })
+                    : t("deadline.defaultPeriod", { n: d.period ? d.period.days : "" })) + "</div>" +
         "</div>";
     }).join("") + "</div>";
 }
@@ -444,7 +448,7 @@ function renderDeadlinesPanel(vo, todayIso) {
 /* The consultant-only control that starts the contractor's response
    clock. A dedicated button rather than a raw date field — the date is
    always "today", never backdated or postdated by hand. */
-function renderInfoRequestControl(vo, role) {
+function renderInfoRequestControl(vo, role, project) {
     const fieldLabel = t("vo.field.infoRequestedAt");
     if (vo.infoRequestedAt) {
         return '<div class="field locked"><label>' + escapeHtml(fieldLabel) + '</label>' +
@@ -462,7 +466,7 @@ function renderInfoRequestControl(vo, role) {
         '<input type="text" id="infoRequestNoteInput" placeholder="' + escapeHtml(t("vo.infoRequest.placeholder")) + '">' +
         '<button type="button" class="secondary-button" id="recordInfoRequestBtn">' +
         escapeHtml(t("vo.infoRequest.button")) + '</button>' +
-        '<span class="hint">' + escapeHtml(t("vo.infoRequest.hint", { days: INFO_RESPONSE_DAYS })) + "</span></div>";
+        '<span class="hint">' + escapeHtml(t("vo.infoRequest.hint", { days: clockPeriods(vo, project).response.days })) + "</span></div>";
 }
 
 /* The client-owned mirror of renderInfoRequestControl above: the client
@@ -646,10 +650,10 @@ if (typeof document !== "undefined") {
                         value: v.evaluateStatus, vo: v, role: role }) +
                 field({ field: "consultantRemark", label: t("vo.field.consultantRemark"),
                         type: "textarea", value: v.consultantRemark, vo: v, role: role }) +
-                renderInfoRequestControl(v, role);
+                renderInfoRequestControl(v, role, fresh);
 
             document.getElementById("deadlinesPanel").innerHTML =
-                renderDeadlinesPanel(v, today());
+                renderDeadlinesPanel(v, today(), fresh);
 
             document.getElementById("clientPanel").innerHTML =
                 panelLockNote(v, role, "client") +

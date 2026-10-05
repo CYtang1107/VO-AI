@@ -121,3 +121,43 @@ test("a contract that yields no clauses is said so, and the standard form is use
     assert.strictEqual(contractAnalysis(p.vos[1], p).state, "noText");
     assert.ok(analyse(p.vos[1], p).clause, "the bundled clause is still there");
 });
+
+test("each stated period is matched to the clock it sets, read from its sentence", async () => {
+    const { contractClocks } = require("../js/contractread.js");
+    const r = await contractFileText("c.pdf", demo("conditions-of-contract-demo.pdf"));
+    assert.deepStrictEqual(contractClocks(splitClauses(r.text)), {
+        response: { days: 28, clause: "11.4" },
+        evaluation: { days: 30, clause: "11.5" }
+    });
+    const other = splitClauses(
+        "12.1 Valuation\nThe Superintending Officer shall evaluate the variation within 45 days of receiving the claim.\n" +
+        "12.2 Information\nThe S.O. may request further particulars within 14 days of receiving the claim.\n" +
+        "12.3 Reply\nThe Contractor shall provide the further particulars within 21 days of the request.\n" +
+        "12.4 Notice\nThe Contractor shall give notice of any delay within 7 days.");
+    assert.deepStrictEqual(contractClocks(other), {
+        evaluation: { days: 45, clause: "12.1" },
+        infoRequest: { days: 14, clause: "12.2" },
+        response: { days: 21, clause: "12.3" }
+    });
+});
+
+test("the deadline clocks follow the project's contract, and keep the default where it says nothing", () => {
+    const { deadlinesFor, clockPeriods } = require("../js/deadlines.js");
+    const db = seedDB();
+    const p = db.projects[0];
+    const vo = Object.assign({}, p.vos[1], { evaluateStatus: "Pending", infoRequestedAt: "2026-07-20" });
+    const before = deadlinesFor(vo, "2026-07-20", p);
+    assert.strictEqual(before[0].dueDate, "2026-08-14");          /* 30 days from 15 Jul */
+    assert.deepStrictEqual(before[0].period, { days: 30 });
+
+    p.contractReadings = { D3: { docId: "D3", docName: "Conditions.pdf", clauses: [{ no: "x", title: "", text: "y" }],
+        clocks: { evaluation: { days: 45, clause: "12.1" }, response: { days: 21, clause: "12.3" } } } };
+    const after = deadlinesFor(vo, "2026-07-20", p);
+    assert.strictEqual(after[0].dueDate, "2026-08-29");           /* 45 days, per the contract */
+    assert.deepStrictEqual(after[0].period, { days: 45, clause: "12.1", doc: "Conditions.pdf" });
+    assert.deepStrictEqual(after[1].period, { days: 28 });        /* contract silent: default */
+    assert.strictEqual(after[2].dueDate, "2026-08-10");           /* 21 days from the 20 Jul request */
+    assert.strictEqual(clockPeriods(vo, p).response.days, 21);
+    /* without a project, exactly as before */
+    assert.strictEqual(deadlinesFor(vo, "2026-07-20")[0].dueDate, "2026-08-14");
+});

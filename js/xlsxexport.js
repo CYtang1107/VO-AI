@@ -230,9 +230,9 @@ function xlsxInstructionType(value) {
 /* Same rule as the register's VO DUE DATE column (js/page-register.js
    dueDateCell): the consultant's manual date, else the computed
    evaluation deadline and its state. */
-function xlsxDueDate(vo, todayIso) {
+function xlsxDueDate(vo, todayIso, project) {
     if (vo.dueDate) return { date: vo.dueDate, basis: t("register.manual") };
-    var clock = deadlinesFor(vo, todayIso)[0];
+    var clock = deadlinesFor(vo, todayIso, project)[0];
     if (!clock || !clock.dueDate) return { date: null, basis: "" };
     return { date: clock.dueDate, basis: t("deadline.state." + clock.state, {}) };
 }
@@ -266,7 +266,7 @@ function registerSheet(project, todayIso) {
     ];
     vos.forEach(function (vo, i) {
         var r = H + 1 + i;
-        var due = xlsxDueDate(vo, todayIso);
+        var due = xlsxDueDate(vo, todayIso, project);
         var counts = { same: 0, different: 0, star: 0 };
         (vo.measurement || []).forEach(function (row) { counts[checkRate(row, bq).state]++; });
         var rateText = ["same", "different", "star"].filter(function (k) { return counts[k]; })

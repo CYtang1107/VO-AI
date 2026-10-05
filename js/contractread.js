@@ -442,6 +442,16 @@ function clauseScore(clause, topic) {
 
 /* Every "within 28 days" (and "not later than 14 days" etc.) the
    contract states, with the clause it is in. */
+/* Where sentences end: a full stop and a space after two letters or
+   digits — so "S.O. may" and "Clause 11.4, and" do not end one. */
+function sentenceEnds(text) {
+    const ends = [];
+    const re = /[a-z0-9)]{2}\.(?=\s|$)/gi;
+    let m;
+    while ((m = re.exec(text))) ends.push(m.index + m[0].length - 1);
+    return ends;
+}
+
 function contractPeriods(clauses) {
     const out = [];
     const re = /\b(within|not later than|no later than|not less than|before the expiry of|after)\s+(\d{1,3}|seven|fourteen|twenty[- ]one|twenty[- ]eight|thirty|sixty|ninety)\s*(?:\(\d+\)\s*)?(calendar |working )?days?\b/gi;
@@ -454,15 +464,47 @@ function contractPeriods(clauses) {
             const raw = m[2].toLowerCase();
             const days = /^\d+$/.test(raw) ? Number(raw) : words[raw];
             /* a sentence ends at ". " — not at the point in "11.4" */
-            const before = text.lastIndexOf(". ", m.index);
-            const from = before === -1 ? 0 : before + 2;
-            const after = text.indexOf(". ", m.index + m[0].length);
-            const sentence = text.slice(from, after === -1 ? text.length : after + 1).trim();
+            const ends = sentenceEnds(text);
+            const before = ends.filter(e => e < m.index).pop();
+            const after = ends.find(e => e >= m.index + m[0].length);
+            const from = before === undefined ? 0 : before + 1;
+            const sentence = text.slice(from, after === undefined ? text.length : after + 1).trim();
             const shown = sentence.length > 260 ? sentence.slice(0, 257) + "…" : sentence;
             /* one entry per sentence, however many periods it states */
             const same = out.find(o => o.clause === c.no && o.sentence === shown);
             if (same) { if (same.days !== days) same.days = same.days + " / " + days; continue; }
             out.push({ clause: c.no, days: days, sentence: shown });
+        }
+    });
+    return out;
+}
+
+/* Which stated period sets which of VO-AI's three clocks
+   (js/deadlines.js), read from the sentence it is in:
+   - evaluation:  the consultant side completes the valuation within N days;
+   - infoRequest: the consultant side may request further information within N days;
+   - response:    the contractor provides that information within N days of the request.
+   A clock the contract says nothing clear about is left out, and
+   js/deadlines.js keeps its default for it. */
+var CONSULTANT_SIDE = "(quantity surveyor|architect|superintending officer|s\\.o\\.|engineer|consultant|contract administrator)";
+
+function contractClocks(clauses) {
+    const out = {};
+    const firstNumber = d => parseInt(String(d), 10);
+    contractPeriods(clauses).forEach(p => {
+        const s = p.sentence.toLowerCase();
+        const days = firstNumber(p.days);
+        if (!(days > 0)) return;
+        const consultantShall = new RegExp(CONSULTANT_SIDE + "[^.]{0,40}\\b(shall|must|may)\\b").test(s);
+        const furtherInfo = /(further|additional|more)\s+(information|particulars|documents|details)/.test(s);
+        const asksInfo = furtherInfo && /\b(request|require|ask)/.test(s);
+        const contractorAnswers = /contractor\s+shall\s+(provide|submit|supply|furnish|respond)/.test(s) || /provide\s+within/.test(s);
+        if (asksInfo && contractorAnswers && /of (the|such|that|receiving the|receipt of the) request/.test(s)) {
+            if (!out.response) out.response = { days: days, clause: p.clause };
+        } else if (asksInfo && consultantShall && !contractorAnswers) {
+            if (!out.infoRequest) out.infoRequest = { days: days, clause: p.clause };
+        } else if (consultantShall && /(valu|evaluat|assess)/.test(s) && /(complete|carry out|make|ascertain|value|evaluate|assess)/.test(s) && !/contractor\s+shall/.test(s)) {
+            if (!out.evaluation) out.evaluation = { days: days, clause: p.clause };
         }
     });
     return out;
@@ -499,6 +541,7 @@ function makeReading(doc, text, todayIso) {
     return {
         docId: doc.id, docName: doc.name, readAt: todayIso,
         chars: text.length,
+        clocks: contractClocks(clauses),
         clauses: clauses.map(c => ({ no: c.no, title: c.title, text: c.text.slice(0, 4000) }))
     };
 }
@@ -604,8 +647,12 @@ async function ensureContractReadings(projectId, vo) {
     const project = getProject(projectId);
     if (!project) return false;
     const readings = project.contractReadings || {};
+    const stale = Object.keys(readings).filter(id => (readings[id].clauses || []).length && !readings[id].clocks);
+    if (stale.length) {
+        updateProject(projectId, p => stale.forEach(id => { p.contractReadings[id].clocks = contractClocks(p.contractReadings[id].clauses); }));
+    }
     const todo = contractSourceDocs(project, vo).filter(d => !readings[d.id]);
-    if (todo.length === 0) return false;
+    if (todo.length === 0) return stale.length > 0;
     const results = {};
     for (const doc of todo) {
         let buf = null;
@@ -647,6 +694,6 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         contractSourceDocs, contractAnalysis, renderContractBlock,
         contractFileText, pdfToText, docxToText, parseToUnicode, contentText,
-        splitClauses, contractPeriods, contractProvisions, clauseExcerpt, makeReading, CONTRACT_TOPICS
+        splitClauses, contractPeriods, contractClocks, contractProvisions, clauseExcerpt, makeReading, CONTRACT_TOPICS
     };
 }

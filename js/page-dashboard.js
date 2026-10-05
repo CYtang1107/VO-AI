@@ -95,10 +95,10 @@ function renderRecentRows(vos) {
 
     return sorted.slice(0, 6).map(v =>
         '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
-            "<td><strong class=\"item-code\">" + escapeHtml(v.no) + "</strong></td>" +
+            '<td class="nowrap"><strong class="item-code">' + escapeHtml(v.no) + "</strong></td>" +
             "<td>" + escapeHtml(v.description || "—") + "</td>" +
-            "<td>" + prettyDate(v.dateIssued) + "</td>" +
-            "<td>" + rm(voValue(v)) + "</td>" +
+            '<td class="nowrap">' + prettyDate(v.dateIssued) + "</td>" +
+            '<td class="nowrap">' + rm(voValue(v)) + "</td>" +
             "<td>" + statusPill(v.evaluateStatus) + "</td>" +
         "</tr>"
     ).join("");
@@ -169,6 +169,11 @@ if (typeof document !== "undefined") {
                 const vo = createVO(project.id, session);
                 window.location.href = "vo.html?id=" + encodeURIComponent(vo.id);
             });
+        }
+        /* The contract sets the clocks shown here (js/deadlines.js);
+           read it the first time, then show the page again with it. */
+        if (typeof ensureContractReadings === "function") {
+            ensureContractReadings(project.id, null).then(changed => { if (changed) location.reload(); });
         }
     })();
 }

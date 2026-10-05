@@ -21,11 +21,11 @@ function instructionTypeLabel(value) {
 /* The VO DUE DATE column: if the consultant has entered a due date by
    hand, show that (marked manual). Otherwise fall back to the computed
    evaluation deadline from js/deadlines.js, with its state. */
-function dueDateCell(vo, todayIso) {
+function dueDateCell(vo, todayIso, project) {
     if (vo.dueDate) {
         return prettyDate(vo.dueDate) + ' <span class="rate-flag manual-due">' + escapeHtml(t("register.manual")) + '</span>';
     }
-    const evalClock = deadlinesFor(vo, todayIso)[0]; /* "evaluation" is always item 0 */
+    const evalClock = deadlinesFor(vo, todayIso, project)[0]; /* "evaluation" is always item 0 */
     if (!evalClock.dueDate) return "—";
     return prettyDate(evalClock.dueDate) +
         ' <span class="rate-flag deadline-' + evalClock.state + '">' +
@@ -52,7 +52,7 @@ const COLUMNS = [
     { field: "dateIssued",        label: "DATE ISSUED",      labelKey: "register.col.dateIssued",
       render: v => prettyDate(v.dateIssued) },
     { field: "dueDate",           label: "VO DUE DATE",      labelKey: "register.col.dueDate",
-      render: v => dueDateCell(v, today()) },
+      render: (v, p) => dueDateCell(v, today(), p) },
     { field: "typeOfInstruction", label: "TYPE",             labelKey: "register.col.type",
       render: v => escapeHtml(instructionTypeLabel(v.typeOfInstruction) || "—") },
     { field: "measurement",       label: "CONTRACTOR'S MEASUREMENT", labelKey: "register.col.contractorMeasurement",
@@ -237,5 +237,10 @@ if (typeof document !== "undefined") {
         }
 
         render();
+        /* The contract sets the clocks shown here (js/deadlines.js);
+           read it the first time, then show the page again with it. */
+        if (typeof ensureContractReadings === "function") {
+            ensureContractReadings(project.id, null).then(changed => { if (changed) location.reload(); });
+        }
     })();
 }
