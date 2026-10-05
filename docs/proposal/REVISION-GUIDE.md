@@ -85,7 +85,7 @@ That was true when written. It is now a serious undersell — the system is depl
 publicly usable.
 
 **Replace with** `docs/proposal/2.5-overall-completion-quality.md`, which leads with the
-measurable state (333 automated tests, 24 modules, 10 screens, zero dependencies, live URL),
+measurable state (344 automated tests, 25 modules, 10 screens, zero dependencies, live URL),
 lists what is complete, and then states the limitations honestly — no document-content
 parsing, no PDF extraction, no drawing comparison, no authentication, local-only data.
 

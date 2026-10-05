@@ -216,3 +216,16 @@ test("a VO saved before the contract basis section existed renders it empty, not
     assert.match(html, /doc-field locked/);
     assert.match(html, /empty-state/);
 });
+
+test("a star row shows past project rates; only an editable assessment gets the add-to-BQ control", () => {
+    const { renderPastRates } = require("../js/page-vo.js");
+    const { pastRateSources, suggestPastRate } = require("../js/ratehistory.js");
+    const db = seedDB();
+    const row = db.projects[0].vos[1].measurement[1];
+    const s = suggestPastRate(row, pastRateSources(db, db.projects[0].id));
+    const withAdd = renderPastRates(1, s, true);
+    assert.ok(withAdd.includes("add-bq-item-btn"));
+    assert.ok(withAdd.includes('value="1080"'));
+    assert.ok(!renderPastRates(1, s, false).includes("add-bq-item-btn"));
+    assert.ok(renderPastRates(1, null, true).includes("past-rates none"));
+});

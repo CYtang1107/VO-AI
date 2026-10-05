@@ -8,6 +8,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { escapeHtml, statusPill, fileLink } = require("./ui.js");
     var { deadlinesFor, INFO_RESPONSE_DAYS, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
+    var { suggestPastRate } = require("./ratehistory.js");
     var { t } = require("./i18n.js");
 }
 
@@ -139,7 +140,53 @@ function bqOptions(project, selectedId) {
     return opts.join("");
 }
 
-function renderMeasurementRows(vo, project, role) {
+/* A star-rated row (no item in this project's BQ): what past projects
+   paid for the same thing, the rate they suggest, and every source.
+   The consultant, when the assessment is theirs to edit, can add it to
+   this project's BQ as a new item at the suggested rate or their own. */
+function renderPastRates(i, suggestion, canAdd) {
+    if (!suggestion) {
+        return '<div class="past-rates none">' + escapeHtml(t("vo.past.none")) + "</div>";
+    }
+    const unit = suggestion.matches[0].unit;
+    const list = suggestion.matches.map(m =>
+        "<li>" + (m.code ? '<span class="item-code">' + escapeHtml(m.code) + "</span> " : "") +
+            '<span class="past-src">' + escapeHtml(t("vo.past.source", { project: m.project, year: m.year || "—" })) +
+            ' <span class="past-basis">' + escapeHtml(t("vo.past.basis." + m.basis)) +
+            (m.sample ? " · " + escapeHtml(t("vo.past.sample")) : "") + "</span></span>" +
+            '<span class="past-desc">' + escapeHtml(m.description) + "</span>" +
+            "<strong>" + rm(m.rate) + "/" + escapeHtml(m.unit) + "</strong></li>"
+    ).join("");
+    return '<div class="past-rates">' +
+        '<div class="past-rates-head"><span class="rate-flag past">' + escapeHtml(t("vo.past.title")) + "</span> " +
+            escapeHtml(t("vo.past.suggest", {
+                rate: rm(suggestion.rate), unit: unit, n: suggestion.count,
+                low: rm(suggestion.low), high: rm(suggestion.high)
+            })) + "</div>" +
+        '<ul class="past-rates-list">' + list + "</ul>" +
+        '<p class="past-rates-note">' + escapeHtml(t("vo.past.note")) + "</p>" +
+        (canAdd
+            ? '<div class="past-rates-add"><label>' + escapeHtml(t("vo.past.rateLabel")) +
+                ' <input type="number" class="past-rate-input owned" data-row="' + i + '" min="0" step="any" value="' +
+                suggestion.rate + '"></label>' +
+                '<button type="button" class="primary-button add-bq-item-btn" data-row="' + i + '">' +
+                escapeHtml(t("vo.past.addBtn")) + "</button></div>"
+            : "") +
+        "</div>";
+}
+
+/* A line under a row linked to a BQ item that a VO added (see
+   newBqItemFromRow in js/ratehistory.js): where the item came from. */
+function renderBqOrigin(item) {
+    if (!item || !item.origin) return "";
+    const o = item.origin;
+    const n = (o.basedOn || []).length;
+    return '<div class="rate-detail bq-origin">' + escapeHtml(n
+        ? t("vo.past.origin", { code: item.code, vo: o.voNo, date: prettyDate(o.at), n: n, rate: rm(o.suggestedRate) })
+        : t("vo.past.originNoPast", { code: item.code, vo: o.voNo, date: prettyDate(o.at) })) + "</div>";
+}
+
+function renderMeasurementRows(vo, project, role, pastSources) {
     const rows = vo.measurement || [];
     if (rows.length === 0) {
         return '<tr><td colspan="8" class="empty-state">' +
@@ -200,7 +247,12 @@ function renderMeasurementRows(vo, project, role) {
            last column and stretching every cell of the row. */
         '<tr class="rate-detail-row" data-row="' + i + '">' +
             '<td colspan="8"><div class="rate-detail rate-detail-' + check.state + '">' +
-                escapeHtml(check.detail) + "</div>" + autoBlock + "</td>" +
+                escapeHtml(check.detail) + "</div>" + autoBlock +
+                renderBqOrigin(row.bqItemId ? (project.bq || []).find(b => b.id === row.bqItemId) : null) +
+                (check.state === "star" && pastSources
+                    ? renderPastRates(i, suggestPastRate(row, pastSources), assEdit)
+                    : "") +
+            "</td>" +
         "</tr>";
     }).join("");
 }
@@ -453,7 +505,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, renderPastRates, renderElementsBlock, renderAssessmentPanel,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote
     };
@@ -558,7 +610,7 @@ if (typeof document !== "undefined") {
                 renderClientInfoRequestControl(v, role, today());
 
             document.getElementById("measurementBody").innerHTML =
-                renderMeasurementRows(v, fresh, role);
+                renderMeasurementRows(v, fresh, role, pastRateSources(loadDB(), project.id));
             document.getElementById("assessmentPanel").innerHTML =
                 renderAssessmentPanel(v, fresh, role);
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
@@ -692,6 +744,38 @@ if (typeof document !== "undefined") {
                 logHistory(v, session, "Accepted suggested BQ match for row " + (i + 1));
             });
             toast(t("toast.suggestedMatchAccepted"));
+            draw();
+        });
+
+        /* Add a star-rated row to this project's BQ as a new item, at
+           the rate in the box (the past-projects suggestion unless the
+           consultant changed it), and link the row to it. */
+        document.getElementById("measurementBody").addEventListener("click", e => {
+            const btn = e.target.closest(".add-bq-item-btn");
+            if (!btn) return;
+            const i = Number(btn.dataset.row);
+            const input = document.querySelector('.past-rate-input[data-row="' + i + '"]');
+            const rate = Number(input && input.value);
+            if (!(rate > 0)) { toast(t("vo.past.badRate"), "error"); return; }
+            const sources = pastRateSources(loadDB(), project.id);
+            let code = "";
+            updateProject(project.id, p => {
+                const v = p.vos.find(x => x.id === voId);
+                const row = v && v.measurement[i];
+                if (!row || row.bqItemId) return;
+                const suggestion = suggestPastRate(row, sources);
+                const item = newBqItemFromRow(row, v, p, rate, suggestion, today());
+                p.bq = p.bq || [];
+                p.bq.push(item);
+                row.bqItemId = item.id;
+                if (row.assessedQty === "" || row.assessedQty === null) row.assessedQty = row.qty;
+                if (row.assessedRate === "" || row.assessedRate === null) row.assessedRate = rate;
+                code = item.code;
+                logHistory(v, session, "Added row " + (i + 1) + " to the contract BQ as new item " + item.code +
+                    " at RM " + rate + "/" + item.unit +
+                    (suggestion ? ", based on " + suggestion.count + " past project rate(s)" : ""));
+            });
+            if (code) toast(t("vo.past.added", { code: code }));
             draw();
         });
 

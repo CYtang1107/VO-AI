@@ -57,6 +57,16 @@ similarity and unit agreement, and explains how it matched. Where it cannot matc
 it returns nothing rather than guessing — a wrong automatic match would compare a claim
 against an unrelated contract rate while looking like it worked.
 
+**Star rates from past projects.** When an item has no comparable item in this project's BQ,
+VO-AI looks at what past projects paid for the same thing: a library of completed projects
+(demo sample data in this prototype) and every other project in the register, both their BQ
+rates and the star rates agreed on their VOs. A past item counts only if the unit, the size
+(600x600 is not 450x450) and the material (marble is not ceramic) all agree. It suggests the
+median, shows the range and lists every source, and says plainly that past rates are not
+adjusted for price changes. The consultant can then **add the item to this project's BQ** in one
+click, at the suggested rate or their own, coded after its VO (`VO-002/1`), and the row is
+checked against it from then on. Where past projects have nothing comparable either, it says so.
+
 ### Variation classification and contract clause analysis
 
 Classifies a change as a specification change, addition, omission, quantity variation or design
