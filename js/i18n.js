@@ -897,7 +897,7 @@ var I18N_EN = {
 };
 
 var I18N_ZH = {
-    "app.tagline": "变更管理智能平台",
+    "app.tagline": "变更令管理智能平台",
 
     "nav.dashboard": "仪表板",
     "nav.analysis": "AI 分析",
