@@ -103,6 +103,16 @@ C-104, the marble supplier quotation, engineer's instruction EI-008, a site phot
 particulars and the priced BQ — are sample files in `demo-files/`, served with the app, so they
 open on any computer. Each is marked as a demo sample.
 
+### Record on site
+
+The contractor can raise a variation from the site itself. On a phone, a bottom tab bar holds the
+main pages, and its centre is a large **camera button**: take photos, key in what changed (with
+location, instruction type and number, and one optional measurement line), and it is saved
+straight away as a **draft VO** with the photos attached as supporting documents — named by date
+and time, scaled down to keep the register light. The rest (matching the contract BQ, the
+remaining rows) is finished later on the VO page. On a computer, the dashboard's
+**Record on site** button opens the same page.
+
 ### Reports
 
 Draft variation order reports in the section order a submission requires — instruction,
@@ -125,7 +135,7 @@ Role-based permissions — each role sees only its own panel, and a locked panel
 dashboard showing what each role owes · VO register with search and status filters ·
 **export the register to Excel** (every VO and every measured item, with live totals) · project
 export and import as a single file · optional device and project passcodes · **English / 中文
-interface** · works on a phone.
+interface** · works on a phone, with a bottom tab bar.
 
 ---
 

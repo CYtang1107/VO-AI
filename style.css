@@ -2709,3 +2709,129 @@ a.file-open:hover { text-decoration: underline; }
     font-size: 13px;
     font-weight: 600;
 }
+
+/* ---------- phone tab bar + site record (capture.html) ----------
+   Below 700px the main pages sit in a bottom tab bar, like a site app;
+   the contractor's centre button is a raised camera that opens the
+   site record. Desktop keeps the sidebar and never shows the bar. */
+.bottom-tabs { display: none; }
+
+@media (max-width: 700px) {
+    .bottom-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        z-index: 50;
+        background: var(--side-bg);
+        border-top: 1px solid var(--side-surface-2);
+        padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    }
+    .bottom-tabs.has-capture { grid-template-columns: 1fr 1fr 84px 1fr 1fr; }
+
+    .tab-item, .tab-capture {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
+        min-height: 48px;
+        color: var(--side-mute);
+        font-size: 11.5px;
+        text-decoration: none;
+    }
+    .tab-item svg { width: 24px; height: 24px; }
+    .tab-item.active { color: #ffffff; font-weight: 600; }
+    .tab-item.active svg { color: #f5b544; }
+
+    .tab-capture { position: relative; color: #ffffff; font-weight: 600; }
+    .tab-capture-ring {
+        position: absolute;
+        top: -38px;
+        width: 66px; height: 66px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(145deg, #f8b84a, #e38a0b);
+        color: #12182a;
+        border: 5px solid var(--side-bg);
+        box-shadow: 0 0 0 1px var(--side-surface-2), 0 6px 22px rgba(245, 158, 11, .55);
+    }
+    .tab-capture-ring svg { width: 30px; height: 30px; }
+    .tab-capture:active .tab-capture-ring { transform: scale(.94); }
+
+    body.has-bottom-tabs .main { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+    body.has-bottom-tabs .toast-host { bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+
+.capture-form { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+
+.capture-count {
+    font-weight: 700;
+    font-size: 13px;
+    color: #7a3b00;
+    background: #fce9c8;
+    padding: 4px 12px;
+    border-radius: 999px;
+}
+
+.capture-shoot { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.capture-shoot-main {
+    flex: 1 1 260px;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    min-height: 72px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #f8b84a, #e38a0b);
+    color: #12182a;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.capture-shoot-main:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.capture-shoot-icon svg { width: 32px; height: 32px; display: block; }
+.capture-gallery { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+
+.capture-thumbs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+.capture-thumb { position: relative; margin: 0; aspect-ratio: 1; }
+.capture-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--rule);
+    display: block;
+}
+.capture-remove {
+    position: absolute; top: 4px; right: 4px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(18, 24, 42, .82);
+    color: #ffffff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+.capture-empty { margin: 0; color: var(--ink-3); font-size: 14px; }
+
+.capture-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px; }
+@media (max-width: 700px) { .capture-grid { grid-template-columns: 1fr 1fr; } }
+
+.capture-actions { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.capture-actions .primary-button { min-height: 52px; font-size: 16px; }
+.capture-problems {
+    margin: 0;
+    padding: 12px 16px 12px 34px;
+    border-radius: 10px;
+    background: var(--verdict-diff-bg);
+    color: var(--verdict-diff);
+    font-weight: 600;
+    font-size: 14px;
+}
+.capture-problems[hidden], .capture-form[hidden], #captureBlocked[hidden] { display: none; }
+a.secondary-button { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+a.secondary-button[hidden] { display: none; }
+.capture-count:empty { display: none; }

@@ -163,6 +163,8 @@ if (typeof document !== "undefined") {
         if (session.role !== "contractor") {
             newBtn.style.display = "none";
         } else {
+            /* ...and can do it from site: photos first (capture.html). */
+            document.getElementById("captureBtn").hidden = false;
             newBtn.addEventListener("click", () => {
                 const vo = createVO(project.id, session);
                 window.location.href = "vo.html?id=" + encodeURIComponent(vo.id);
