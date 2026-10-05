@@ -22,7 +22,7 @@
         </div>
     </section>
 
-    <section class="dashboard-grid">
+    <section class="dashboard-grid analysis-grid" id="analysisGrid">
         <div class="card tone-blue">
             <div class="card-header">
                 <div>
@@ -33,7 +33,7 @@
             <div class="card-body" id="vaFormBody"></div>
         </div>
 
-        <div class="card tone-purple">
+        <div class="card tone-purple" id="resultCard" hidden>
             <div class="card-header">
                 <div>
                     <h3 data-i18n="analysis.resultTitle">AI Assessment</h3>
@@ -44,7 +44,7 @@
         </div>
     </section>
 
-    <div class="card tone-teal" style="margin-bottom:20px">
+    <div class="card tone-teal" id="askCard" style="margin-bottom:20px" hidden>
         <div class="card-header">
             <div>
                 <h3 data-i18n="vo.askTitle">Ask about this variation</h3>

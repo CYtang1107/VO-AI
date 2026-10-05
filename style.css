@@ -2996,3 +2996,7 @@ td.nowrap, .nowrap { white-space: nowrap; }
     .measure-table tr[data-row]:not(.rate-detail-row) { box-sizing: border-box; width: 100%; }
     #measurementBody td, #measurementBody td:nth-child(n) { text-align: left; white-space: normal; }
 }
+
+/* AI Analysis: the form alone, full width, until there is a result. */
+.card[hidden] { display: none; }
+.analysis-grid:has(#resultCard[hidden]) { grid-template-columns: minmax(0, 860px); }

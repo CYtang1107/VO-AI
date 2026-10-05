@@ -408,6 +408,16 @@ if (typeof document !== "undefined") {
             lastVO = vo;
             drawAssistant();
 
+            /* The result and the helper appear once there is something
+               in them — no empty cards before the first analysis. */
+            const resultCard = document.getElementById("resultCard");
+            const firstTime = resultCard.hidden;
+            resultCard.hidden = false;
+            document.getElementById("askCard").hidden = false;
+            if (firstTime && window.matchMedia("(max-width: 1000px)").matches) {
+                setTimeout(() => resultCard.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+            }
+
             document.getElementById("assessmentResult").innerHTML =
                 renderAssessmentResult(a, basis, costs, session.role === "contractor");
 
