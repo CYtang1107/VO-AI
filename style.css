@@ -3027,3 +3027,34 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .doc-registry-item:hover { border-color: var(--accent); }
 
 .doc-summary-bar { border-bottom-color: #9aa4b8; }
+
+/* Register filters on a phone: the search box's flex-basis (260px)
+   became a 260px HEIGHT once the bar stacked vertically, leaving a big
+   blank gap under it. Lay the bar out as a grid instead: search full
+   width, the two status filters side by side. */
+@media (max-width: 700px) {
+    .register-filter-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+    }
+    .register-filter-search { grid-column: 1 / -1; flex: none; }
+    .register-filter-bar .link-button, .register-result-count { grid-column: 1 / -1; }
+}
+
+/* ---------- the report arranges itself across pages ----------
+   A section is never split between two pages and a heading never sits
+   alone at a page foot; the measurement (which may be longer than a
+   page) breaks only between rows. The closing block (time, status,
+   notes, signatures, disclaimer) stays together. The totals' labels
+   may wrap, so each value sits at the foot of its cell and the four
+   amounts line up. */
+.report-totals > div { display: flex; flex-direction: column; justify-content: space-between; }
+@media print {
+    .report-sec, .report-close, .report-pair > div { break-inside: avoid; page-break-inside: avoid; }
+    .report-sec-long { break-inside: auto; page-break-inside: auto; }
+    .report-sheet h3 { break-after: avoid; page-break-after: avoid; }
+    .report-sheet thead { display: table-header-group; }
+    .report-sheet tr, .report-totals, .report-doc-list li, .report-list li { break-inside: avoid; page-break-inside: avoid; }
+    .report-sec-long h3 + .table-scroll { break-before: avoid; }
+}

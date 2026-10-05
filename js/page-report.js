@@ -209,35 +209,47 @@ function renderReport(vo, project, role) {
         "<span>" + t("report.issued", { date: prettyDate(vo.dateIssued) }) + "</span></div>" +
       "</div>" +
 
+      '<section class="report-sec">' +
       "<h3>" + escapeHtml(t("report.section.instruction")) + "</h3>" +
       "<p>" + escapeHtml(seedText(vo.description) || "—") + "</p>" +
       '<p class="rate-detail">' + t("report.instructionLine", {
             type: escapeHtml(instructionTypeLabel(vo.typeOfInstruction) || "—"),
             ref: escapeHtml(vo.instructionNo || "—"),
             date: prettyDate(vo.dueDate)
-        }) + "</p>" +
+        }) + "</p>" + "</section>" +
 
+      '<section class="report-sec">' +
       "<h3>" + escapeHtml(t("report.section.classification")) + "</h3>" +
       "<p>" + t("report.classificationLine", {
             label: escapeHtml(a.classification.label),
             work: "<strong>" + escapeHtml(a.classification.affectedWork) + "</strong>"
         }) + "</p>" +
-      elementsBlock(a) +
+      elementsBlock(a) + "</section>" +
 
-      '<div class="report-pair">' +
+      '<div class="report-pair report-sec">' +
         "<div><h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) + "</div>" +
         "<div><h3>" + escapeHtml(t("report.section.oldDrawing")) + "</h3>" + docSection(vo.oldDrawing, t("report.docLabel.oldDrawing")) + "</div>" +
       "</div>" +
 
+      /* the measurement may run longer than a page: it may break between
+         rows, never inside one, and its heading stays with the table */
+      '<section class="report-sec report-sec-long">' +
       "<h3>" + escapeHtml(t("report.section.measurement")) + "</h3>" +
-      measurementBody + totalsHtml +
+      measurementBody + totalsHtml + "</section>" +
 
+      '<section class="report-sec">' +
       "<h3>" + escapeHtml(t("report.section.supportingDocs")) + "</h3>" + docSection(vo.supportingDocs, t("report.docLabel.supportingDocs")) +
+      "</section>" +
 
+      '<section class="report-sec">' +
       "<h3>" + escapeHtml(t("report.section.findings")) + "</h3>" +
       (a.findings.length === 0 ? "<p>" + escapeHtml(t("report.nothingFlagged")) + "</p>"
         : '<ul class="report-list report-findings">' + a.findings.map(f => "<li>" + escapeHtml(f) + "</li>").join("") + "</ul>") +
+      "</section>" +
 
+      /* time, status, the notes, signatures and disclaimer close the
+         report together on one page */
+      '<div class="report-close">' +
       '<div class="report-pair">' +
         "<div><h3>" + escapeHtml(t("report.section.timeImpact")) + "</h3>" +
         "<p>" + t("report.timeImpactLine", { n: Number(vo.timeImpact) || 0 }) + "</p></div>" +
@@ -258,6 +270,7 @@ function renderReport(vo, project, role) {
 
       '<div class="disclaimer"><strong>' + escapeHtml(t("report.disclaimer.title")) + '</strong>' +
       "<span>" + escapeHtml(t("report.disclaimer.body")) + "</span></div>" +
+      "</div>" +
 
     "</div>";
 }
