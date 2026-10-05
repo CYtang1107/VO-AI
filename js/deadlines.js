@@ -30,7 +30,11 @@ var INFO_RESPONSE_DAYS = 28; /* contractor: respond to that request, from the re
    -> { evaluation: {days, clause, doc} | {days}, infoRequest, response } */
 function clockPeriods(vo, project) {
     const readings = (project && project.contractReadings) || {};
-    const ids = ((vo && vo.contractDocs) || []).map(d => d.id)
+    /* the VO's own contract basis, when it states clocks, is the
+       contract for this VO; otherwise the project's contract documents */
+    const own = ((vo && vo.contractDocs) || []).map(d => d.id);
+    const ownHasClocks = own.some(id => readings[id] && readings[id].clocks && Object.keys(readings[id].clocks).length);
+    const ids = ownHasClocks ? own : own
         .concat(((project && project.documents) || []).filter(d => d.category === "contract").map(d => d.id));
     const found = {};
     ids.forEach(id => {
