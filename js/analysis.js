@@ -195,6 +195,77 @@ function matchBqItem(row, bq) {
 }
 
 /* -----------------------------------------------------------
+   Which BQ item is a described change about? — for the AI Analysis
+   form, which used to make the user pick the original BQ item by hand.
+   A description names more than the item ("change internal partition
+   from plastered wall to brick wall"), so this measures how much of
+   each BQ item's description the text covers, not the other way
+   round. Word endings are folded (walls/wall, plastered/plaster), and
+   common Chinese site words map to the English the BQ is written in.
+   Returns { item, matched: [words], score } or null — never a guess
+   below the bar.
+----------------------------------------------------------- */
+
+const BQ_ZH_WORDS = [
+    ["地砖", "floor tile"], ["瓷砖", "ceramic tile"], ["大理石", "marble"], ["花岗岩", "granite"],
+    ["踢脚线", "skirting"], ["踢脚", "skirting"], ["地面", "floor"], ["地板", "floor"],
+    ["批荡", "plaster"], ["抹灰", "plaster"], ["油漆", "paint"], ["涂料", "paint"], ["内墙", "internal wall"],
+    ["外墙", "external wall"], ["墙", "wall"], ["客厅", "living area"], ["门", "door"], ["门框", "door frame"],
+    ["五金", "ironmongery"], ["排水管", "drainage pipe"], ["排水", "drainage"], ["水管", "pipe"],
+    ["集水井", "sump"], ["沙井", "manhole"], ["天花", "ceiling"], ["吊顶", "suspended ceiling"],
+    ["石膏板", "plasterboard"], ["木", "timber"], ["混凝土", "concrete"], ["窗", "window"]
+];
+
+function foldWord(w) {
+    if (w.length > 5 && /ing$/.test(w)) return w.slice(0, -3);
+    if (w.length > 4 && /ed$/.test(w)) return w.slice(0, -2);
+    if (w.length > 3 && /s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
+    return w;
+}
+
+function changeWords(text) {
+    let english = String(text || "");
+    BQ_ZH_WORDS.forEach(([zh, en]) => { if (english.indexOf(zh) !== -1) english += " " + en; });
+    return new Set(significantWords(english).map(foldWord));
+}
+
+function suggestBqForChange(text, bq) {
+    const list = bq || [];
+    const code = findCodeMatch(text, list);
+    if (code) return { item: code, matched: [code.code], score: 1 };
+    const words = changeWords(text);
+    if (words.size === 0) return null;
+    const itemWordsOf = item => Array.from(new Set(significantWords(item.description).map(foldWord)))
+        .filter(w => !/^\d/.test(w) && w.length > 2);   /* sizes and "in"/"to" never decide it */
+    /* the BQ's own words that matched, as the BQ spells them */
+    const shown = (item, folded) => significantWords(item.description).filter(w => folded.indexOf(foldWord(w)) !== -1);
+
+    let best = null;
+    list.forEach(item => {
+        const itemWords = itemWordsOf(item);
+        if (itemWords.length === 0) return;
+        const matched = itemWords.filter(w => words.has(w));
+        const score = matched.length / itemWords.length;
+        if (matched.length < 2 || score < 0.3) return;
+        if (!best || score > best.score || (score === best.score && matched.length > best.matched.length)) {
+            best = { item: item, matched: shown(item, matched), score: score };
+        }
+    });
+    if (best) return best;
+
+    /* One word is enough only when no other BQ item uses it ("door"
+       when the bill has one door item) — and it is marked as weaker. */
+    const counts = {};
+    list.forEach(item => itemWordsOf(item).forEach(w => { counts[w] = (counts[w] || 0) + 1; }));
+    const generic = new Set(["finish", "work", "area", "internal", "external", "match", "new", "item"]);
+    const single = list.map(item => ({ item: item, hit: itemWordsOf(item).filter(w => words.has(w) && counts[w] === 1 && w.length >= 4 && !generic.has(w)) }))
+        .filter(x => x.hit.length === 1);
+    return single.length === 1
+        ? { item: single[0].item, matched: shown(single[0].item, single[0].hit), score: 0.2, weak: true }
+        : null;
+}
+
+/* -----------------------------------------------------------
    Rate cross-check — template.xlsx, consultant sheet:
    "show similar rate / different rate, if different state which rate wrong"
 ----------------------------------------------------------- */
@@ -513,7 +584,7 @@ function analyse(vo, project) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        RATE_TOLERANCE, checkRate, rateSummary, matchBqItem,
+        RATE_TOLERANCE, checkRate, rateSummary, matchBqItem, suggestBqForChange,
         classifyVariation, affectedWork, classificationBasis, analyse,
         elementAnalysis
     };

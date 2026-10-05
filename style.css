@@ -3057,3 +3057,8 @@ td.nowrap, .nowrap { white-space: nowrap; }
     .report-sheet tr, .report-totals, .report-doc-list li, .report-list li { break-inside: avoid; page-break-inside: avoid; }
     .report-sec-long h3 + .table-scroll { break-before: avoid; }
 }
+
+/* AI Analysis: the BQ item picked from the description. */
+#vaOriginalItem.auto-matched { border-color: var(--verdict-same); background: #f2faf5; }
+.auto-match-hint { margin-top: 6px; font-size: 12.5px; color: var(--verdict-same); font-weight: 600; }
+.auto-match-hint.weak { color: #9a5b00; }
