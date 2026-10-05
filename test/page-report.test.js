@@ -28,12 +28,6 @@ test("the report itemises every measurement row with its rate verdict", () => {
     assert.strictEqual((html.match(/rate-flag/g) || []).length, 3);
 });
 
-test("the report states the governing contract clause", () => {
-    const html = renderReport(vo1, project);
-    assert.match(html, /PAM 2018/);
-    assert.match(html, /Clause 11\.1/);
-});
-
 test("the report shows claimed, assessed and certified values", () => {
     const html = renderReport(vo1, project);
     assert.match(html, /RM 62,808\.00/);   /* contractor claimed */
@@ -81,14 +75,13 @@ test("sections appear in the required sequence", () => {
     const order = [
         "1. Instruction",
         "2. Classification and affected elements",
-        "3. Contractual basis",
-        "4. Revised drawing",
-        "5. Old drawing",
-        "6. Measurement and valuation",
-        "7. Supporting documents",
-        "8. Findings",
-        "9. Time impact",
-        "10. Status and signatures"
+        "3. Revised drawing",
+        "4. Old drawing",
+        "5. Measurement and valuation",
+        "6. Supporting documents",
+        "7. Findings",
+        "8. Time impact",
+        "9. Status and signatures"
     ];
     const positions = order.map(s => html.indexOf(s));
     positions.forEach((pos, i) => {
@@ -102,11 +95,11 @@ test("sections appear in the required sequence", () => {
 
 test("revised drawing, old drawing and supporting documents each get their own section with the attachment date", () => {
     const html = renderReport(vo1, project);
-    const revisedIdx = html.indexOf("4. Revised drawing");
-    const oldIdx = html.indexOf("5. Old drawing");
-    const measurementIdx = html.indexOf("6. Measurement");
-    const supportingIdx = html.indexOf("7. Supporting documents");
-    const findingsIdx = html.indexOf("8. Findings");
+    const revisedIdx = html.indexOf("3. Revised drawing");
+    const oldIdx = html.indexOf("4. Old drawing");
+    const measurementIdx = html.indexOf("5. Measurement");
+    const supportingIdx = html.indexOf("6. Supporting documents");
+    const findingsIdx = html.indexOf("7. Findings");
 
     const revisedBlock = html.slice(revisedIdx, oldIdx);
     assert.match(revisedBlock, /A-201 Rev C - Floor Finishes\.pdf/);
@@ -177,7 +170,6 @@ test("the client's report is decision-focused: no itemised measurement table, bu
     assert.match(html, /RM 55,856\.00/);   /* certified */
     assert.match(html, /7 day\(s\) claimed extension of time/);
     assert.match(html, /Consultant's recommendation:/);
-    assert.match(html, /PAM 2018/);        /* still contractually a variation, with clause */
 });
 
 test("no version of the report shows a certified value for a VO that is not certified", () => {
@@ -267,22 +259,12 @@ test("seeded VO-001 still reports RM 62,808.00 claimed and RM 55,856.00 certifie
     assert.match(row, /RM 55,856\.00/);
 });
 
-test("the report names the contract basis in one line, without quoting clauses", async () => {
-    const fs = require("node:fs");
-    const path = require("node:path");
-    const { contractFileText, makeReading } = require("../js/contractread.js");
+test("the report has no contractual-basis section; its sections run 1 to 9", () => {
     const db = seedDB();
     const p = db.projects[0];
-    const standard = renderReport(p.vos[0], p, "consultant");
-    assert.ok(standard.includes("PAM 2018 Clause 11.1"));
-    assert.ok(!standard.includes("ranks for valuation"), "no standard-form entitlement text");
-
-    const r = await contractFileText("c.pdf", fs.readFileSync(path.join(__dirname, "..", "demo-files", "conditions-of-contract-demo.pdf")));
-    p.contractReadings = { D3: makeReading({ id: "D3", name: "Conditions of Contract (demo extract).pdf" }, r.text, "2026-10-05") };
     const html = renderReport(p.vos[0], p, "consultant");
-    const basis = html.match(/<p class="report-basis">(.*?)<\/p>/)[1];
-    assert.ok(basis.includes("Conditions of Contract (demo extract).pdf"));
-    assert.ok(basis.includes("Clause 11.1, 11.3, 23.1"));
-    assert.ok(!html.includes("In these Conditions a Variation means"), "no clause wording in the report");
-    assert.ok(!html.includes("Periods this contract states"));
+    assert.ok(!/Contractual basis/i.test(html));
+    assert.ok(!html.includes("ranks for valuation"));
+    const numbers = [...html.matchAll(/<h3>(\d+)\./g)].map(m => Number(m[1]));
+    assert.deepStrictEqual(numbers, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 });

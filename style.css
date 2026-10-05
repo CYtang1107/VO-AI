@@ -3002,48 +3002,13 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .analysis-grid:has(#resultCard[hidden]) { grid-template-columns: minmax(0, 860px); }
 
 
-/* ---------- the VO report on one A4 page ----------
-   On screen: short sections side by side and the notes as plain lists.
-   In print: tighter type and spacing so a VO's report is one sheet. */
+/* ---------- the VO report: short sections side by side, notes as
+   plain lists. Printed at the same readable size as on screen. ---------- */
 .report-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
 .report-list { margin: 4px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
 .report-list li { margin: 3px 0; }
 @media (max-width: 700px) { .report-pair { grid-template-columns: 1fr; } }
 
 @media print {
-    @page { size: A4; margin: 9mm 11mm; }
-    .main > .welcome, .main > section.welcome { display: none !important; }
-    .report-sheet { font-size: 9.5px; line-height: 1.38; }
-    .report-sheet h1 { font-size: 15px; margin-bottom: 2px; }
-    .report-sheet h3 { font-size: 9.5px; margin: 7px 0 3px; padding-bottom: 2px; }
-    .report-sheet p { margin: 1px 0; }
-    .report-sheet .rate-detail { font-size: 8.5px; line-height: 1.35; margin: 1px 0; }
-    .report-head { padding-bottom: 6px; margin-bottom: 2px; }
-    .report-head p { font-size: 9px; }
-    .report-head-id .logo-mark { width: 26px; height: 26px; }
-    .report-ref strong { font-size: 14px; }
-    .report-ref span { font-size: 8.5px; }
-    .report-sheet table { font-size: 8.5px; }
-    .report-sheet th, .report-sheet td { padding: 2px 5px; line-height: 1.3; }
-    .report-sheet .rate-flag { font-size: 7.5px; padding: 1px 6px; }
-    .report-totals { margin-top: 5px; padding: 5px 8px; gap: 8px; }
-    .report-totals small { font-size: 7.5px; margin-bottom: 1px; }
-    .report-totals strong { font-size: 11px; }
-    .report-list { font-size: 8.5px; line-height: 1.35; margin-top: 2px; }
-    .report-list li { margin: 1px 0; }
-    .report-doc-list { margin: 0; padding-left: 16px; }
-    .report-doc-list li { margin: 0; }
-    .report-basis { margin: 1px 0; }
-    .signatures { margin-top: 14px; gap: 20px; }
-    .signatures span { height: 22px; margin-bottom: 2px; }
-    .signatures small { font-size: 8px; }
-    .report-sheet .disclaimer { font-size: 7.5px; padding: 4px 8px; margin-top: 8px; line-height: 1.3; }
-    .report-sheet .empty-state { padding: 0; font-size: 8.5px; text-align: left; }
-}
-@media print {
-    .report-sheet table td, .report-sheet table th { font-size: 8.5px !important; }
-    .report-sheet td:nth-child(n+3):nth-child(-n+7) { white-space: nowrap; }
-    .report-sheet .report-doc-list li, .report-sheet .report-doc-list .file-name,
-    .report-sheet .report-doc-list a { font-size: 8.5px !important; padding: 0 !important; border: none !important; }
-    .report-sheet .report-doc-list li + li { margin-top: 1px; }
+    .main > section.welcome { display: none !important; }
 }
