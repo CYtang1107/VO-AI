@@ -200,6 +200,30 @@ function renderBottomTabs(active, session) {
         '</nav>';
 }
 
+/* A detail that is there when wanted and out of the way otherwise:
+   <details> with a one-line summary always visible. `key` names it so
+   keepFolds() can reopen it after the page redraws. */
+function fold(key, summaryHtml, bodyHtml, extraClass) {
+    return '<details class="fold' + (extraClass ? " " + extraClass : "") + '" data-fold="' + escapeHtml(key) + '">' +
+        '<summary><span class="fold-summary">' + summaryHtml + "</span>" +
+        '<span class="fold-toggle"><span class="fold-more">' + escapeHtml(t("common.expand")) + "</span>" +
+        '<span class="fold-less">' + escapeHtml(t("common.collapse")) + "</span></span></summary>" +
+        '<div class="fold-body">' + bodyHtml + "</div></details>";
+}
+
+/* Runs `render` (which replaces innerHTML) and reopens every fold that
+   was open before, so an edit elsewhere never snaps a detail shut. */
+function keepFolds(render) {
+    const open = typeof document === "undefined" ? [] :
+        Array.from(document.querySelectorAll("details.fold[open]")).map(d => d.dataset.fold);
+    render();
+    if (typeof document === "undefined") return;
+    open.forEach(key => {
+        const el = document.querySelector('details.fold[data-fold="' + key.replace(/["\\]/g, "\\$&") + '"]');
+        if (el) el.open = true;
+    });
+}
+
 /* ---------- browser-only below ---------- */
 
 function requireSession() {
@@ -336,5 +360,5 @@ function mountChrome(active, title, crumb, opts) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs };
+    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds };
 }

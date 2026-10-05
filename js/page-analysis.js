@@ -8,7 +8,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm } = require("./calc.js");
     var { analyse, classificationBasis } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, fold } = require("./ui.js");
     var { t } = require("./i18n.js");
 }
 
@@ -172,7 +172,7 @@ function renderClauseBlock(a) {
     const contract = a.contract
         ? '<div class="result-group">' +
               '<h4 class="result-group-title">' + escapeHtml(t("contract.title")) + "</h4>" +
-              renderContractBlock(a.contract) + "</div>"
+              renderContractBlock(a.contract, { fold: true }) + "</div>"
         : "";
     return contract + renderStandardClauseBlock(a, a.contract && a.contract.state === "read");
 }
@@ -192,11 +192,12 @@ function renderStandardClauseBlock(a, isReference) {
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.governingClause")) + '</span>' +
         '<span class="result-value">' + escapeHtml(a.clause.form + " " + a.clause.ref) +
         "</span></div>" +
-        '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
-        escapeHtml(a.clause.entitlement) + "</p>" +
-        '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
-        escapeHtml(a.clause.evidence) + "</p>" +
-        '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p></div>";
+        fold("std-clause", escapeHtml(t("clause.showWording", { title: a.clause.title })),
+            '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
+            escapeHtml(a.clause.entitlement) + "</p>" +
+            '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
+            escapeHtml(a.clause.evidence) + "</p>" +
+            '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>") + "</div>";
 }
 
 /* Cost impact: the additional cost is what a QS looks for first, so it

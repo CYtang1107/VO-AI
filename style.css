@@ -2888,3 +2888,45 @@ a.secondary-button[hidden] { display: none; }
 .contract-reading { color: var(--accent); font-weight: 600; }
 .contract-missing { background: var(--paper-warm); border-left: 3px solid #d4a72c; padding: 8px 10px; border-radius: 6px; }
 .contract-reread-btn { margin-top: 6px; font-size: 12px; }
+
+/* ---------- folds: a one-line summary, the detail on demand ---------- */
+details.fold { margin: 6px 0 0; }
+details.fold > summary {
+    list-style: none;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 7px;
+    background: var(--paper-sunk);
+    font-size: 13px;
+    color: var(--ink-2);
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary:hover { background: #e2e7f0; }
+details.fold[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.fold-summary { min-width: 0; }
+.fold-toggle { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.fold-less, details.fold[open] .fold-more { display: none; }
+details.fold[open] .fold-less { display: inline; }
+.fold-body { padding: 8px 2px 2px; }
+
+/* the measurement row's verdict line */
+.row-fold { margin: 0; }
+.row-fold > summary { background: transparent; padding: 2px 4px; }
+.row-fold > summary:hover { background: var(--paper-sunk); }
+.row-verdict { font-weight: 600; }
+.row-verdict-same { color: var(--verdict-same); }
+.row-verdict-different { color: var(--verdict-diff); }
+.row-verdict-star { color: var(--verdict-star); }
+
+.contract-fold > summary { background: transparent; padding: 0; font-weight: 700; color: var(--accent-press); }
+.contract-fold > summary:hover { background: transparent; text-decoration: underline; }
+
+@media print {
+    details.fold > summary .fold-toggle { display: none; }
+}
+
+/* The VO's three contractual clocks side by side on a wide screen. */
+@media (min-width: 1000px) {
+    #deadlinesPanel .deadline-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+}

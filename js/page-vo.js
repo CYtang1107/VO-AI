@@ -5,7 +5,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { canEdit, lockReason, fieldLabel, FIELD_OWNER } = require("./permissions.js");
     var { checkRate, analyse } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
-    var { escapeHtml, statusPill, fileLink } = require("./ui.js");
+    var { escapeHtml, statusPill, fileLink, fold } = require("./ui.js");
     var { deadlinesFor, INFO_RESPONSE_DAYS, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate } = require("./ratehistory.js");
@@ -187,6 +187,29 @@ function renderBqOrigin(item) {
         : t("vo.past.originNoPast", { code: item.code, vo: o.voNo, date: prettyDate(o.at) })) + "</div>";
 }
 
+/* The row's verdict in one line — the full explanation, the past
+   project rates and any suggested match open under it. */
+function rowSummary(check, linkedItem, suggestion) {
+    let text;
+    if (check.state === "same") {
+        text = t("vo.row.same", { code: (check.matchedItem || linkedItem || {}).code || "" });
+    } else if (check.state === "different") {
+        text = t("vo.row.different", {
+            code: (check.matchedItem || linkedItem || {}).code || "",
+            word: t(check.diff > 0 ? "rate.overstated" : "rate.understated"),
+            diff: rm(Math.abs(check.diff)),
+            pct: check.pct === null || check.pct === undefined ? "" : t("rate.pctNote", { pct: Math.abs(check.pct).toFixed(1) })
+        });
+    } else {
+        text = suggestion
+            ? t("vo.row.starPast", { rate: rm(suggestion.rate), unit: suggestion.matches[0].unit })
+            : t(suggestion === null ? "vo.row.starNoPast" : "vo.row.star");
+    }
+    if (check.autoMatched) text += t("vo.row.suggested", { code: check.matchedItem.code });
+    if (linkedItem && linkedItem.origin) text += t("vo.row.newItem");
+    return text;
+}
+
 function renderMeasurementRows(vo, project, role, pastSources) {
     const rows = vo.measurement || [];
     if (rows.length === 0) {
@@ -202,6 +225,9 @@ function renderMeasurementRows(vo, project, role, pastSources) {
     return rows.map((row, i) => {
         const check = checkRate(row, project.bq || []);
         const claimed = lineTotal(row.qty, row.rate);
+        const linkedItem = row.bqItemId ? (project.bq || []).find(b => b.id === row.bqItemId) : null;
+        /* undefined: not looked up; null: looked up, nothing comparable */
+        const suggestion = check.state === "star" && pastSources ? suggestPastRate(row, pastSources) : undefined;
 
         /* An auto-match is a SUGGESTION, not a decision — shown visually
            distinct (.rate-flag.auto-match, .rate-suggestion) from a
@@ -247,12 +273,12 @@ function renderMeasurementRows(vo, project, role, pastSources) {
            its own line under the item, instead of wrapping down a narrow
            last column and stretching every cell of the row. */
         '<tr class="rate-detail-row" data-row="' + i + '">' +
-            '<td colspan="8"><div class="rate-detail rate-detail-' + check.state + '">' +
-                escapeHtml(check.detail) + "</div>" + autoBlock +
-                renderBqOrigin(row.bqItemId ? (project.bq || []).find(b => b.id === row.bqItemId) : null) +
-                (check.state === "star" && pastSources
-                    ? renderPastRates(i, suggestPastRate(row, pastSources), assEdit)
-                    : "") +
+            '<td colspan="8">' + fold("row-" + (row.id || i),
+                '<span class="row-verdict row-verdict-' + check.state + '">' + escapeHtml(rowSummary(check, linkedItem, suggestion)) + "</span>",
+                '<div class="rate-detail rate-detail-' + check.state + '">' + escapeHtml(check.detail) + "</div>" + autoBlock +
+                renderBqOrigin(linkedItem) +
+                (suggestion !== undefined ? renderPastRates(i, suggestion, assEdit) : ""),
+                "row-fold") +
             "</td>" +
         "</tr>";
     }).join("");
@@ -282,6 +308,19 @@ function renderElementsBlock(a) {
             "</strong></p>" + relatedHtml);
 }
 
+/* The first three findings in full; any more open on demand. */
+function renderFindings(findings) {
+    if (findings.length === 0) {
+        return '<div class="empty-state">' + escapeHtml(t("vo.result.nothingToFlag")) + "</div>";
+    }
+    const item = f => '<div class="finding"><span>' + escapeHtml(f) + "</span></div>";
+    const shown = findings.slice(0, 3).map(item).join("");
+    const rest = findings.slice(3);
+    return shown + (rest.length
+        ? fold("findings-more", escapeHtml(t("vo.result.moreFindings", { n: rest.length })), rest.map(item).join(""))
+        : "");
+}
+
 function renderAssessmentPanel(vo, project, role) {
     const a = analyse(vo, project);
 
@@ -292,11 +331,12 @@ function renderAssessmentPanel(vo, project, role) {
         ? '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.governingClause")) + '</span>' +
           '<span class="result-value">' + escapeHtml(a.clause.form + " " + a.clause.ref) +
           "</span></div>" +
-          '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
-          escapeHtml(a.clause.entitlement) + "</p>" +
-          '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
-          escapeHtml(a.clause.evidence) + "</p>" +
-          '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>"
+          fold("std-clause", escapeHtml(t("clause.showWording", { title: a.clause.title })),
+              '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
+              escapeHtml(a.clause.entitlement) + "</p>" +
+              '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
+              escapeHtml(a.clause.evidence) + "</p>" +
+              '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>")
         : '<p class="rate-detail">' + escapeHtml(t("vo.result.noClause")) + "</p>";
 
     /* This project's own contract leads when it has been read; the
@@ -305,7 +345,7 @@ function renderAssessmentPanel(vo, project, role) {
     const contractRead = contract && contract.state === "read";
     const contractBlock = contract
         ? '<h4 class="contract-heading">' + escapeHtml(t("contract.title")) + "</h4>" +
-          renderContractBlock(contract) +
+          renderContractBlock(contract, { fold: true }) +
           (contract.state === "read" || contract.state === "noText"
               ? '<button type="button" class="link-button contract-reread-btn">' + escapeHtml(t("contract.reread")) + "</button>"
               : "")
@@ -327,10 +367,7 @@ function renderAssessmentPanel(vo, project, role) {
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.variance")) + '</span>' +
             '<span class="result-value">' + rm(a.variance) + "</span></div>" +
         "<h4 style=\"font-size:12px;margin:18px 0 10px\">" + escapeHtml(t("vo.result.findings")) + "</h4>" +
-        (a.findings.length === 0
-            ? '<div class="empty-state">' + escapeHtml(t("vo.result.nothingToFlag")) + '</div>'
-            : a.findings.map(f => '<div class="finding"><span>' + escapeHtml(f) +
-                                  "</span></div>").join(""));
+        renderFindings(a.findings);
 }
 
 /* -----------------------------------------------------------
@@ -520,7 +557,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, renderPastRates, renderElementsBlock, renderAssessmentPanel,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote
     };
@@ -560,7 +597,9 @@ if (typeof document !== "undefined") {
         if (!vo) { toast(t("vo.noLongerExists"), "error");
                    setTimeout(() => location.href = "register.html", 1200); return; }
 
-        function draw() {
+        function draw() { keepFolds(drawNow); }
+
+        function drawNow() {
             const fresh = getProject(project.id);
             const v = fresh.vos.find(x => x.id === voId);
 

@@ -20,7 +20,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { bqReadZipEntries, bqFindEntry, bqExtractEntryBytes } = require("./bqimport.js");
     var { t } = require("./i18n.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, fold } = require("./ui.js");
 }
 
 /* ---------------- 1. text out of the file ---------------- */
@@ -544,7 +544,9 @@ function contractAnalysis(vo, project) {
     };
 }
 
-function renderContractBlock(c) {
+/* `opts.fold`: on screen, the quotes and periods open under a one-line
+   summary; the printed report passes nothing and shows them in full. */
+function renderContractBlock(c, opts) {
     if (!c || c.state === "none") {
         return '<p class="rate-detail contract-missing">' + escapeHtml(t("contract.none")) + "</p>";
     }
@@ -573,12 +575,24 @@ function renderContractBlock(c) {
                 escapeHtml(t("contract.clauseRef", { no: p.clause })) + " — " + escapeHtml(p.sentence) + "</li>").join("") +
           "</ul></div>"
         : "";
+    const body = (topics || '<p class="rate-detail">' + escapeHtml(t("contract.noTopics")) + "</p>") +
+        periods +
+        '<p class="rate-detail clause-note">' + escapeHtml(t("contract.note")) + "</p>";
+    if (opts && opts.fold && typeof fold === "function") {
+        const refs = [];
+        c.topics.forEach(tp => {
+            if (tp.clause && refs.indexOf(tp.clause.no) === -1) refs.push(tp.clause.no);
+        });
+        const summary = t("contract.summary", {
+            doc: c.docNames.join("、"),
+            clauses: refs.length ? t("contract.clauseRef", { no: refs.join(t("common.listSep")) }) : t("contract.noTopics"),
+            n: c.periods.length
+        });
+        return '<div class="contract-block">' + fold("contract", escapeHtml(summary), body, "contract-fold") + "</div>";
+    }
     return '<div class="contract-block">' +
         '<div class="contract-source">' + escapeHtml(t("contract.basedOn", { docs: c.docNames.join("、") })) + "</div>" +
-        (topics || '<p class="rate-detail">' + escapeHtml(t("contract.noTopics")) + "</p>") +
-        periods +
-        '<p class="rate-detail clause-note">' + escapeHtml(t("contract.note")) + "</p>" +
-        "</div>";
+        body + "</div>";
 }
 
 /* ---------------- browser: read what has not been read ---------------- */
