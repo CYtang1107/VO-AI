@@ -2,7 +2,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, voValue, today } = require("./calc.js");
-    var { statusPill, escapeHtml } = require("./ui.js");
+    var { statusPill, escapeHtml, seedText } = require("./ui.js");
     var { FIELD_OWNER } = require("./permissions.js");
     var { rateSummary } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
@@ -48,7 +48,7 @@ const COLUMNS = [
     { field: "no",                label: "VO NO.",           labelKey: "register.col.no",
       render: v => "<strong>" + escapeHtml(v.no) + "</strong>" },
     { field: "description",       label: "DESCRIPTION",      labelKey: "register.col.description",
-      render: v => escapeHtml(v.description || "—") },
+      render: v => escapeHtml(seedText(v.description) || "—") },
     { field: "dateIssued",        label: "DATE ISSUED",      labelKey: "register.col.dateIssued",
       render: v => prettyDate(v.dateIssued) },
     { field: "dueDate",           label: "VO DUE DATE",      labelKey: "register.col.dueDate",
@@ -92,7 +92,7 @@ function filterVos(vos, filters) {
         if (evaluateStatus !== "all" && v.evaluateStatus !== evaluateStatus) return false;
         if (certifiedStatus !== "all" && v.certifiedStatus !== certifiedStatus) return false;
         if (query) {
-            const haystack = [v.no, v.description, v.instructionNo]
+            const haystack = [v.no, v.description, seedText(v.description), v.instructionNo]
                 .map(s => String(s || "").toLowerCase())
                 .join(" \n ");
             if (!haystack.includes(query)) return false;

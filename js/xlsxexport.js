@@ -21,6 +21,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { checkRate } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
     var { t, getLang } = require("./i18n.js");
+    var { seedText } = require("./ui.js");
 }
 
 /* ---------- ZIP (stored entries only) ---------- */
@@ -274,7 +275,7 @@ function registerSheet(project, todayIso) {
         var claimed = contractorTotal(vo);
         var assessed = assessedTotal(vo);
         rows.push({
-            cells: [vo.no, vo.description || "", { d: vo.dateIssued }, due.date ? { d: due.date } : null, due.basis,
+            cells: [vo.no, seedText(vo.description) || "", { d: vo.dateIssued }, due.date ? { d: due.date } : null, due.basis,
                     xlsxInstructionType(vo.typeOfInstruction), vo.instructionNo || "",
                     claimed, assessed, { f: "I" + r + "-H" + r, v: assessed - claimed },
                     rateText, xlsxBlankable(vo.timeImpact),

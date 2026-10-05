@@ -5,7 +5,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { canEdit, lockReason, fieldLabel, FIELD_OWNER } = require("./permissions.js");
     var { checkRate, analyse } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
-    var { escapeHtml, statusPill, fileLink, fold } = require("./ui.js");
+    var { escapeHtml, statusPill, fileLink, fold, seedText } = require("./ui.js");
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate } = require("./ratehistory.js");
@@ -552,6 +552,19 @@ function translateHistoryAction(action) {
     if ((m = a.match(/^Removed (.+) from (.+)$/))) {
         return t("history.removedDoc", { file: m[1], field: fieldLabel(m[2]) });
     }
+    if ((m = a.match(/^Assessment completed — (.+)$/))) {
+        return t("history.assessed", { status: t("status." + m[1], {}) });
+    }
+    if ((m = a.match(/^Certified — (.+)$/))) {
+        return t("history.certified", { status: t("status." + m[1], {}) });
+    }
+    if ((m = a.match(/^Recorded on site with (\d+) photos?$/))) {
+        return t("history.recordedOnSite", { n: m[1] });
+    }
+    if ((m = a.match(/^Added row (\d+) to the contract BQ as new item (\S+) at RM ([\d.]+)\/(\S+?)(, based on (\d+) past project rate\(s\))?$/))) {
+        return t(m[6] ? "history.addedBqItemPast" : "history.addedBqItem",
+                 { row: m[1], code: m[2], rate: m[3], unit: m[4], n: m[6] || "" });
+    }
     if ((m = a.match(/^Updated (.+)$/))) {
         return t("history.updatedField", { field: fieldLabel(m[1]) });
     }
@@ -571,7 +584,7 @@ function renderHistory(vo) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         field, renderDocList, renderDocRevisions, renderMeasurementRows, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
-        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory,
+        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote
     };
 }
@@ -617,7 +630,7 @@ if (typeof document !== "undefined") {
             const v = fresh.vos.find(x => x.id === voId);
 
             document.getElementById("voTitle").textContent =
-                v.no + " — " + (v.description || t("vo.untitled"));
+                v.no + " — " + (seedText(v.description) || t("vo.untitled"));
             /* Two pills of the same kind side by side read as a duplicate —
                name each one. */
             document.getElementById("voStatus").innerHTML =
@@ -629,7 +642,7 @@ if (typeof document !== "undefined") {
             document.getElementById("contractorPanel").innerHTML =
                 panelLockNote(v, role, "contractor") +
                 field({ field: "description", label: t("vo.field.description"),
-                        type: "textarea", value: v.description, vo: v, role: role }) +
+                        type: "textarea", value: seedText(v.description), vo: v, role: role }) +
                 field({ field: "dateIssued", label: t("vo.field.dateIssued"), type: "date",
                         value: v.dateIssued, vo: v, role: role }) +
                 field({ field: "typeOfInstruction", label: t("vo.field.typeOfInstruction"),
@@ -639,7 +652,7 @@ if (typeof document !== "undefined") {
                 field({ field: "instructionNo", label: t("vo.field.instructionNo"), type: "text",
                         value: v.instructionNo, vo: v, role: role }) +
                 field({ field: "contractorRemark", label: t("vo.field.contractorRemark"),
-                        type: "textarea", value: v.contractorRemark, vo: v, role: role }) +
+                        type: "textarea", value: seedText(v.contractorRemark), vo: v, role: role }) +
                 renderDocList(v, "revisedDrawing", t("documents.field.revisedDrawing"), role) +
                 renderDocList(v, "oldDrawing", t("documents.field.oldDrawing"), role) +
                 renderDocList(v, "supportingDocs", t("documents.field.supportingDocs"), role) +
@@ -651,14 +664,14 @@ if (typeof document !== "undefined") {
                 field({ field: "dueDate", label: t("vo.field.dueDate"), type: "date",
                         value: v.dueDate, vo: v, role: role }) +
                 field({ field: "assessmentNote", label: t("vo.field.assessmentNote"),
-                        type: "textarea", value: v.assessmentNote, vo: v, role: role }) +
+                        type: "textarea", value: seedText(v.assessmentNote), vo: v, role: role }) +
                 field({ field: "timeImpact", label: t("vo.field.timeImpact"), type: "number",
                         value: v.timeImpact, vo: v, role: role }) +
                 field({ field: "evaluateStatus", label: t("vo.field.evaluateStatus"), type: "select",
                         options: ["Pending", "Under Review", "Approved", "Rejected"],
                         value: v.evaluateStatus, vo: v, role: role }) +
                 field({ field: "consultantRemark", label: t("vo.field.consultantRemark"),
-                        type: "textarea", value: v.consultantRemark, vo: v, role: role }) +
+                        type: "textarea", value: seedText(v.consultantRemark), vo: v, role: role }) +
                 renderInfoRequestControl(v, role, fresh);
 
             document.getElementById("deadlinesPanel").innerHTML =
@@ -673,7 +686,7 @@ if (typeof document !== "undefined") {
                         type: "number", value: v.finalPrice, vo: v, role: role,
                         hint: t("vo.field.finalPriceHint") }) +
                 field({ field: "clientRemark", label: t("vo.field.clientRemark"), type: "textarea",
-                        value: v.clientRemark, vo: v, role: role }) +
+                        value: seedText(v.clientRemark), vo: v, role: role }) +
                 renderClientInfoRequestControl(v, role, today());
 
             document.getElementById("measurementBody").innerHTML =

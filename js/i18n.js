@@ -450,6 +450,11 @@ var I18N_EN = {
     "history.updatedField": "Updated {field}",
     "history.removedDoc": "Removed {file} from {field}",
     "history.removedDocVersions": "Removed {file} from {field} ({n} versions)",
+    "history.assessed": "Assessment completed: {status}",
+    "history.certified": "Certified: {status}",
+    "history.recordedOnSite": "Recorded on site with {n} photo(s)",
+    "history.addedBqItem": "Added row {row} to the contract BQ as new item {code} at RM {rate}/{unit}",
+    "history.addedBqItemPast": "Added row {row} to the contract BQ as new item {code} at RM {rate}/{unit}, based on {n} past project rate(s)",
 
     /* ---------- AI Analysis (what-if) ---------- */
     "analysis.title": "AI Analysis",
@@ -1308,6 +1313,11 @@ var I18N_ZH = {
     "history.updatedField": "已更新{field}",
     "history.removedDoc": "已从 {field} 移除 {file}",
     "history.removedDocVersions": "已从 {field} 移除 {file}（共 {n} 个版本）",
+    "history.assessed": "完成评估：{status}",
+    "history.certified": "已核证：{status}",
+    "history.recordedOnSite": "现场记录，附 {n} 张照片",
+    "history.addedBqItem": "将第 {row} 行加入合同清单，新增项目 {code}，单价 RM {rate}/{unit}",
+    "history.addedBqItemPast": "将第 {row} 行加入合同清单，新增项目 {code}，单价 RM {rate}/{unit}，参考 {n} 个过往项目单价",
 
     "analysis.title": "AI 分析",
     "analysis.sub": "在创建工程变更令之前，描述一项拟议变更，即可查看其分类、适用条款和费用影响。",

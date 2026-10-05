@@ -178,11 +178,41 @@ const ELEMENTS = [
 /* Build a case-insensitive, whole-phrase regex from a plain keyword
    string. Phrases may contain spaces or hyphens; \b works either side
    because every keyword starts and ends with a word character. */
+/* The same elements as a contractor writes them in Chinese. Added to
+   each element's keywords, so a description recorded on site in Chinese
+   is checked for consequential work exactly like an English one. */
+const ELEMENT_KEYWORDS_ZH = {
+    "wall": ["墙", "砖墙", "砌块墙", "隔墙", "砌墙"],
+    "wall-finishes": ["墙面饰面", "批荡", "抹灰", "墙砖", "墙面砖"],
+    "dpc": ["防潮层"],
+    "floor-finishes": ["地砖", "地面饰面", "地板", "大理石", "瓷砖", "地面"],
+    "skirting": ["踢脚线", "踢脚"],
+    "screed": ["找平层", "水泥砂浆找平"],
+    "ceiling": ["天花", "吊顶", "天棚"],
+    "cornice": ["线脚", "顶角线"],
+    "door": ["门"],
+    "ironmongery": ["五金", "门锁", "门铰"],
+    "door-frame": ["门框"],
+    "window": ["窗"],
+    "glazing": ["玻璃"],
+    "window-sill": ["窗台"],
+    "roof": ["屋顶", "屋面"],
+    "structural-frame": ["梁", "柱", "楼板", "结构"],
+    "drainage": ["排水", "污水", "集水井", "沙井", "排水管"],
+    "electrical": ["电线", "插座", "灯具", "配电"],
+    "plumbing": ["水喉", "给水", "卫浴", "洁具"],
+    "painting": ["油漆", "涂料", "刷漆"]
+};
+ELEMENTS.forEach(el => { el.keywords = el.keywords.concat(ELEMENT_KEYWORDS_ZH[el.id] || []); });
+
 function escapeRegExp(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/* English keywords match whole words; Chinese has no spaces between
+   words, so a Chinese keyword matches anywhere in the text. */
 function keywordPattern(keyword) {
+    if (/[\u4e00-\u9fff]/.test(keyword)) return new RegExp(escapeRegExp(keyword));
     return new RegExp("\\b" + escapeRegExp(keyword) + "\\b", "i");
 }
 

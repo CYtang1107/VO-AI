@@ -5,7 +5,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { renderContractBlock } = require("./contractread.js");
     var { rm, today, prettyDate, contractorTotal, assessedTotal, voValue } = require("./calc.js");
     var { analyse, checkRate } = require("./analysis.js");
-    var { escapeHtml, logoMark, fileLink } = require("./ui.js");
+    var { escapeHtml, logoMark, fileLink, seedText } = require("./ui.js");
     var { versionCount } = require("./documents.js");
     var { t } = require("./i18n.js");
 }
@@ -210,7 +210,7 @@ function renderReport(vo, project, role) {
       "</div>" +
 
       "<h3>" + escapeHtml(t("report.section.instruction")) + "</h3>" +
-      "<p>" + escapeHtml(vo.description || "—") + "</p>" +
+      "<p>" + escapeHtml(seedText(vo.description) || "—") + "</p>" +
       '<p class="rate-detail">' + t("report.instructionLine", {
             type: escapeHtml(instructionTypeLabel(vo.typeOfInstruction) || "—"),
             ref: escapeHtml(vo.instructionNo || "—"),
@@ -248,9 +248,9 @@ function renderReport(vo, project, role) {
       "<p>" + t("report.evaluationLine", { status: "<strong>" + escapeHtml(t("status." + vo.evaluateStatus, {})) + "</strong>" }) + "<br>" +
       t("report.certificationLine", { status: "<strong>" + escapeHtml(t("status." + vo.certifiedStatus, {})) + "</strong>" }) + "</p>" +
       (vo.assessmentNote ? '<p class="rate-detail"><strong>' + t("report.assessmentNoteLabel") + '</strong> ' +
-        escapeHtml(vo.assessmentNote) + "</p>" : "") +
+        escapeHtml(seedText(vo.assessmentNote)) + "</p>" : "") +
       (showRecommendation ? '<p class="rate-detail"><strong>' + t("report.recommendationLabel") + '</strong> ' +
-        escapeHtml(vo.consultantRemark) + "</p>" : "") +
+        escapeHtml(seedText(vo.consultantRemark)) + "</p>" : "") +
 
       '<div class="signatures">' +
         "<div><span></span><small>" + escapeHtml(t("report.sig.contractor")) + "</small></div>" +
@@ -300,7 +300,7 @@ function renderSummaryReport(project) {
         ? '<tr><td colspan="9" class="empty-state">' + escapeHtml(t("report.summary.empty")) + '</td></tr>'
         : rows.map(r => "<tr>" +
             "<td><span class=\"item-code\">" + escapeHtml(r.vo.no) + "</span></td>" +
-            "<td>" + escapeHtml(r.vo.description || "—") + "</td>" +
+            "<td>" + escapeHtml(seedText(r.vo.description) || "—") + "</td>" +
             "<td>" + prettyDate(r.vo.dateIssued) + "</td>" +
             "<td>" + escapeHtml(statusLabel(r.vo.evaluateStatus)) + "</td>" +
             "<td>" + escapeHtml(statusLabel(r.vo.certifiedStatus)) + "</td>" +
@@ -369,7 +369,7 @@ if (typeof document !== "undefined") {
 
         picker.innerHTML = (project.vos || []).map(v =>
             '<option value="' + escapeHtml(v.id) + '"' + (v.id === voId ? " selected" : "") +
-            ">" + escapeHtml(v.no + " — " + (v.description || t("report.pickerUntitled"))) + "</option>"
+            ">" + escapeHtml(v.no + " — " + (seedText(v.description) || t("report.pickerUntitled"))) + "</option>"
         ).join("");
         picker.value = voId || (project.vos[0] || {}).id || "";
 

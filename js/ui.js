@@ -1,8 +1,8 @@
 /* VO-AI | ui.js — shared page chrome, guards and small render helpers. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { ROLES, DEMO_FILES } = require("./store.js");
-    var { t, renderLangSwitch, wireLangSwitch, applyI18n } = require("./i18n.js");
+    var { ROLES, DEMO_FILES, SEED_ZH } = require("./store.js");
+    var { t, getLang, renderLangSwitch, wireLangSwitch, applyI18n } = require("./i18n.js");
 }
 
 /* `labelKey` looks up its display text via t() at render time (so it
@@ -224,6 +224,16 @@ function keepFolds(render) {
     });
 }
 
+/* The demo's English text in Chinese when the interface is in Chinese
+   (js/store.js SEED_ZH). Text a user typed is returned unchanged. */
+function seedText(value) {
+    if (typeof getLang === "function" && getLang() === "zh" &&
+        typeof SEED_ZH !== "undefined" && Object.prototype.hasOwnProperty.call(SEED_ZH, value)) {
+        return SEED_ZH[value];
+    }
+    return value;
+}
+
 /* ---------- browser-only below ---------- */
 
 function requireSession() {
@@ -360,5 +370,5 @@ function mountChrome(active, title, crumb, opts) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds };
+    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds, seedText };
 }

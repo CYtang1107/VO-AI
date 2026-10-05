@@ -2,7 +2,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, voValue, projectStats, today } = require("./calc.js");
-    var { statusPill, escapeHtml } = require("./ui.js");
+    var { statusPill, escapeHtml, seedText } = require("./ui.js");
     var { deadlineSummary } = require("./deadlines.js");
     var { t } = require("./i18n.js");
 }
@@ -96,7 +96,7 @@ function renderRecentRows(vos) {
     return sorted.slice(0, 6).map(v =>
         '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
             '<td class="nowrap"><strong class="item-code">' + escapeHtml(v.no) + "</strong></td>" +
-            "<td>" + escapeHtml(v.description || "—") + "</td>" +
+            "<td>" + escapeHtml(seedText(v.description) || "—") + "</td>" +
             '<td class="nowrap">' + prettyDate(v.dateIssued) + "</td>" +
             '<td class="nowrap">' + rm(voValue(v)) + "</td>" +
             "<td>" + statusPill(v.evaluateStatus) + "</td>" +
