@@ -10,6 +10,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate } = require("./ratehistory.js");
     var { renderContractBlock } = require("./contractread.js");
+    var { renderContractPane } = require("./askcontract.js");
     var { t } = require("./i18n.js");
 }
 
@@ -410,8 +411,12 @@ function renderAssistantAnswer(result) {
     "</div>";
 }
 
+/* With a team account the card has two tabs: this structured helper, and
+   「问合同」 (js/askcontract.js), which answers from the contract itself.
+   context.contract = { tab: "vo" | "contract", state } keeps the open tab
+   and the last contract answer across redraws. */
 function renderAssistantPanel(context) {
-    return '' +
+    const helper = '' +
         '<p class="assistant-note">' + escapeHtml(t("assistant.note")) + "</p>" +
         '<div class="assistant-suggestions" id="assistantSuggestions">' +
         renderAssistantSuggestions(context) + "</div>" +
@@ -420,6 +425,16 @@ function renderAssistantPanel(context) {
         '<button type="button" class="secondary-button" id="assistantAskBtn">' + escapeHtml(t("assistant.ask")) + '</button>' +
         "</div>" +
         '<div id="assistantAnswer">' + renderAssistantAnswer(null) + "</div>";
+    if (!context.contract) return helper;
+    const tab = context.contract.tab === "contract" ? "contract" : "vo";
+    const tabButton = (id, label) =>
+        '<button type="button" role="tab" class="ask-tab' + (tab === id ? " active" : "") + '" data-ask-tab="' + id +
+        '" aria-selected="' + (tab === id) + '">' + escapeHtml(label) + "</button>";
+    return '' +
+        '<div class="ask-tabs" role="tablist">' + tabButton("vo", t("ask.tabVo")) + tabButton("contract", t("ask.tabContract")) + "</div>" +
+        '<div data-ask-pane="vo"' + (tab === "vo" ? "" : " hidden") + ">" + helper + "</div>" +
+        '<div data-ask-pane="contract"' + (tab === "contract" ? "" : " hidden") + ">" +
+        renderContractPane(context.role, context.contract.state) + "</div>";
 }
 
 /* -----------------------------------------------------------
@@ -597,6 +612,7 @@ if (typeof document !== "undefined") {
         if (!ctx) return;
         const { session, project } = ctx;
         const role = session.role;
+        const contractAsk = { tab: "vo", state: null };
 
         /* Narrow screens stack the three role panels; the signed-in
            role's own panel should come first since that is the one they
@@ -703,7 +719,8 @@ if (typeof document !== "undefined") {
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
 
             document.getElementById("assistantPanel").innerHTML =
-                renderAssistantPanel({ vo: v, project: fresh, role: role, session: session });
+                renderAssistantPanel({ vo: v, project: fresh, role: role, session: session,
+                                       contract: askContractAvailable() ? contractAsk : null });
 
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
@@ -950,6 +967,49 @@ if (typeof document !== "undefined") {
         document.getElementById("assistantPanel").addEventListener("keydown", e => {
             if (e.target.id !== "assistantInput" || e.key !== "Enter") return;
             askAssistant(e.target.value);
+        });
+
+        /* 「问合同」 tab: switching tabs and asking keep their state in
+           contractAsk, so a redraw of the page leaves both in place. */
+        document.getElementById("assistantPanel").addEventListener("click", e => {
+            const tabBtn = e.target.closest(".ask-tab");
+            if (!tabBtn) return;
+            contractAsk.tab = tabBtn.dataset.askTab;
+            document.querySelectorAll("#assistantPanel .ask-tab").forEach(b => {
+                const on = b === tabBtn;
+                b.classList.toggle("active", on);
+                b.setAttribute("aria-selected", String(on));
+            });
+            document.querySelectorAll("#assistantPanel [data-ask-pane]").forEach(p => {
+                p.hidden = p.dataset.askPane !== contractAsk.tab;
+            });
+        });
+
+        function showContractAnswer() {
+            const el = document.getElementById("contractAnswer");
+            if (el) el.innerHTML = renderContractAnswer(contractAsk.state);
+        }
+
+        async function askTheContract(question) {
+            const q = String(question || "").trim();
+            if (!q || (contractAsk.state && contractAsk.state.loading)) return;
+            const fresh = getProject(project.id);
+            const v = fresh.vos.find(x => x.id === voId);
+            contractAsk.state = { loading: true, question: q };
+            showContractAnswer();
+            contractAsk.state = await askContract(fresh, v, q);
+            showContractAnswer();
+        }
+
+        document.getElementById("assistantPanel").addEventListener("click", e => {
+            const btn = e.target.closest(".contract-question-btn");
+            if (btn) { askTheContract(btn.dataset.question); return; }
+            if (e.target.id === "contractAskBtn") askTheContract(document.getElementById("contractAskInput").value);
+        });
+
+        document.getElementById("assistantPanel").addEventListener("keydown", e => {
+            if (e.target.id !== "contractAskInput" || e.key !== "Enter") return;
+            askTheContract(e.target.value);
         });
 
         draw();

@@ -3146,3 +3146,54 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .member-role { color: var(--ink-3); font-size: 11px; }
 .member-add { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .member-add .member-email { flex: 1 1 160px; min-width: 0; }
+
+/* ---------- 「问合同」: ask the contract (js/askcontract.js) ---------- */
+
+.ask-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--rule);
+    margin: 0 0 14px;
+}
+.ask-tab {
+    padding: 8px 14px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-3);
+    cursor: pointer;
+    margin-bottom: -1px;
+}
+.ask-tab:hover { color: var(--accent); }
+.ask-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.ask-agent { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 6px; }
+#contractAskBtn { background: var(--accent); border-color: var(--accent); color: #fff; }
+#contractAskBtn:hover { background: var(--accent-press); color: #fff; }
+.ask-loading { font-style: italic; }
+.ask-answer-text p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; color: var(--ink); }
+.cite-chip {
+    display: inline-block;
+    padding: 1px 8px;
+    margin: 0 2px;
+    border-radius: 12px;
+    background: #e4eaff;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ask-sources-title { font-size: 12px; margin: 16px 0 8px; }
+.cite-source {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    background: var(--paper);
+}
+.cite-source summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.cite-sim { font-weight: 400; color: var(--ink-3); margin-left: 6px; }
+.cite-source .rate-detail { margin: 8px 0 0; white-space: pre-wrap; }
+.ask-ocr-note { margin-top: 10px; }
