@@ -1584,6 +1584,54 @@ td.owned-col { background: #fffdf2; }
 .assistant-unmatched .assistant-answer-title { color: var(--verdict-diff); }
 .assistant-unmatched .finding::before { color: var(--verdict-diff); }
 
+/* ---------- 「问合同」 tab: the contract knowledge base ----------
+   Only on a site signed in to a Supabase project (js/agents.js). The
+   tabs sit inside the same card, so the helper the app has always had
+   and the retrieved-clause answer read as two views of one panel. */
+
+.ask-tabs {
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 14px;
+}
+.ask-tab {
+    padding: 8px 14px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink-3);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+.ask-tab:hover { color: var(--accent); }
+.ask-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* One retrieved clause: the chip is the citation, opening it shows the
+   very text the answer was allowed to use. */
+.citation {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: var(--paper-sunk);
+    font-size: 12px;
+}
+.citation > summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--ink);
+}
+.citation > p {
+    margin: 8px 0 0;
+    color: var(--ink-2);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+.citation-match { font-weight: normal; color: var(--ink-3); }
+
 /* =========================
    CONTRACTUAL DEADLINES
 ========================= */

@@ -10,6 +10,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate } = require("./ratehistory.js");
     var { renderContractBlock } = require("./contractread.js");
+    var { askContract, renderContractPanel, renderContractAnswer, renderAskTabs } = require("./agents.js");
     var { t } = require("./i18n.js");
 }
 
@@ -410,6 +411,9 @@ function renderAssistantAnswer(result) {
     "</div>";
 }
 
+/* The local helper's own panel. When the site is signed in to a Supabase
+   project, it sits under the first of two tabs; the second is 「问合同」
+   (js/agents.js), which asks the contract knowledge base. */
 function renderAssistantPanel(context) {
     return '' +
         '<p class="assistant-note">' + escapeHtml(t("assistant.note")) + "</p>" +
@@ -625,6 +629,11 @@ if (typeof document !== "undefined") {
         if (!vo) { toast(t("vo.noLongerExists"), "error");
                    setTimeout(() => location.href = "register.html", 1200); return; }
 
+        /* Which tab of the ask card is open, and the last contract
+           answer, so a redraw does not throw it away. */
+        let askTab = "local";
+        let contractResult = null;
+
         function draw() { keepFolds(drawNow); }
 
         function drawNow() {
@@ -702,8 +711,20 @@ if (typeof document !== "undefined") {
             }
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
 
+            /* The ask card: the local helper, and — only on a site signed
+               in to a Supabase project — the 「问合同」 tab beside it.
+               The contract answer survives a redraw; the local one is
+               cheap to ask again. */
+            const cloudAsk = typeof Cloud !== "undefined" && Cloud.active();
+            if (!cloudAsk) askTab = "local";
             document.getElementById("assistantPanel").innerHTML =
-                renderAssistantPanel({ vo: v, project: fresh, role: role, session: session });
+                (cloudAsk ? renderAskTabs(askTab) : "") +
+                (askTab === "contract"
+                    ? renderContractPanel()
+                    : renderAssistantPanel({ vo: v, project: fresh, role: role, session: session }));
+            if (askTab === "contract") {
+                document.getElementById("contractAnswer").innerHTML = renderContractAnswer(contractResult);
+            }
 
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
@@ -935,10 +956,43 @@ if (typeof document !== "undefined") {
             document.getElementById("assistantAnswer").innerHTML = renderAssistantAnswer(result);
         }
 
+        /* 「问合同」: the same question goes to the Edge Function, which
+           answers only from this project's imported clauses and cites
+           them (js/agents.js, supabase/functions/ask-contract). */
+        async function askTheContract(question) {
+            const q = String(question || "").trim();
+            if (!q) return;
+            contractResult = { pending: true };
+            document.getElementById("contractAnswer").innerHTML = renderContractAnswer(contractResult);
+            const fresh = getProject(project.id);
+            const v = fresh.vos.find(x => x.id === voId);
+            contractResult = await askContract({ question: q, vo: v, project: fresh, role: role });
+            const target = document.getElementById("contractAnswer");
+            if (target) target.innerHTML = renderContractAnswer(contractResult);
+        }
+
+        document.getElementById("assistantPanel").addEventListener("click", e => {
+            const tab = e.target.closest(".ask-tab");
+            if (!tab) return;
+            askTab = tab.dataset.tab;
+            draw();
+        });
+
         document.getElementById("assistantPanel").addEventListener("click", e => {
             const btn = e.target.closest(".assistant-suggestion-btn");
             if (!btn) return;
+            if (btn.closest("#contractSuggestions")) { askTheContract(btn.dataset.question); return; }
             askAssistant(btn.dataset.question);
+        });
+
+        document.getElementById("assistantPanel").addEventListener("click", e => {
+            if (e.target.id !== "contractAskBtn") return;
+            askTheContract(document.getElementById("contractInput").value);
+        });
+
+        document.getElementById("assistantPanel").addEventListener("keydown", e => {
+            if (e.target.id !== "contractInput" || e.key !== "Enter") return;
+            askTheContract(e.target.value);
         });
 
         document.getElementById("assistantPanel").addEventListener("click", e => {

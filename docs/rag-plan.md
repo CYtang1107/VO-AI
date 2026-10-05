@@ -1,12 +1,33 @@
 # Plan A: VO-AI with a knowledge base, shared data and cited answers
 
 **Status (5 Oct 2026, presentation 13 Oct):** in progress on branch `claude/eager-ramanujan-6i2lox`.
-Done, tested locally, **not yet applied to Supabase**: `supabase/migrations/0001_init.sql` (31 RLS checks pass,
-`supabase/tests/run.sh`), `js/cloud.js` + store/filestore/sign-in/members wiring (`test/cloud.test.js`),
-`tools/ingest-contract.js` (Node, not Python, so it reuses `js/contractread.js`; finds 197 of 218 contents-page clauses
-in the team's OCR text, all of clause 11). Verified: `text-embedding-v4` = 1024 dims; `qwen-plus` free quota is used up,
-`qwen3.7-plus` works. Next: apply the migration (needs a valid `sbp_…` `SUPABASE_ACCESS_TOKEN`), import PAM 2018,
-then step 3 (`ask-contract` + 「问合同」).
+
+Written and tested locally, **nothing applied to Supabase yet**:
+
+- `supabase/migrations/0001_init.sql` — 31 RLS checks pass (`supabase/tests/run.sh`).
+- `js/cloud.js` + store/filestore/sign-in/members wiring (`test/cloud.test.js`).
+- `tools/ingest-contract.js` (Node, not Python, so it reuses `js/contractread.js`; finds 197 of 218
+  contents-page clauses in the team's OCR text, all of clause 11).
+- **Step 3**: `supabase/functions/ask-contract/` (the function, with its prompt and its answer checks in
+  `prompt.mjs` so they are unit-tested: `test/ask-contract.test.js`) and the 「问合同」 tab
+  (`js/agents.js`, wired into `js/page-vo.js`; `test/agents.test.js`). 396 tests pass; the offline demo is
+  unchanged (the tab appears only when the site is signed in to a Supabase project).
+
+Verified: `text-embedding-v4` = 1024 dims; `qwen-plus` free quota is used up, `qwen3.7-plus` works.
+
+**What is left, and it needs the team:**
+
+1. **Apply the migration.** This session's attempts to reach `api.supabase.com` with
+   `SUPABASE_ACCESS_TOKEN` were refused by the sandbox's own permission check, not by Supabase.
+   Either run it locally — `npx supabase link --project-ref <ref> && npx supabase db push` — or paste
+   `supabase/migrations/0001_init.sql` into the project's SQL editor.
+2. **Import PAM 2018** (never committed — copyrighted):
+   `node tools/ingest-contract.js --file PAM-2018-OCR.txt --form "PAM 2018"`
+   (add `--project PRJ-…` to keep it to one project; without it every signed-in user may search it).
+3. **Deploy the function:** `npx supabase functions deploy ask-contract --project-ref <ref>` and
+   `npx supabase secrets set DASHSCOPE_API_KEY=… --project-ref <ref>`.
+4. Then step 4 (role personas are already in the function's prompt; the UI could name them) and step 5
+   (the deck slide and the 答辩 notes).
 
 Original status: planned, not started. Written at the end of the session that built the
 contract reader, so the next session can start straight away.
@@ -188,8 +209,13 @@ Steps:
    - never calculate or invent amounts, use only `engine_facts`;
    - answer in the question's language;
    - say so when the clauses do not cover the question.
-6. Return `{ answer, citations: [{clause_no, title, doc_name, similarity}] }`. The client
-   shows each citation as a link that opens that clause's text.
+6. Check the answer before returning it (`prompt.mjs`, `checkAnswer`): every money amount or
+   percentage in it must appear in `engine_facts` or in a quoted clause, and it must cite a clause
+   that was actually retrieved. A failing answer is sent back to the model once with the reason;
+   if it fails again the user gets `{ answer: null, reason }` and the clauses themselves, never the
+   unchecked answer.
+7. Return `{ answer, citations: [{clause_no, title, form, doc_name, text, similarity}] }`. The client
+   shows each citation as a chip that opens that clause's text.
 
 Role framing (system prompt addition per role):
 - **承包商自查员 (contractor):** "check this claim before submission".

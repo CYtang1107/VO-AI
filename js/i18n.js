@@ -702,6 +702,24 @@ var I18N_EN = {
     "assistant.valuationMethod.none": "The description is too vague to classify, so no valuation clause could be identified. Add detail about what is changing.",
     "assistant.valuationMethod.line": "{form} {ref} — {title}: {entitlement}",
 
+    /* ---------- 「问合同」 — the contract knowledge base (js/agents.js) ---------- */
+    "ask.tab.local": "This variation",
+    "ask.tab.contract": "Ask the contract",
+    "ask.contract.note": "Searches the contract clauses imported into this project's knowledge base by meaning, and answers only from the clauses it finds — in the language you ask in, always citing them. It never calculates: every figure comes from VO-AI's own rule engine.",
+    "ask.contract.placeholder": "e.g. who decides how a variation is valued?",
+    "ask.contract.empty": "Ask a question about the contract. The answer will quote the clauses it is based on.",
+    "ask.contract.thinking": "Searching the contract clauses…",
+    "ask.contract.citations": "Clauses used",
+    "ask.contract.clause": "clause {no}",
+    "ask.contract.match": "{pct}% match",
+    "ask.contract.noAnswerTitle": "No answer from the contract",
+    "ask.contract.noClause": "No clause in this project's knowledge base is close enough to that question. Nothing is answered from general knowledge.",
+    "ask.contract.rejected": "An answer was produced but failed VO-AI's own check — it either stated a figure the rule engine did not produce, or cited no clause — so it is not shown. The clauses found for the question are below; read them directly.",
+    "ask.contract.errorTitle": "Could not ask the contract",
+    "ask.contract.q1": "How is this variation valued under the contract?",
+    "ask.contract.q2": "What notice must the contractor give for a variation?",
+    "ask.contract.q3": "Who may instruct a variation?",
+
     /* ---------- permissions / lock reasons ---------- */
     "lock.calculated": "This field is calculated by VO-AI and cannot be edited.",
     "lock.notOwner": "Read-only — this column belongs to the {role}.",
@@ -1604,6 +1622,23 @@ var I18N_ZH = {
 
     "assistant.valuationMethod.none": "说明过于模糊，无法分类，因此无法识别计价条款。请补充变更内容的详情。",
     "assistant.valuationMethod.line": "{form} {ref} — {title}：{entitlement}",
+
+    "ask.tab.local": "本变更令",
+    "ask.tab.contract": "问合同",
+    "ask.contract.note": "按语义检索本项目知识库中已导入的合同条文，仅依据检索到的条文作答，并始终标注引用；提问用什么语言，就用什么语言回答。它从不计算：所有数字均来自 VO-AI 自身的规则引擎。",
+    "ask.contract.placeholder": "例如：变更的估价由谁决定？",
+    "ask.contract.empty": "就合同提出问题。答案将引用其所依据的条文。",
+    "ask.contract.thinking": "正在检索合同条文…",
+    "ask.contract.citations": "所引条文",
+    "ask.contract.clause": "第 {no} 条",
+    "ask.contract.match": "匹配度 {pct}%",
+    "ask.contract.noAnswerTitle": "合同中没有可据以回答的条文",
+    "ask.contract.noClause": "本项目知识库中没有与该问题足够接近的条文。系统不会凭通用知识作答。",
+    "ask.contract.rejected": "已生成答案，但未通过 VO-AI 的自检——其中出现了规则引擎未产生的数字，或没有标注引用条文——因此不予显示。下方为该问题检索到的条文，请直接查阅。",
+    "ask.contract.errorTitle": "无法向合同提问",
+    "ask.contract.q1": "本变更令依合同如何估价？",
+    "ask.contract.q2": "承包商就变更须发出何种通知？",
+    "ask.contract.q3": "谁有权发出变更指示？",
 
     "lock.calculated": "此栏位由 VO-AI 计算，无法编辑。",
     "lock.notOwner": "只读——此栏位属于{role}。",
