@@ -89,8 +89,22 @@ function newVO(seq) {
 
 /* ---------- persistence ---------- */
 
+/* A team-account session (js/cloud.js) keeps its own cache of the shared
+   register under a separate key, so the offline demo's data and the
+   team's real projects never mix. */
+var CLOUD_DB_KEY = "voai.db.cloud.v1";
+
+function cloudSession() {
+    const s = getSession();
+    return !!(s && s.cloud);
+}
+
 function loadDB() {
     if (typeof localStorage === "undefined") return seedDB();
+    if (cloudSession()) {
+        try { return JSON.parse(localStorage.getItem(CLOUD_DB_KEY)) || { projects: [] }; }
+        catch (e) { return { projects: [] }; }
+    }
     const raw = localStorage.getItem(DB_KEY);
     if (!raw) {
         const fresh = demoDB(today());
@@ -169,10 +183,16 @@ function demoDB(todayIso) {
 
 function saveDB(db) {
     if (typeof localStorage === "undefined") return;
+    if (cloudSession()) {
+        localStorage.setItem(CLOUD_DB_KEY, JSON.stringify(db));
+        if (typeof Cloud !== "undefined" && Cloud.schedulePush) Cloud.schedulePush();
+        return;
+    }
     localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
 
 function resetDB() {
+    if (cloudSession()) return loadDB();
     if (typeof localStorage !== "undefined") localStorage.removeItem(DB_KEY);
     return loadDB();
 }
@@ -644,7 +664,7 @@ function seedDB() {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        DB_KEY, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
+        DB_KEY, CLOUD_DB_KEY, cloudSession, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
         loadDB, saveDB, resetDB, demoDB, upgradeDemo, SEED_ZH, shiftIsoDays, DEMO_FILES,
         getSession, setSession, clearSession,
         isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,

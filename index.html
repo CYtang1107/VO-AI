@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VO-AI | Sign in</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="style.css?v=20261005g">
+    <link rel="stylesheet" href="style.css?v=20261005h">
 </head>
 <body>
 
@@ -25,6 +25,41 @@
         </div>
 
         <h1 data-i18n="login.title">Sign in to VO-AI</h1>
+
+        <!-- Shown only when js/config.js names a Supabase project (js/cloud.js). -->
+        <div class="login-mode" id="loginMode" role="tablist" hidden>
+            <button type="button" class="login-mode-btn active" data-mode="team" role="tab" data-i18n="cloud.login.tabTeam">Team account</button>
+            <button type="button" class="login-mode-btn" data-mode="demo" role="tab" data-i18n="cloud.login.tabDemo">Offline demo</button>
+        </div>
+
+        <div id="teamLogin" hidden>
+            <p class="lead" data-i18n="cloud.login.lead">Sign in with your VO-AI account. Your projects, VOs and files are shared with your project team; your role comes from each project.</p>
+            <div class="field">
+                <label for="teamEmail" data-i18n="cloud.login.email">Email</label>
+                <input type="email" id="teamEmail" autocomplete="username">
+            </div>
+            <div class="field">
+                <label for="teamPassword" data-i18n="cloud.login.password">Password</label>
+                <input type="password" id="teamPassword" autocomplete="current-password">
+            </div>
+            <div id="teamSignUpFields" hidden>
+                <div class="field">
+                    <label for="teamName" data-i18n="cloud.login.name">Your name</label>
+                    <input type="text" id="teamName" autocomplete="name">
+                </div>
+                <div class="field">
+                    <label for="teamRole" data-i18n="cloud.login.firstRole">Your role (until a project gives you one)</label>
+                    <select id="teamRole"></select>
+                </div>
+            </div>
+            <button class="primary-button" id="teamSignInBtn" style="width:100%" data-i18n="cloud.login.signIn">Sign in →</button>
+            <button type="button" class="link-button" id="teamSignUpToggle" style="margin-top:10px" data-i18n="cloud.login.newAccount">New to VO-AI? Create an account</button>
+            <p class="lead" style="margin:18px 0 0;font-size:10px" data-i18n="cloud.login.footnote">
+                Data is stored in the team's own Supabase project (Singapore), protected by row-level security.
+            </p>
+        </div>
+
+        <div id="demoLogin">
         <p class="lead" data-i18n="login.lead">
             Choose the role you are acting as. Each role can only edit its own
             columns of the variation order register.
@@ -56,15 +91,18 @@
             This is a demonstration prototype. No data leaves your browser — everything
             is stored locally on this computer.
         </p>
+        </div>
 
     </div>
 </div>
 
-<script src="js/i18n.js?v=20261005g"></script>
-<script src="js/calc.js?v=20261005g"></script>
-<script src="js/store.js?v=20261005g"></script>
-<script src="js/ui.js?v=20261005g"></script>
-<script src="js/page-login.js?v=20261005g"></script>
+<script src="js/i18n.js?v=20261005h"></script>
+<script src="js/calc.js?v=20261005h"></script>
+<script src="js/store.js?v=20261005h"></script>
+<script src="js/config.js?v=20261005h"></script>
+<script src="js/cloud.js?v=20261005h"></script>
+<script src="js/ui.js?v=20261005h"></script>
+<script src="js/page-login.js?v=20261005h"></script>
 
 </body>
 </html>

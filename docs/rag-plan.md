@@ -1,6 +1,31 @@
 # Plan A: VO-AI with a knowledge base, shared data and cited answers
 
-**Status:** planned, not started. Written at the end of the session that built the
+**Status (5 Oct 2026, presentation 13 Oct 2026):** steps 1–3 done and live; step 4 mostly done; step 5 left.
+Branch `claude/eager-ramanujan-6i2lox`.
+
+- **Supabase (project `VO-AI`, Singapore):** `supabase/migrations/0001_init.sql` applied on 5 Oct through the
+  Management API (`POST /v1/projects/{ref}/database/query`). It is not recorded in `supabase_migrations`, so a
+  later `supabase db push` must start from `0002_…`. Tables, RLS (11 policies), the `documents` bucket and
+  Realtime are in place; the anon key alone reads nothing.
+- **Knowledge base:** PAM 2018 imported as a shared form (`project_id` null, readable by every signed-in user):
+  `node tools/ingest-contract.js --file PAM-2018-OCR.txt --form "PAM 2018"` → 197 of 218 contents-page clauses,
+  231 chunks, `text-embedding-v4` (1024 dims). The text file itself is not in the repo.
+  Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,
+  so the 0.35 bar holds.
+- **`ask-contract` Edge Function:** deployed (`npx supabase functions deploy ask-contract --project-ref <ref> --use-api`;
+  secret `DASHSCOPE_API_KEY` set with `supabase secrets` / the Management API). Chat model `qwen-plus-latest`, then
+  `qwen-flash` if its quota runs out (`ASK_MODELS` secret overrides). `qwen-plus` free quota is used up;
+  `qwen3.7-plus` answers in thinking mode and is too slow. An answer takes about 8–14 s.
+  The rules (`rules.mjs`) are checked on every answer, not only asked for: at least one 「引用」 label, only
+  clauses that were retrieved, no amount that is not in `engine_facts`, the question or the clauses. One retry
+  naming the broken rule, then no answer. Role comes from `members`, never from the request.
+- **「问合同」 tab** on the VO page (`js/askcontract.js`), only for a team-account session. Each role sees its
+  agent (承包商自查员 / 咨询核价员 / 业主核证员) with three suggested questions; citations open the clause text.
+  Checked in a real browser (sign-in → VO → ask → cited answer).
+- **Next:** step 5 (deck slide, defence Q&A). Before the demo: create the team's real accounts, add members to the
+  demo project, and rehearse once on the venue network (the offline demo stays one click away).
+
+Original status: planned, not started. Written at the end of the session that built the
 contract reader, so the next session can start straight away.
 **For the next session:** read this file first, then check the
 [Before you start](#before-you-start) list. Ask the team for the presentation date. It
@@ -82,7 +107,7 @@ Supabase
   ├─ Storage            bucket "documents" (private), path {project_id}/{doc_id}
   └─ Edge Function      ask-contract: embed question → match_chunks → Qwen answer with citations
 
-tools/ingest-contract.py  NEW: file → text (OCR if scanned) → clauses → embeddings → contract_chunks
+tools/ingest-contract.js  file → text (OCR if scanned) → clauses → embeddings → contract_chunks
 ```
 
 ## Database (first migration, `supabase/migrations/0001_init.sql`)

@@ -3,9 +3,12 @@
    The register (localStorage) records each document's metadata; the
    file itself is kept here, in the browser's IndexedDB, keyed by the
    document's id, so a file name can be clicked to open the file.
-   Like the rest of the prototype's data it lives in this browser only:
-   someone on another computer sees the name but cannot open the file,
-   and a project exported as .json carries metadata only.
+   Offline, like the rest of the prototype's data it lives in this
+   browser only: someone on another computer sees the name but cannot
+   open the file, and a project exported as .json carries metadata only.
+   Signed in with a team account (js/cloud.js), each file is also stored
+   in the project's private Supabase Storage folder, and a file that is
+   not in this browser is fetched from there.
 
    Browser-only. Any element with class "file-open" and a data-file-id
    opens that file on click (wired once, below). */
@@ -46,17 +49,51 @@ var FileStore = (function () {
     /* Saves `file` (a File/Blob) under `id`. Resolves true when stored,
        false when this browser cannot store it — the caller still records
        the document's name either way. */
-    function put(id, file) {
+    function putLocal(id, file) {
         if (!supported()) return Promise.resolve(false);
         return run("readwrite", function (store) {
             store.put({ blob: file, name: file.name, type: file.type || "" }, id);
         }).then(function () { return true; }, function () { return false; });
     }
 
-    function get(id) {
+    /* The project a team member is working in, when files go to the cloud. */
+    function cloudProject() {
+        if (typeof Cloud === "undefined" || !Cloud.active()) return null;
+        var s = typeof getSession === "function" ? getSession() : null;
+        return (s && s.projectId) || null;
+    }
+
+    function putCloud(id, file) {
+        var projectId = cloudProject();
+        if (!projectId) return Promise.resolve(false);
+        return Cloud.uploadFile(projectId, id, file).then(function () { return true; }, function (e) {
+            if (typeof toast === "function") toast(t("cloud.uploadFailed", { name: file.name || "", reason: e.message || "" }), "error");
+            return false;
+        });
+    }
+
+    function put(id, file) {
+        return Promise.all([putLocal(id, file), putCloud(id, file)])
+            .then(function (r) { return r[0] || r[1]; });
+    }
+
+    function getLocal(id) {
         if (!supported()) return Promise.resolve(null);
         return run("readonly", function (store) { return store.get(id); })
             .then(function (rec) { return rec || null; }, function () { return null; });
+    }
+
+    function get(id) {
+        return getLocal(id).then(function (rec) {
+            var projectId = rec ? null : cloudProject();
+            if (!projectId) return rec;
+            return Cloud.downloadFile(projectId, id).then(function (blob) {
+                if (!blob) return null;
+                var fetched = { blob: blob, name: "", type: blob.type || "" };
+                putLocal(id, blob);
+                return fetched;
+            }, function () { return null; });
+        });
     }
 
     function remove(ids) {
