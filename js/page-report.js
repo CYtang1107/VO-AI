@@ -176,29 +176,6 @@ function renderReport(vo, project, role) {
         row.assessedQty !== "" && row.assessedQty !== null && row.assessedQty !== undefined
     ) || Boolean(vo.assessmentNote);
 
-    /* What this VO is assessed under, in one line: the project's own
-       contract (and the clauses it was read against) when it has been
-       read, otherwise the standard form. The wording itself is on the
-       VO page — the report only names the basis. */
-    const contractRead = a.contract && a.contract.state === "read";
-    let basisLine;
-    if (contractRead) {
-        const refs = [];
-        a.contract.topics.forEach(tp => { if (tp.clause && refs.indexOf(tp.clause.no) === -1) refs.push(tp.clause.no); });
-        basisLine = t("report.basis.contract", {
-            doc: "<strong>" + escapeHtml(a.contract.docNames.join("、")) + "</strong>",
-            clauses: escapeHtml(refs.length ? t("contract.clauseRef", { no: refs.join(t("common.listSep")) }) : "—"),
-            form: escapeHtml(a.clause ? a.clause.form : "—")
-        });
-    } else if (a.clause) {
-        basisLine = t("report.basis.standard", {
-            ref: "<strong>" + escapeHtml(a.clause.form + " " + a.clause.ref) + "</strong>",
-            title: escapeHtml(a.clause.title)
-        });
-    } else {
-        basisLine = escapeHtml(t("report.clause.none"));
-    }
-    const basisBlock = '<p class="report-basis">' + basisLine + "</p>";
 
     let measurementBody, totalsHtml;
     if (role === "client") {
@@ -246,9 +223,6 @@ function renderReport(vo, project, role) {
             work: "<strong>" + escapeHtml(a.classification.affectedWork) + "</strong>"
         }) + "</p>" +
       elementsBlock(a) +
-
-      "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + basisBlock +
-      docSection(vo.contractDocs, t("report.docLabel.contractDocs")) +
 
       '<div class="report-pair">' +
         "<div><h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) + "</div>" +
