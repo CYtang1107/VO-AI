@@ -6,7 +6,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { renderContractBlock } = require("./contractread.js");
     var { rm } = require("./calc.js");
-    var { analyse, classificationBasis } = require("./analysis.js");
+    var { analyse, classificationBasis, suggestBqForChange } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, fold } = require("./ui.js");
     var { t } = require("./i18n.js");
@@ -34,6 +34,16 @@ function bqOptions(project, selectedId) {
     return opts.join("");
 }
 
+/* The line under the BQ picker saying what was matched automatically
+   (and from which words), or that nothing matched yet. */
+function autoMatchHint(suggestion) {
+    if (!suggestion) return t("analysis.autoMatchNone");
+    const words = suggestion.matched.join(t("common.listSep"));
+    return suggestion.weak
+        ? t("analysis.autoMatchWeak", { code: suggestion.item.code, words: words })
+        : t("analysis.autoMatch", { code: suggestion.item.code, words: words });
+}
+
 /* If the project has no priced BQ items, there is nothing to substitute
    against — show an explanatory empty state, not an empty dropdown. */
 function renderOriginalItemField(project, selectedId) {
@@ -43,7 +53,8 @@ function renderOriginalItemField(project, selectedId) {
                '<div class="empty-state">' + escapeHtml(t("analysis.field.originalItemEmpty")) + '</div></div>';
     }
     return '<div class="field"><label>' + escapeHtml(t("analysis.field.originalItem")) + '</label>' +
-           '<select id="vaOriginalItem">' + bqOptions(project, selectedId) + "</select></div>";
+           '<select id="vaOriginalItem">' + bqOptions(project, selectedId) + "</select>" +
+           '<p class="hint auto-match-hint" id="vaMatchHint" hidden></p></div>';
 }
 
 function renderForm(project) {
@@ -319,7 +330,7 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         bqOptions, renderOriginalItemField, renderForm, renderAssessmentEmpty,
         buildSyntheticVO, computeCosts,
-        renderClassificationBlock, renderElementsBlock, renderClauseBlock, renderCostBlock,
+        renderClassificationBlock, renderElementsBlock, renderClauseBlock, renderCostBlock, autoMatchHint,
         renderRateRows, renderFindings, renderAssessmentResult,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel
     };
@@ -334,6 +345,36 @@ if (typeof document !== "undefined") {
         const { session, project } = ctx;
 
         document.getElementById("vaFormBody").innerHTML = renderForm(project);
+
+        /* Pick the original BQ item from the description as it is typed,
+           until the user picks one by hand — then their choice stands. */
+        (function wireAutoMatch() {
+            const desc = document.getElementById("vaDescription");
+            const select = document.getElementById("vaOriginalItem");
+            const hint = document.getElementById("vaMatchHint");
+            if (!desc || !select || !hint) return;
+            let chosenByHand = false;
+            let timer = null;
+            desc.addEventListener("input", () => {
+                if (chosenByHand) return;
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    const text = desc.value.trim();
+                    if (!text) { hint.hidden = true; select.value = ""; select.classList.remove("auto-matched"); return; }
+                    const suggestion = suggestBqForChange(text, project.bq || []);
+                    select.value = suggestion ? suggestion.item.id : "";
+                    select.classList.toggle("auto-matched", !!suggestion);
+                    hint.textContent = autoMatchHint(suggestion);
+                    hint.classList.toggle("weak", !!(suggestion && suggestion.weak));
+                    hint.hidden = false;
+                }, 250);
+            });
+            select.addEventListener("change", () => {
+                chosenByHand = true;
+                select.classList.remove("auto-matched");
+                hint.hidden = true;
+            });
+        })();
         document.getElementById("assessmentResult").innerHTML = renderAssessmentEmpty();
 
         let lastVO = null; /* the synthetic VO from the most recent analysis */

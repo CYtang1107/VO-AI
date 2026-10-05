@@ -85,6 +85,7 @@ function reportRateNote(check, row, project) {
             pct: check.pct === null || check.pct === undefined ? "" : t("rate.pctNote", { pct: Math.abs(check.pct).toFixed(1) })
         });
     }
+    if (check.state === "unchecked" || check.state === "norate") return t("vo.row." + check.state);
     return t("vo.row.star");
 }
 

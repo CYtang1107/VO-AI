@@ -161,3 +161,47 @@ test("the deadline clocks follow the project's contract, and keep the default wh
     /* without a project, exactly as before */
     assert.strictEqual(deadlinesFor(vo, "2026-07-20")[0].dueDate, "2026-08-14");
 });
+
+test("a scanned standard form, OCR'd: contents lines name the clauses, margin headings sit before the number", () => {
+    const ocr = [
+        "Table of Contents",
+        "11.1 Definition of Variation 13",
+        "11.5 Valuation of Variations 14",
+        "23.1 Notice of delay and particulars 23",
+        "Definition of 11.1 The term “Variation” means a change to the Works instructed in writing.",
+        "Variation the addition or omission of any work;",
+        "Valuation of 11.5 All Variations shall be measured and valued by the Quantity Surveyor. If the Quantity",
+        "Variations Surveyor is of the opinion that the particulars are insufficient, the Quantity Surveyor shall",
+        "within twenty eight (28) Days inform the Contractor and may require him to provide further particulars",
+        "within a further fourteen (14) Days. The Quantity Surveyor shall value the Variations within thirty (30) Days.",
+        "Subject to Clause 11.1 nothing here starts a clause.",
+        "Notice of 23.1 The Contractor shall give written notice of delay within twenty eight (28) Days."
+    ].join("\n");
+    const clauses = splitClauses(ocr);
+    assert.deepStrictEqual(clauses.map(c => c.no), ["11.1", "11.5", "23.1"]);
+    assert.strictEqual(clauses[0].title, "Definition of Variation");          /* from the contents page */
+    assert.ok(clauses[0].text.startsWith("The term"));
+    assert.ok(!clauses[0].text.includes(" 13"), "contents lines are not clause text");
+    const { contractClocks } = require("../js/contractread.js");
+    assert.deepStrictEqual(contractClocks(clauses), {
+        infoRequest: { days: 28, clause: "11.5" },
+        response: { days: 14, clause: "11.5" },
+        evaluation: { days: 30, clause: "11.5" }
+    });
+});
+
+test("a VO's own contract basis, once readable, is its contract: the project's documents are not mixed in", () => {
+    const db = seedDB();
+    const p = db.projects[0];
+    const vo = Object.assign({}, p.vos[2], { contractDocs: [{ id: "OWN", name: "PAM.txt" }] });
+    p.contractReadings = {
+        D3: { docId: "D3", docName: "Demo.pdf", clauses: [{ no: "11.3", title: "Valuation of Variations", text: "Variations shall be valued at the Contract Bills rates." }] },
+        OWN: { docId: "OWN", docName: "PAM.txt", clauses: [{ no: "11.6", title: "Valuation rules", text: "The valuation of Variations shall be at the rates in the Contract Bills." }] }
+    };
+    const c = contractAnalysis(vo, p);
+    assert.deepStrictEqual(c.docNames, ["PAM.txt"]);
+    assert.strictEqual(c.topics.find(t => t.id === "valuation").clause.no, "11.6");
+    /* a VO without its own basis uses the project's contract */
+    const plain = Object.assign({}, p.vos[2], { contractDocs: [] });
+    assert.deepStrictEqual(contractAnalysis(plain, p).docNames, ["Demo.pdf"]);
+});

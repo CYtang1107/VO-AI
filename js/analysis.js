@@ -195,9 +195,90 @@ function matchBqItem(row, bq) {
 }
 
 /* -----------------------------------------------------------
+   Which BQ item is a described change about? — for the AI Analysis
+   form, which used to make the user pick the original BQ item by hand.
+   A description names more than the item ("change internal partition
+   from plastered wall to brick wall"), so this measures how much of
+   each BQ item's description the text covers, not the other way
+   round. Word endings are folded (walls/wall, plastered/plaster), and
+   common Chinese site words map to the English the BQ is written in.
+   Returns { item, matched: [words], score } or null — never a guess
+   below the bar.
+----------------------------------------------------------- */
+
+const BQ_ZH_WORDS = [
+    ["地砖", "floor tile"], ["瓷砖", "ceramic tile"], ["大理石", "marble"], ["花岗岩", "granite"],
+    ["踢脚线", "skirting"], ["踢脚", "skirting"], ["地面", "floor"], ["地板", "floor"],
+    ["批荡", "plaster"], ["抹灰", "plaster"], ["油漆", "paint"], ["涂料", "paint"], ["内墙", "internal wall"],
+    ["外墙", "external wall"], ["墙", "wall"], ["客厅", "living area"], ["门", "door"], ["门框", "door frame"],
+    ["五金", "ironmongery"], ["排水管", "drainage pipe"], ["排水", "drainage"], ["水管", "pipe"],
+    ["集水井", "sump"], ["沙井", "manhole"], ["天花", "ceiling"], ["吊顶", "suspended ceiling"],
+    ["石膏板", "plasterboard"], ["木", "timber"], ["混凝土", "concrete"], ["窗", "window"]
+];
+
+function foldWord(w) {
+    if (w.length > 5 && /ing$/.test(w)) return w.slice(0, -3);
+    if (w.length > 4 && /ed$/.test(w)) return w.slice(0, -2);
+    if (w.length > 3 && /s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
+    return w;
+}
+
+function changeWords(text) {
+    let english = String(text || "");
+    BQ_ZH_WORDS.forEach(([zh, en]) => { if (english.indexOf(zh) !== -1) english += " " + en; });
+    return new Set(significantWords(english).map(foldWord));
+}
+
+function suggestBqForChange(text, bq) {
+    const list = bq || [];
+    const code = findCodeMatch(text, list);
+    if (code) return { item: code, matched: [code.code], score: 1 };
+    const words = changeWords(text);
+    if (words.size === 0) return null;
+    const itemWordsOf = item => Array.from(new Set(significantWords(item.description).map(foldWord)))
+        .filter(w => !/^\d/.test(w) && w.length > 2);   /* sizes and "in"/"to" never decide it */
+    /* the BQ's own words that matched, as the BQ spells them */
+    const shown = (item, folded) => significantWords(item.description).filter(w => folded.indexOf(foldWord(w)) !== -1);
+
+    let best = null;
+    list.forEach(item => {
+        const itemWords = itemWordsOf(item);
+        if (itemWords.length === 0) return;
+        const matched = itemWords.filter(w => words.has(w));
+        const score = matched.length / itemWords.length;
+        if (matched.length < 2 || score < 0.3) return;
+        if (!best || score > best.score || (score === best.score && matched.length > best.matched.length)) {
+            best = { item: item, matched: shown(item, matched), score: score };
+        }
+    });
+    if (best) return best;
+
+    /* One word is enough only when no other BQ item uses it ("door"
+       when the bill has one door item) — and it is marked as weaker. */
+    const counts = {};
+    list.forEach(item => itemWordsOf(item).forEach(w => { counts[w] = (counts[w] || 0) + 1; }));
+    const generic = new Set(["finish", "work", "area", "internal", "external", "match", "new", "item"]);
+    const single = list.map(item => ({ item: item, hit: itemWordsOf(item).filter(w => words.has(w) && counts[w] === 1 && w.length >= 4 && !generic.has(w)) }))
+        .filter(x => x.hit.length === 1);
+    return single.length === 1
+        ? { item: single[0].item, matched: shown(single[0].item, single[0].hit), score: 0.2, weak: true }
+        : null;
+}
+
+/* -----------------------------------------------------------
    Rate cross-check — template.xlsx, consultant sheet:
    "show similar rate / different rate, if different state which rate wrong"
 ----------------------------------------------------------- */
+
+/* Does the description say what the work is? At least one real word:
+   three or more letters with a vowel and not one letter repeated
+   ("vvv", "xxx" fail), or two or more Chinese characters. */
+function describesWork(description) {
+    const text = String(description || "");
+    if (/[\u4e00-\u9fff]{2,}/.test(text)) return true;
+    return (text.toLowerCase().match(/[a-z]+/g) || []).some(w =>
+        w.length >= 3 && /[aeiouy]/.test(w) && !/^(.)\1+$/.test(w));
+}
 
 function checkRate(row, bq) {
     const claimed = Number(row.rate) || 0;
@@ -217,11 +298,34 @@ function checkRate(row, bq) {
     }
 
     if (!item) {
+        /* A star rate is a priced item the bill has nothing comparable
+           for. A row that does not say what it is ("vvv", "x") cannot be
+           checked at all, and a row with no rate has nothing to agree —
+           neither is a star rate, and calling them one would send the
+           QS to negotiate a rate that does not exist. */
+        if (!row.bqItemId && !describesWork(row.description)) {
+            return { state: "unchecked", label: t("rate.unchecked.label"), detail: t("rate.unchecked.detail") };
+        }
+        if (!row.bqItemId && !(claimed > 0)) {
+            return { state: "norate", label: t("rate.norate.label"), detail: t("rate.norate.detail") };
+        }
         return {
             state: "star",
             label: t("rate.star.label"),
             detail: t("rate.star.detail")
         };
+    }
+
+    if (!(claimed !== 0)) {
+        /* matched to a BQ item, but nothing claimed yet */
+        return Object.assign({
+            state: "norate",
+            label: t("rate.norate.label"),
+            detail: t("rate.norate.detailItem", {
+                code: item.code, rate: rm(Number(item.rate) || 0), unit: item.unit,
+                autoNote: auto ? t("rate.autoNote", { basis: auto.basis }) : ""
+            })
+        }, auto ? { autoMatched: true, matchBasis: auto.basis, matchScore: auto.score, matchedItem: item } : {});
     }
 
     const contractRate = Number(item.rate) || 0;
@@ -270,7 +374,9 @@ function rateSummary(vo, bq) {
         rows: rows,
         same: rows.filter(r => r.check.state === "same").length,
         different: rows.filter(r => r.check.state === "different").length,
-        star: rows.filter(r => r.check.state === "star").length
+        star: rows.filter(r => r.check.state === "star").length,
+        unchecked: rows.filter(r => r.check.state === "unchecked").length,
+        norate: rows.filter(r => r.check.state === "norate").length
     };
 }
 
@@ -460,7 +566,13 @@ function analyse(vo, project) {
     if (rates.star > 0) {
         findings.push(t("analysis.finding.rateStar", { n: rates.star }));
     }
-    if (rates.same > 0 && rates.different === 0 && rates.star === 0) {
+    if (rates.unchecked > 0) {
+        findings.push(t("analysis.finding.rateUnchecked", { n: rates.unchecked }));
+    }
+    if (rates.norate > 0) {
+        findings.push(t("analysis.finding.rateNoRate", { n: rates.norate }));
+    }
+    if (rates.same > 0 && rates.different === 0 && rates.star === 0 && rates.unchecked === 0 && rates.norate === 0) {
         findings.push(t("analysis.finding.rateAllSame"));
     }
     if (Math.abs(assessed - claimed) >= 0.01) {
@@ -513,7 +625,7 @@ function analyse(vo, project) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        RATE_TOLERANCE, checkRate, rateSummary, matchBqItem,
+        RATE_TOLERANCE, checkRate, rateSummary, matchBqItem, suggestBqForChange, describesWork,
         classifyVariation, affectedWork, classificationBasis, analyse,
         elementAnalysis
     };

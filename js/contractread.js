@@ -387,25 +387,61 @@ async function contractFileText(name, arrayBuffer) {
    rest of that line (if short), the text runs to the next clause. */
 function splitClauses(text) {
     const lines = String(text || "").split("\n");
+
+    /* A table of contents line: number, title, page number(s) at the end
+       ("11.5 Valuation of Variations and Provisional Sums 14"). Its title
+       is kept as the clean name of that clause; the line itself is not a
+       clause. */
+    const tocLine = /^\s*(\d{1,2}(?:\.\d{1,2})?)\s+([A-Za-z\u2018\u2019'"(][^\n]{2,90}?)[\s.]+(\d{1,3}(?:\s*-\s*\d{1,3})?)\s*$/;
+    const toc = {};
+    lines.forEach(line => {
+        const m = tocLine.exec(line);
+        if (m && !/[.;:,]$/.test(m[2].trim())) toc[m[1]] = m[2].trim();
+    });
+
+    /* A clause head: its number at the start of the line, or after a short
+       capitalised margin heading the scan put on the same line ("Definition
+       of 11.1 The term ..."). A margin heading has no digits and is not the
+       start of a sentence that refers to a clause ("Subject to Clause 7.2"). */
+    const head = /^\s*(?:clause|cl\.|article|art\.|fasal)?\s*(?:([A-Z][A-Za-z\u2018\u2019'&,\-\s]{0,50}?)\s+)?(\d{1,2}(?:\.\d{1,2}){0,2})\.?\s+(\S.*)$/;
+    const sentenceLead = /(clause|clauses|under|see|per|sub-clause)$/i;
     const clauses = [];
     let cur = null;
-    const head = /^\s*(?:clause|cl\.|article|art\.|fasal)?\s*(\d{1,2}(?:\.\d{1,2}){0,2})\.?\s+(\S.*)$/i;
     lines.forEach(line => {
+        if (tocLine.test(line)) return;
         const m = head.exec(line);
-        const looksLikeHeading = m && !/^\d/.test(m[2]) && !/^(days?|months?|weeks?|%|per\b|mm\b|m2?\b|no\b)/i.test(m[2]);
+        const margin = m && m[1] ? m[1].trim() : "";
+        const looksLikeHeading = m &&
+            !/^\d/.test(m[3]) &&
+            !/^(days?|months?|weeks?|%|per\b|mm\b|m2?\b|no\b)/i.test(m[3]) &&
+            (!margin || (margin.split(/\s+/).length <= 6 && !sentenceLead.test(margin) &&
+                         /^[A-Z\u201c"(\u2018']/.test(m[3])));
         if (looksLikeHeading) {
             if (cur) clauses.push(cur);
-            const rest = m[2].trim();
+            const rest = m[3].trim();
             const short = rest.length <= 70 && !/[.;:]$/.test(rest);
-            cur = { no: m[1], title: short ? rest : "", text: short ? "" : rest };
+            cur = {
+                no: m[2],
+                title: toc[m[2]] || (short ? rest : margin),
+                text: short && !toc[m[2]] ? "" : rest
+            };
         } else if (cur) {
             cur.text += (cur.text ? " " : "") + line.trim();
         }
     });
     if (cur) clauses.push(cur);
-    return clauses
-        .map(c => ({ no: c.no, title: c.title, text: c.text.replace(/\s+/g, " ").trim() }))
-        .filter(c => c.title || c.text.length > 20);
+
+    /* the same number twice (a running heading, a repeated page header):
+       keep the fuller one, in first-seen order */
+    const byNo = {};
+    const order = [];
+    clauses.map(c => ({ no: c.no, title: c.title, text: c.text.replace(/\s+/g, " ").trim() }))
+        .filter(c => c.title || c.text.length > 20)
+        .forEach(c => {
+            if (!byNo[c.no]) { byNo[c.no] = c; order.push(c.no); }
+            else if (c.text.length > byNo[c.no].text.length) byNo[c.no] = Object.assign(c, { title: byNo[c.no].title || c.title });
+        });
+    return order.map(no => byNo[no]);
 }
 
 /* ---------------- 3. what the contract says about a variation ---------------- */
@@ -454,7 +490,7 @@ function sentenceEnds(text) {
 
 function contractPeriods(clauses) {
     const out = [];
-    const re = /\b(within|not later than|no later than|not less than|before the expiry of|after)\s+(\d{1,3}|seven|fourteen|twenty[- ]one|twenty[- ]eight|thirty|sixty|ninety)\s*(?:\(\d+\)\s*)?(calendar |working )?days?\b/gi;
+    const re = /\b(within|not later than|no later than|not less than|before the expiry of|after)\s+(?:a\s+further\s+|a\s+period\s+of\s+)?(\d{1,3}|seven|fourteen|twenty[- ]one|twenty[- ]eight|thirty|sixty|ninety)\s*(?:\(\d+\)\s*)?(calendar |working )?days?\b/gi;
     const words = { seven: 7, fourteen: 14, "twenty-one": 21, "twenty one": 21, "twenty-eight": 28, "twenty eight": 28, thirty: 30, sixty: 60, ninety: 90 };
     (clauses || []).forEach(c => {
         const text = c.text || "";
@@ -470,10 +506,16 @@ function contractPeriods(clauses) {
             const from = before === undefined ? 0 : before + 1;
             const sentence = text.slice(from, after === undefined ? text.length : after + 1).trim();
             const shown = sentence.length > 260 ? sentence.slice(0, 257) + "…" : sentence;
-            /* one entry per sentence, however many periods it states */
-            const same = out.find(o => o.clause === c.no && o.sentence === shown);
-            if (same) { if (same.days !== days) same.days = same.days + " / " + days; continue; }
-            out.push({ clause: c.no, days: days, sentence: shown });
+            /* one entry per sentence, however many periods it states; the
+               full sentence and every period in it are kept for working
+               out which clock each one sets (contractClocks) */
+            const same = out.find(o => o.clause === c.no && o.full === sentence);
+            if (same) {
+                same.all.push(days);
+                if (String(same.days).split(" / ").indexOf(String(days)) === -1) same.days = same.days + " / " + days;
+                continue;
+            }
+            out.push({ clause: c.no, days: days, sentence: shown, full: sentence, all: [days] });
         }
     });
     return out;
@@ -492,9 +534,20 @@ function contractClocks(clauses) {
     const out = {};
     const firstNumber = d => parseInt(String(d), 10);
     contractPeriods(clauses).forEach(p => {
-        const s = p.sentence.toLowerCase();
+        const s = (p.full || p.sentence).toLowerCase();
         const days = firstNumber(p.days);
         if (!(days > 0)) return;
+        /* "the QS shall within 28 Days ... require the Contractor to
+           provide further particulars within a further 28 Days": one
+           sentence, two clocks — the request, then the reply */
+        const all = (p.all || [days]).filter(d => d > 0);
+        if (all.length >= 2 && /within a further/.test(s) &&
+            /(further|additional|more)\s+(information|particulars|documents|details)/.test(s) &&
+            new RegExp(CONSULTANT_SIDE + "[^.]{0,40}\\b(shall|must|may)\\b").test(s)) {
+            if (!out.infoRequest) out.infoRequest = { days: all[0], clause: p.clause };
+            if (!out.response) out.response = { days: all[1], clause: p.clause };
+            return;
+        }
         const consultantShall = new RegExp(CONSULTANT_SIDE + "[^.]{0,40}\\b(shall|must|may)\\b").test(s);
         const furtherInfo = /(further|additional|more)\s+(information|particulars|documents|details)/.test(s);
         const asksInfo = furtherInfo && /\b(request|require|ask)/.test(s);
@@ -570,7 +623,12 @@ function contractAnalysis(vo, project) {
     const docs = contractSourceDocs(project, vo);
     if (docs.length === 0) return { state: "none", docs: [] };
     const readings = (project && project.contractReadings) || {};
-    const done = docs.map(d => readings[d.id]).filter(Boolean);
+    /* The VO's own contract basis, once it has readable clauses, is the
+       contract for this VO — the project's documents are not mixed in.
+       Otherwise the project's contract documents are. */
+    const ownIds = ((vo && vo.contractDocs) || []).map(d => d.id);
+    const ownRead = ownIds.map(id => readings[id]).filter(r => r && (r.clauses || []).length);
+    const done = ownRead.length ? ownRead : docs.map(d => readings[d.id]).filter(Boolean);
     const unread = docs.filter(d => !readings[d.id]);
     if (done.length === 0) return { state: "unread", docs: docs, unread: unread };
 
