@@ -2871,3 +2871,20 @@ a.secondary-button[hidden] { display: none; }
 .bq-origin { color: #0b5a63; margin-top: 6px; }
 @media print { .past-rates-add { display: none; } }
 .past-rates-list li .past-src { grid-area: src; }
+
+/* ---------- this project's contract (js/contractread.js) ---------- */
+.contract-heading { font-size: 12px; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+.contract-block { border: 1px solid #c9d3f0; border-left: 4px solid var(--accent); border-radius: 8px; padding: 12px 14px; background: #f5f7fd; }
+.contract-source { font-size: 12px; font-weight: 700; color: var(--accent-press); margin-bottom: 8px; }
+.contract-clause { padding: 8px 0; border-top: 1px dashed #c9d3f0; }
+.contract-clause:first-of-type { border-top: none; padding-top: 0; }
+.contract-clause-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 13px; }
+.contract-topic { font-size: 11px; font-weight: 700; color: var(--accent-press); background: #dfe6ff; padding: 2px 8px; border-radius: 999px; }
+.contract-clause blockquote { margin: 6px 0 0; padding: 0 0 0 10px; border-left: 2px solid #c9d3f0; font-size: 13px; line-height: 1.55; color: var(--ink-2); font-style: italic; }
+.contract-periods { margin-top: 10px; font-size: 13px; }
+.contract-periods ul { margin: 6px 0 0; padding-left: 18px; }
+.contract-periods li { margin: 3px 0; color: var(--ink-2); }
+.contract-periods li b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.contract-reading { color: var(--accent); font-weight: 600; }
+.contract-missing { background: var(--paper-warm); border-left: 3px solid #d4a72c; padding: 8px 10px; border-radius: 6px; }
+.contract-reread-btn { margin-top: 6px; font-size: 12px; }

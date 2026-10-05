@@ -4,6 +4,7 @@
    numbers — every output traces to data the user entered. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
+    var { contractAnalysis } = require("./contractread.js");
     var { rm, contractorTotal, assessedTotal } = require("./calc.js");
     var { matchClause } = require("./clauses.js");
     var { detectElements, relatedElements } = require("./elements.js");
@@ -431,6 +432,10 @@ function analyse(vo, project) {
     const clause = matchClause(classification.id);
     const rates = rateSummary(vo, bq);
     const elements = elementAnalysis(vo);
+    /* the project's own contract, when one has been uploaded and read
+       (js/contractread.js); the bundled `clause` stays as the
+       standard-form reference */
+    const contract = typeof contractAnalysis === "function" ? contractAnalysis(vo, project) : null;
 
     const claimed = contractorTotal(vo);
     const assessed = assessedTotal(vo);
@@ -455,6 +460,18 @@ function analyse(vo, project) {
     if (!clause) {
         findings.push(t("analysis.finding.unclassified"));
     }
+    if (contract && contract.state === "read") {
+        const valuation = contract.topics.find(tp => tp.id === "valuation" && tp.clause);
+        if (valuation && (rates.star > 0 || rates.different > 0)) {
+            findings.push(t("analysis.finding.contractValuation", { no: valuation.clause.no, doc: valuation.clause.docName }));
+        }
+        const notice = contract.topics.find(tp => tp.id === "notice" && tp.clause);
+        if (notice && Number(vo.timeImpact) > 0) {
+            findings.push(t("analysis.finding.contractNotice", { no: notice.clause.no }));
+        }
+    } else if (contract && contract.state === "none") {
+        findings.push(t("analysis.finding.contractNone"));
+    }
     if ((vo.measurement || []).length === 0) {
         findings.push(t("analysis.finding.noMeasurement"));
     }
@@ -472,6 +489,7 @@ function analyse(vo, project) {
     return {
         classification: classification,
         clause: clause,
+        contract: contract,
         rates: rates,
         contractorTotal: claimed,
         assessedTotal: assessed,

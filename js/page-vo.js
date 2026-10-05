@@ -9,6 +9,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { deadlinesFor, INFO_RESPONSE_DAYS, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate } = require("./ratehistory.js");
+    var { renderContractBlock } = require("./contractread.js");
     var { t } = require("./i18n.js");
 }
 
@@ -298,12 +299,26 @@ function renderAssessmentPanel(vo, project, role) {
           '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>"
         : '<p class="rate-detail">' + escapeHtml(t("vo.result.noClause")) + "</p>";
 
+    /* This project's own contract leads when it has been read; the
+       bundled standard-form clause then follows as a reference. */
+    const contract = a.contract;
+    const contractRead = contract && contract.state === "read";
+    const contractBlock = contract
+        ? '<h4 class="contract-heading">' + escapeHtml(t("contract.title")) + "</h4>" +
+          renderContractBlock(contract) +
+          (contract.state === "read" || contract.state === "noText"
+              ? '<button type="button" class="link-button contract-reread-btn">' + escapeHtml(t("contract.reread")) + "</button>"
+              : "")
+        : "";
+
     return '' +
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.classification")) + '</span>' +
             '<span class="result-value">' + escapeHtml(a.classification.label) + "</span></div>" +
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.affectedWork")) + '</span>' +
             '<span class="result-value">' + escapeHtml(a.classification.affectedWork) + "</span></div>" +
         renderElementsBlock(a) +
+        contractBlock +
+        (contractRead ? '<h4 class="contract-heading">' + escapeHtml(t("contract.standardForm")) + "</h4>" : "") +
         clauseBlock +
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.contractorClaimed")) + '</span>' +
             '<span class="result-value">' + rm(a.contractorTotal) + "</span></div>" +
@@ -613,6 +628,11 @@ if (typeof document !== "undefined") {
                 renderMeasurementRows(v, fresh, role, pastRateSources(loadDB(), project.id));
             document.getElementById("assessmentPanel").innerHTML =
                 renderAssessmentPanel(v, fresh, role);
+            /* The contract is read once, the first time it is needed;
+               the panel redraws when the reading is in. */
+            if (typeof ensureContractReadings === "function") {
+                ensureContractReadings(project.id, v).then(changed => { if (changed) draw(); });
+            }
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
 
             document.getElementById("assistantPanel").innerHTML =
@@ -776,6 +796,14 @@ if (typeof document !== "undefined") {
                     (suggestion ? ", based on " + suggestion.count + " past project rate(s)" : ""));
             });
             if (code) toast(t("vo.past.added", { code: code }));
+            draw();
+        });
+
+        document.getElementById("assessmentPanel").addEventListener("click", e => {
+            if (!e.target.closest(".contract-reread-btn")) return;
+            const fresh = getProject(project.id);
+            const v = fresh.vos.find(x => x.id === voId);
+            forgetContractReadings(project.id, contractSourceDocs(fresh, v).map(d => d.id));
             draw();
         });
 

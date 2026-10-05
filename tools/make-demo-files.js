@@ -38,6 +38,7 @@ const css = `
   .sign div { border-top: 1px solid #161d2e; padding-top: 6px; }
   .titleblock { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; border: 2px solid #161d2e; margin-top: 10px; }
   .titleblock div { border-left: 1px solid #161d2e; padding: 6px 8px; } .titleblock div:first-child { border-left: none; }
+  p.clause { margin: 0 0 10px; line-height: 1.45; }
   .titleblock small { display: block; color: #4b5568; font-size: 9px; text-transform: uppercase; }
 `;
 const banner = `<div class="demo">VO-AI DEMO SAMPLE — illustrates the demo project only; not a real project document · 示范文件,非真实项目文件</div>`;
@@ -91,6 +92,20 @@ const docs = {
       <p>Variations are instructed by the Architect and valued under the Conditions of Contract: at Contract Bills rates where the work is of similar character and executed under similar conditions, and otherwise at rates agreed (star rates) supported by quotations or build-ups.</p>
       <p class="muted">The Conditions of Contract are the published PAM 2018 standard form and are not reproduced in this demo.</p>
       <div class="sign"><div>For the Employer</div><div>For the Contractor</div></div>`),
+
+    "conditions-of-contract-demo.pdf": wrap(`
+      <h1>Conditions of Contract — demo extract</h1><div class="muted">${PROJECT} · Contract ABC/2026/014 · written for the VO-AI demo in the style of a building contract; not the text of PAM 2018 or any published form</div>
+      <h2>11. Variations</h2>
+      <p class="clause"><b>11.1 Meaning of Variation</b><br>In these Conditions a Variation means a change to the design, quality or quantity of the Works shown in the Contract Documents, including the addition, omission or substitution of any work, materials or goods, instructed in writing by the Architect.</p>
+      <p class="clause"><b>11.2 Instructions for Variations</b><br>The Architect may issue instructions requiring a Variation and the Contractor shall comply with them. An oral instruction shall be confirmed in writing by the Contractor within 7 days, and takes effect as an instruction unless the Architect dissents in writing within 7 days of receiving the confirmation.</p>
+      <p class="clause"><b>11.3 Valuation of Variations</b><br>Variations shall be measured and valued by the Quantity Surveyor. Work of similar character executed under similar conditions to work priced in the Contract Bills shall be valued at the Contract Bills rates. Where the work is not of similar character or is not executed under similar conditions, the Contract Bills rates shall be the basis of a fair valuation. Where there are no comparable rates, the work shall be valued at fair rates agreed between the Quantity Surveyor and the Contractor, supported by quotations or rate build-ups. An omission shall be valued at the Contract Bills rates.</p>
+      <p class="clause"><b>11.4 Submission of Variation Claims</b><br>The Contractor shall submit to the Quantity Surveyor all documents necessary for the valuation of a Variation, including measurements, quotations and rate build-ups, within 28 days of completing the varied work. The Quantity Surveyor may request further information, which the Contractor shall provide within 28 days of the request.</p>
+      <p class="clause"><b>11.5 Period for Valuation</b><br>The Quantity Surveyor shall complete the valuation of a Variation within 30 days of receiving the documents required under Clause 11.4, and the value so ascertained shall be included in the next Interim Certificate.</p>
+      <h2>23. Extension of Time</h2>
+      <p class="clause"><b>23.1 Notice of Delay</b><br>If the Contractor considers that the completion of the Works is or will be delayed by a Relevant Event, including a Variation, the Contractor shall give written notice to the Architect within 28 days of the start of the delay, stating the cause and its likely effect on completion. A Contractor who fails to give notice within that period shall not be entitled to an extension of time for that event.</p>
+      <p class="clause"><b>23.2 Particulars and Decision</b><br>The Contractor shall submit full particulars of the claim for extension of time, with an updated programme showing the critical path before and after the event, within 28 days after the end of the delay. The Architect shall grant a fair and reasonable extension of time, or give reasons for refusing one, within 6 weeks of receiving the particulars.</p>
+      <h2>30. Certificates and Payment</h2>
+      <p class="clause"><b>30.1 Interim Certificates</b><br>The Architect shall issue Interim Certificates at monthly intervals, stating the value of work properly executed including the value of Variations ascertained under Clause 11.5. The Employer shall pay the amount certified within 30 days of the date of the certificate.</p>`),
 
     "bills-of-quantities-priced.pdf": wrap(`
       <h1>Bills of Quantities (Priced) — extract</h1><div class="muted">${PROJECT} · Contract ABC/2026/014 · the items VO-AI cross-checks rates against</div>

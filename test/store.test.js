@@ -286,3 +286,12 @@ test("demo data is dated relative to today so its clocks are not long overdue", 
     /* the fixed seed the other tests rely on is untouched */
     assert.strictEqual(seedDB().projects[0].vos[1].dateIssued, "2026-07-15");
 });
+
+test("a register saved before the demo conditions of contract existed gets it added, once", () => {
+    const { upgradeDemo } = require("../js/store.js");
+    const old = seedDB();
+    old.projects[0].documents = old.projects[0].documents.filter(d => d.id !== "D3");
+    const up = upgradeDemo(old);
+    assert.strictEqual(up.projects[0].documents.filter(d => d.id === "D3").length, 1);
+    assert.strictEqual(upgradeDemo(up).projects[0].documents.filter(d => d.id === "D3").length, 1);
+});

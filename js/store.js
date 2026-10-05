@@ -98,12 +98,25 @@ function loadDB() {
         return fresh;
     }
     try {
-        return JSON.parse(raw);
+        return upgradeDemo(JSON.parse(raw));
     } catch (e) {
         const fresh = demoDB(today());
         saveDB(fresh);
         return fresh;
     }
+}
+
+/* A register saved before the demo project had its conditions of
+   contract (D3) gets it added, so the contract-based analysis
+   (js/contractread.js) works there too. Touches only the demo project. */
+function upgradeDemo(db) {
+    const demo = db && (db.projects || []).find(p => p.id === "PRJ-CADANGAN");
+    if (demo && !(demo.documents || []).some(d => d.id === "D3")) {
+        const d3 = seedDB().projects[0].documents.find(d => d.id === "D3");
+        demo.documents = (demo.documents || []).concat([d3]);
+        saveDB(db);
+    }
+    return db;
 }
 
 /* The demo data the browser starts from: seedDB(), with each seeded VO's
@@ -446,6 +459,7 @@ function updateVO(projectId, voId, mutator) {
 var DEMO_FILES = {
     D1: "demo-files/contract-agreement-pam2018.pdf",
     D2: "demo-files/bills-of-quantities-priced.pdf",
+    D3: "demo-files/conditions-of-contract-demo.pdf",
     F1: "demo-files/A-201-revC-floor-finishes.pdf",
     F2: "demo-files/A-201-revB-floor-finishes.pdf",
     F3: "demo-files/marble-supplier-quotation.pdf",
@@ -482,7 +496,8 @@ function seedDB() {
             bq: bq,
             documents: [
                 { id: "D1", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.D1, category: "contract", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:10:00Z" },
-                { id: "D2", name: "Bills of Quantities (Priced).pdf", size: 80132, url: DEMO_FILES.D2, category: "bq", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:14:00Z" }
+                { id: "D2", name: "Bills of Quantities (Priced).pdf", size: 80132, url: DEMO_FILES.D2, category: "bq", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:14:00Z" },
+                { id: "D3", name: "Conditions of Contract (demo extract).pdf", size: 84703, url: DEMO_FILES.D3, category: "contract", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:12:00Z" }
             ],
             vos: [
                 {
@@ -613,7 +628,7 @@ function seedDB() {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         DB_KEY, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
-        loadDB, saveDB, resetDB, demoDB, shiftIsoDays, DEMO_FILES,
+        loadDB, saveDB, resetDB, demoDB, upgradeDemo, shiftIsoDays, DEMO_FILES,
         getSession, setSession, clearSession,
         isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,
         passcodeSupported,

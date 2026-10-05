@@ -75,6 +75,17 @@ standard forms — returning the entitlement the clause creates and the evidence
 must produce. Where a description is too vague to classify, it says so rather than offering a
 clause it cannot support.
 
+**Analysed against this project's own contract.** The contract uploaded for the project (on the
+Documents screen, or as a VO's contract basis) is **read by VO-AI itself**: PDF, Word (.docx) or
+text, with no PDF library. It is split into its numbered clauses, and each variation is
+analysed against them. VO-AI finds the clauses on what a variation is, how it is valued,
+extension of time and notice, **quotes them word for word**, and lists every period of days the
+contract states ("within 28 days ..."). Findings cite the clause by number, e.g. "valued under
+Clause 11.3 of this project's contract". The standard-form clause stays below as a reference. A
+scanned PDF with no text is reported as such. The demo project carries a short *Conditions of
+Contract* written for the demo, not the PAM text. This is keyword retrieval for a professional to
+read, and the screen says it is not legal advice.
+
 ### Element-based consequential measurement
 
 A change rarely stops at the element named in the instruction. Substituting a block wall for a
@@ -109,7 +120,7 @@ retained. A project-wide Documents view shows the whole evidence trail.
 **Every document opens.** Click a file name to open it — from the VO, the
 Documents page or the report. An uploaded file is kept in the browser (IndexedDB), so it opens
 on the computer it was uploaded from. The demo project's documents — drawings A-201 Rev B/C and
-C-104, the marble supplier quotation, engineer's instruction EI-008, a site photo, the contract
+C-104, the marble supplier quotation, the demo conditions of contract, engineer's instruction EI-008, a site photo, the contract
 particulars and the priced BQ — are sample files in `demo-files/`, served with the app, so they
 open on any computer. Each is marked as a demo sample.
 

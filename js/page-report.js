@@ -2,6 +2,7 @@
    all-VO summary report. Both print cleanly via window.print(). */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
+    var { renderContractBlock } = require("./contractread.js");
     var { rm, today, prettyDate, contractorTotal, assessedTotal, voValue } = require("./calc.js");
     var { analyse, checkRate } = require("./analysis.js");
     var { escapeHtml, logoMark, fileLink } = require("./ui.js");
@@ -170,6 +171,11 @@ function renderReport(vo, project, role) {
             "<strong>" + escapeHtml(t("clause.evidenceRequired")) + "</strong> " + escapeHtml(a.clause.evidence) + "</p>" +
             '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>"
         : '<p class="rate-detail">' + escapeHtml(t("report.clause.none")) + "</p>";
+    /* the project's own contract, quoted, ahead of the standard form */
+    const contractBlock = a.contract && a.contract.state !== "unread"
+        ? renderContractBlock(a.contract) +
+          (a.contract.state === "read" ? "<p><strong>" + escapeHtml(t("contract.standardForm")) + "</strong></p>" : "")
+        : "";
 
     let measurementBody, totalsHtml;
     if (role === "client") {
@@ -218,7 +224,7 @@ function renderReport(vo, project, role) {
         }) + "</p>" +
       elementsBlock(a) +
 
-      "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + clauseBlock +
+      "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + contractBlock + clauseBlock +
       docSection(vo.contractDocs, t("report.docLabel.contractDocs")) +
 
       "<h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) +
@@ -381,9 +387,14 @@ if (typeof document !== "undefined") {
                     return;
                 }
                 picker.hidden = false;
-                const vo = (project.vos || []).find(v => v.id === picker.value) || project.vos[0];
+                const fresh = getProject(project.id) || project;
+                const vo = (fresh.vos || []).find(v => v.id === picker.value) || fresh.vos[0];
                 if (!vo) { host.innerHTML = '<div class="empty-state">' + escapeHtml(t("report.noVos")) + '</div>'; return; }
-                host.innerHTML = renderReport(vo, project, role);
+                host.innerHTML = renderReport(vo, fresh, role);
+                /* the contract is read once; redraw when it is in */
+                if (typeof ensureContractReadings === "function") {
+                    ensureContractReadings(project.id, vo).then(changed => { if (changed) render(); });
+                }
             } catch (err) {
                 console.error("VO-AI: the report could not be built.", err);
                 host.innerHTML = '<div class="report-error">' +
