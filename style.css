@@ -3062,3 +3062,11 @@ td.nowrap, .nowrap { white-space: nowrap; }
 #vaOriginalItem.auto-matched { border-color: var(--verdict-same); background: #f2faf5; }
 .auto-match-hint { margin-top: 6px; font-size: 12.5px; color: var(--verdict-same); font-weight: 600; }
 .auto-match-hint.weak { color: #9a5b00; }
+
+/* Rate checks that are not a verdict: nothing to check, or nothing claimed. */
+.rate-flag.unchecked { background: #e6e9ef; color: #4a5266; }
+.rate-flag.norate    { background: #fdecc8; color: #8a4b00; }
+.row-verdict-unchecked { color: #4a5266; }
+.row-verdict-norate { color: #8a4b00; }
+/* A flag beside wrapping text keeps its own size, never stretches. */
+.finding > .rate-flag { align-self: flex-start; flex-shrink: 0; }

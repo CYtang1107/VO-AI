@@ -38,6 +38,8 @@ function rateFlags(vo, project) {
     if (s.same) bits.push('<span class="rate-flag same">' + escapeHtml(t("register.rate.same", { n: s.same })) + "</span>");
     if (s.different) bits.push('<span class="rate-flag different">' + escapeHtml(t("register.rate.different", { n: s.different })) + "</span>");
     if (s.star) bits.push('<span class="rate-flag star">' + escapeHtml(t("register.rate.star", { n: s.star })) + "</span>");
+    if (s.norate) bits.push('<span class="rate-flag norate">' + escapeHtml(t("register.rate.norate", { n: s.norate })) + "</span>");
+    if (s.unchecked) bits.push('<span class="rate-flag unchecked">' + escapeHtml(t("register.rate.unchecked", { n: s.unchecked })) + "</span>");
     return bits.join(" ") || "—";
 }
 

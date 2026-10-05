@@ -270,6 +270,16 @@ function suggestBqForChange(text, bq) {
    "show similar rate / different rate, if different state which rate wrong"
 ----------------------------------------------------------- */
 
+/* Does the description say what the work is? At least one real word:
+   three or more letters with a vowel and not one letter repeated
+   ("vvv", "xxx" fail), or two or more Chinese characters. */
+function describesWork(description) {
+    const text = String(description || "");
+    if (/[\u4e00-\u9fff]{2,}/.test(text)) return true;
+    return (text.toLowerCase().match(/[a-z]+/g) || []).some(w =>
+        w.length >= 3 && /[aeiouy]/.test(w) && !/^(.)\1+$/.test(w));
+}
+
 function checkRate(row, bq) {
     const claimed = Number(row.rate) || 0;
     const list = bq || [];
@@ -288,11 +298,34 @@ function checkRate(row, bq) {
     }
 
     if (!item) {
+        /* A star rate is a priced item the bill has nothing comparable
+           for. A row that does not say what it is ("vvv", "x") cannot be
+           checked at all, and a row with no rate has nothing to agree —
+           neither is a star rate, and calling them one would send the
+           QS to negotiate a rate that does not exist. */
+        if (!row.bqItemId && !describesWork(row.description)) {
+            return { state: "unchecked", label: t("rate.unchecked.label"), detail: t("rate.unchecked.detail") };
+        }
+        if (!row.bqItemId && !(claimed > 0)) {
+            return { state: "norate", label: t("rate.norate.label"), detail: t("rate.norate.detail") };
+        }
         return {
             state: "star",
             label: t("rate.star.label"),
             detail: t("rate.star.detail")
         };
+    }
+
+    if (!(claimed !== 0)) {
+        /* matched to a BQ item, but nothing claimed yet */
+        return Object.assign({
+            state: "norate",
+            label: t("rate.norate.label"),
+            detail: t("rate.norate.detailItem", {
+                code: item.code, rate: rm(Number(item.rate) || 0), unit: item.unit,
+                autoNote: auto ? t("rate.autoNote", { basis: auto.basis }) : ""
+            })
+        }, auto ? { autoMatched: true, matchBasis: auto.basis, matchScore: auto.score, matchedItem: item } : {});
     }
 
     const contractRate = Number(item.rate) || 0;
@@ -341,7 +374,9 @@ function rateSummary(vo, bq) {
         rows: rows,
         same: rows.filter(r => r.check.state === "same").length,
         different: rows.filter(r => r.check.state === "different").length,
-        star: rows.filter(r => r.check.state === "star").length
+        star: rows.filter(r => r.check.state === "star").length,
+        unchecked: rows.filter(r => r.check.state === "unchecked").length,
+        norate: rows.filter(r => r.check.state === "norate").length
     };
 }
 
@@ -531,7 +566,13 @@ function analyse(vo, project) {
     if (rates.star > 0) {
         findings.push(t("analysis.finding.rateStar", { n: rates.star }));
     }
-    if (rates.same > 0 && rates.different === 0 && rates.star === 0) {
+    if (rates.unchecked > 0) {
+        findings.push(t("analysis.finding.rateUnchecked", { n: rates.unchecked }));
+    }
+    if (rates.norate > 0) {
+        findings.push(t("analysis.finding.rateNoRate", { n: rates.norate }));
+    }
+    if (rates.same > 0 && rates.different === 0 && rates.star === 0 && rates.unchecked === 0 && rates.norate === 0) {
         findings.push(t("analysis.finding.rateAllSame"));
     }
     if (Math.abs(assessed - claimed) >= 0.01) {
@@ -584,7 +625,7 @@ function analyse(vo, project) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        RATE_TOLERANCE, checkRate, rateSummary, matchBqItem, suggestBqForChange,
+        RATE_TOLERANCE, checkRate, rateSummary, matchBqItem, suggestBqForChange, describesWork,
         classifyVariation, affectedWork, classificationBasis, analyse,
         elementAnalysis
     };

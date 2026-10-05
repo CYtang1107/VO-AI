@@ -35,7 +35,7 @@ function answerRateFlag(context) {
     const bq = (context.project && context.project.bq) || [];
     const summary = rateSummary(vo, bq);
     const flagged = summary.rows.filter(r =>
-        r.check.state === "different" || r.check.state === "star");
+        r.check.state !== "same");
 
     const lines = flagged.length === 0
         ? [t("assistant.rateFlag.allMatch")]
@@ -44,6 +44,9 @@ function answerRateFlag(context) {
             const claimedRate = rm(Number(row.rate) || 0);
             const desc = row.description || t("assistant.noDescription");
             const unit = row.unit || t("assistant.unit");
+            if (check.state === "unchecked" || check.state === "norate") {
+                return desc + " — " + check.detail;
+            }
             if (check.state === "star") {
                 return t("assistant.rateFlag.star", { desc: desc, claimedRate: claimedRate, unit: unit, detail: check.detail });
             }

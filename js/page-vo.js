@@ -200,6 +200,8 @@ function rowSummary(check, linkedItem, suggestion) {
             diff: rm(Math.abs(check.diff)),
             pct: check.pct === null || check.pct === undefined ? "" : t("rate.pctNote", { pct: Math.abs(check.pct).toFixed(1) })
         });
+    } else if (check.state === "unchecked" || check.state === "norate") {
+        text = t("vo.row." + check.state);
     } else {
         text = suggestion
             ? t("vo.row.starPast", { rate: rm(suggestion.rate), unit: suggestion.matches[0].unit })

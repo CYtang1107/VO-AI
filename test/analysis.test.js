@@ -50,7 +50,7 @@ test("an understated rate is flagged as understated", () => {
 });
 
 test("a row with no BQ link is a star rate", () => {
-    const c = checkRate({ bqItemId: null, qty: 320, rate: 265 }, bq);
+    const c = checkRate({ bqItemId: null, description: "Add marble floor tiles 600x600mm", qty: 320, rate: 265 }, bq);
     assert.strictEqual(c.state, "star");
     assert.match(c.detail, /star rate/i);
 });
@@ -63,7 +63,7 @@ test("a row linked to a deleted BQ item is a star rate, not a crash", () => {
 test("rateSummary counts each state across the VO", () => {
     const vo = { measurement: [
         { bqItemId: "BQ1", qty: -320, rate: 85 },
-        { bqItemId: null,  qty: 320,  rate: 265 },
+        { bqItemId: null,  description: "Add marble floor tiles", qty: 320,  rate: 265 },
         { bqItemId: "BQ2", qty: 168,  rate: 31 }
     ] };
     const s = rateSummary(vo, bq);
@@ -310,4 +310,24 @@ test("the original BQ item is picked from a described change, in English or Chin
     assert.strictEqual(weak.weak, true);
     assert.deepStrictEqual(suggestBqForChange("Change internal partition from plastered wall to brick wall", bq).matched,
         ["plaster", "internal", "walls"]);
+});
+
+test("a row that does not say what it is cannot be checked; a described row with no rate has no rate — neither is a star rate", () => {
+    const { describesWork } = require("../js/analysis.js");
+    for (const junk of ["vvv", "x", "", "  ", "123", "aaa bbb"]) {
+        assert.strictEqual(checkRate({ bqItemId: null, description: junk, qty: 1, rate: 500 }, bq).state, "unchecked", junk);
+        assert.strictEqual(describesWork(junk), false, junk);
+    }
+    assert.strictEqual(describesWork("砖墙"), true);
+    assert.strictEqual(checkRate({ bqItemId: null, description: "Solar water heater 300 litre", qty: 1, rate: 0 }, bq).state, "norate");
+    assert.strictEqual(checkRate({ bqItemId: null, description: "Solar water heater 300 litre", qty: 1, rate: 4200 }, bq).state, "star");
+    /* matched to a BQ item but nothing claimed yet: no rate, with the BQ rate for reference */
+    const linked = checkRate({ bqItemId: "BQ1", description: "", qty: 10, rate: "" }, bq);
+    assert.strictEqual(linked.state, "norate");
+    assert.match(linked.detail, /B\/4\.1/);
+    const s = rateSummary({ measurement: [
+        { bqItemId: null, description: "vvv", qty: 1, rate: 9 },
+        { bqItemId: null, description: "Solar water heater", qty: 1, rate: 0 }
+    ] }, bq);
+    assert.deepStrictEqual([s.unchecked, s.norate, s.star], [1, 1, 0]);
 });
