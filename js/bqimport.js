@@ -520,6 +520,9 @@ if (typeof module !== "undefined" && module.exports) {
         detectColumns: detectColumns,
         extractItems: extractItems,
         parseSheetXml: parseSheetXml,
-        parseSharedStrings: parseSharedStrings
+        parseSharedStrings: parseSharedStrings,
+        bqReadZipEntries: bqReadZipEntries,
+        bqFindEntry: bqFindEntry,
+        bqExtractEntryBytes: bqExtractEntryBytes
     };
 }

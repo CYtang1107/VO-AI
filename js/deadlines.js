@@ -23,6 +23,31 @@ var EVALUATION_DAYS = 30;    /* consultant: evaluate the VO, from dateIssued */
 var INFO_REQUEST_DAYS = 28;  /* consultant: request further info, from dateIssued (our interpretation) */
 var INFO_RESPONSE_DAYS = 28; /* contractor: respond to that request, from the request date */
 
+/* The periods for one VO: the project's own contract where it states
+   them (read by js/contractread.js and kept on the project as
+   contractReadings[docId].clocks), the defaults above otherwise.
+   The VO's own contract basis is preferred to the project's contract.
+   -> { evaluation: {days, clause, doc} | {days}, infoRequest, response } */
+function clockPeriods(vo, project) {
+    const readings = (project && project.contractReadings) || {};
+    const ids = ((vo && vo.contractDocs) || []).map(d => d.id)
+        .concat(((project && project.documents) || []).filter(d => d.category === "contract").map(d => d.id));
+    const found = {};
+    ids.forEach(id => {
+        const r = readings[id];
+        const clocks = r && r.clocks;
+        if (!clocks) return;
+        Object.keys(clocks).forEach(k => {
+            if (!found[k]) found[k] = { days: clocks[k].days, clause: clocks[k].clause, doc: r.docName };
+        });
+    });
+    return {
+        evaluation: found.evaluation || { days: EVALUATION_DAYS },
+        infoRequest: found.infoRequest || { days: INFO_REQUEST_DAYS },
+        response: found.response || { days: INFO_RESPONSE_DAYS }
+    };
+}
+
 /* ---------- UTC-safe date arithmetic ---------- */
 
 /* "YYYY-MM-DD" -> UTC epoch millis at midnight. Never uses new Date(iso)
@@ -69,8 +94,9 @@ function stateFromDays(daysRemaining) {
    state, satisfied, note }]
    `today` is an ISO "YYYY-MM-DD" string supplied by the caller — this
    function never calls new Date() itself, so it is deterministic. */
-function deadlinesFor(vo, todayIso) {
+function deadlinesFor(vo, todayIso, project) {
     vo = vo || {};
+    const periods = clockPeriods(vo, project);
     const hasIssued = !!vo.dateIssued;
     const evalSatisfied = vo.evaluateStatus === "Approved" || vo.evaluateStatus === "Rejected";
     const items = [];
@@ -78,7 +104,7 @@ function deadlinesFor(vo, todayIso) {
     /* Clock 1: evaluation — consultant, from dateIssued, 30 days. */
     let evalDue = null, evalDays = null, evalNote = "";
     if (hasIssued) {
-        evalDue = addDays(vo.dateIssued, EVALUATION_DAYS);
+        evalDue = addDays(vo.dateIssued, periods.evaluation.days);
         evalDays = daysBetween(todayIso, evalDue);
     } else {
         evalNote = t("deadline.note.notStarted");
@@ -86,6 +112,7 @@ function deadlinesFor(vo, todayIso) {
     if (evalSatisfied) evalNote = t("deadline.note.evalCompleted", { status: t("status." + vo.evaluateStatus, {}) });
     items.push({
         id: "evaluation",
+        period: periods.evaluation,
         label: t("deadline.evaluation"),
         owner: "consultant",
         dueDate: evalDue,
@@ -102,19 +129,20 @@ function deadlinesFor(vo, todayIso) {
     if (vo.infoRequestedAt) {
         reqSatisfied = true;
         reqNote = t("deadline.note.reqMade", { date: vo.infoRequestedAt });
-        reqDue = hasIssued ? addDays(vo.dateIssued, INFO_REQUEST_DAYS) : null;
+        reqDue = hasIssued ? addDays(vo.dateIssued, periods.infoRequest.days) : null;
     } else if (evalSatisfied) {
         reqSatisfied = true;
         reqNote = t("deadline.note.reqMoot");
-        reqDue = hasIssued ? addDays(vo.dateIssued, INFO_REQUEST_DAYS) : null;
+        reqDue = hasIssued ? addDays(vo.dateIssued, periods.infoRequest.days) : null;
     } else if (hasIssued) {
-        reqDue = addDays(vo.dateIssued, INFO_REQUEST_DAYS);
+        reqDue = addDays(vo.dateIssued, periods.infoRequest.days);
         reqDays = daysBetween(todayIso, reqDue);
     } else {
         reqNote = t("deadline.note.notStarted");
     }
     items.push({
         id: "info-request",
+        period: periods.infoRequest,
         label: t("deadline.infoRequest"),
         owner: "consultant",
         dueDate: reqDue,
@@ -132,7 +160,7 @@ function deadlinesFor(vo, todayIso) {
     if (!vo.infoRequestedAt) {
         resNote = t("deadline.note.resNotRequested");
     } else {
-        resDue = addDays(vo.infoRequestedAt, INFO_RESPONSE_DAYS);
+        resDue = addDays(vo.infoRequestedAt, periods.response.days);
         const docs = [].concat(vo.revisedDrawing || [], vo.oldDrawing || [], vo.supportingDocs || [], vo.contractDocs || []);
         resSatisfied = docs.some(d => d && d.at && d.at >= vo.infoRequestedAt);
         if (resSatisfied) {
@@ -143,6 +171,7 @@ function deadlinesFor(vo, todayIso) {
     }
     items.push({
         id: "response",
+        period: periods.response,
         label: t("deadline.response"),
         owner: "contractor",
         dueDate: resDue,
@@ -168,7 +197,7 @@ function deadlineSummary(project, role, todayIso) {
     const vos = (project && project.vos) || [];
     const items = [];
     vos.forEach(vo => {
-        deadlinesFor(vo, todayIso).forEach(d => {
+        deadlinesFor(vo, todayIso, project).forEach(d => {
             if (d.owner !== role) return;
             items.push(Object.assign({ voId: vo.id, voNo: vo.no }, d));
         });
@@ -190,6 +219,6 @@ function deadlineSummary(project, role, todayIso) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         EVALUATION_DAYS, INFO_REQUEST_DAYS, INFO_RESPONSE_DAYS,
-        addDays, daysBetween, deadlinesFor, deadlineSummary
+        addDays, daysBetween, deadlinesFor, deadlineSummary, clockPeriods
     };
 }

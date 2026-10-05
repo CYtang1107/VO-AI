@@ -2,7 +2,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, voValue, projectStats, today } = require("./calc.js");
-    var { statusPill, escapeHtml } = require("./ui.js");
+    var { statusPill, escapeHtml, seedText } = require("./ui.js");
     var { deadlineSummary } = require("./deadlines.js");
     var { t } = require("./i18n.js");
 }
@@ -95,10 +95,10 @@ function renderRecentRows(vos) {
 
     return sorted.slice(0, 6).map(v =>
         '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
-            "<td><strong class=\"item-code\">" + escapeHtml(v.no) + "</strong></td>" +
-            "<td>" + escapeHtml(v.description || "—") + "</td>" +
-            "<td>" + prettyDate(v.dateIssued) + "</td>" +
-            "<td>" + rm(voValue(v)) + "</td>" +
+            '<td class="nowrap"><strong class="item-code">' + escapeHtml(v.no) + "</strong></td>" +
+            "<td>" + escapeHtml(seedText(v.description) || "—") + "</td>" +
+            '<td class="nowrap">' + prettyDate(v.dateIssued) + "</td>" +
+            '<td class="nowrap">' + rm(voValue(v)) + "</td>" +
             "<td>" + statusPill(v.evaluateStatus) + "</td>" +
         "</tr>"
     ).join("");
@@ -163,10 +163,17 @@ if (typeof document !== "undefined") {
         if (session.role !== "contractor") {
             newBtn.style.display = "none";
         } else {
+            /* ...and can do it from site: photos first (capture.html). */
+            document.getElementById("captureBtn").hidden = false;
             newBtn.addEventListener("click", () => {
                 const vo = createVO(project.id, session);
                 window.location.href = "vo.html?id=" + encodeURIComponent(vo.id);
             });
+        }
+        /* The contract sets the clocks shown here (js/deadlines.js);
+           read it the first time, then show the page again with it. */
+        if (typeof ensureContractReadings === "function") {
+            ensureContractReadings(project.id, null).then(changed => { if (changed) location.reload(); });
         }
     })();
 }

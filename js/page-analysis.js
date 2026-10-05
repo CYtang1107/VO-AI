@@ -4,10 +4,11 @@
    here is hardcoded — no confidence score, no fixed clause. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
+    var { renderContractBlock } = require("./contractread.js");
     var { rm } = require("./calc.js");
     var { analyse, classificationBasis } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, fold } = require("./ui.js");
     var { t } = require("./i18n.js");
 }
 
@@ -166,24 +167,37 @@ function renderElementsBlock(a) {
 }
 
 function renderClauseBlock(a) {
+    /* This project's own contract first, when there is one; the bundled
+       standard-form clause below it as the reference. */
+    const contract = a.contract
+        ? '<div class="result-group">' +
+              '<h4 class="result-group-title">' + escapeHtml(t("contract.title")) + "</h4>" +
+              renderContractBlock(a.contract, { fold: true }) + "</div>"
+        : "";
+    return contract + renderStandardClauseBlock(a, a.contract && a.contract.state === "read");
+}
+
+function renderStandardClauseBlock(a, isReference) {
+    const title = escapeHtml(t(isReference ? "contract.standardForm" : "analysis.group.contractualBasis"));
     if (!a.clause) {
         return '<div class="result-group">' +
-               '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.contractualBasis")) + '</h4>' +
+               '<h4 class="result-group-title">' + title + '</h4>' +
                '<p class="rate-detail">' + escapeHtml(t("analysis.clause.none")) + "</p></div>";
     }
     /* a.clause.title/entitlement/evidence are the clause's own English
        text — see js/i18n.js's clause.note for why that is never
        translated; the note itself is. */
     return '<div class="result-group">' +
-        '<h4 class="result-group-title">' + escapeHtml(t("analysis.group.contractualBasis")) + '</h4>' +
+        '<h4 class="result-group-title">' + title + '</h4>' +
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.governingClause")) + '</span>' +
         '<span class="result-value">' + escapeHtml(a.clause.form + " " + a.clause.ref) +
         "</span></div>" +
-        '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
-        escapeHtml(a.clause.entitlement) + "</p>" +
-        '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
-        escapeHtml(a.clause.evidence) + "</p>" +
-        '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p></div>";
+        fold("std-clause", escapeHtml(t("clause.showWording", { title: a.clause.title })),
+            '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
+            escapeHtml(a.clause.entitlement) + "</p>" +
+            '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
+            escapeHtml(a.clause.evidence) + "</p>" +
+            '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>") + "</div>";
 }
 
 /* Cost impact: the additional cost is what a QS looks for first, so it
@@ -387,12 +401,22 @@ if (typeof document !== "undefined") {
                 revisedRate: revisedRate
             });
 
-            const a = analyse(vo, project);
+            const a = analyse(vo, getProject(project.id) || project);
             const basis = classificationBasis(vo);
             const costs = computeCosts(bqItem, qty, revisedRate);
 
             lastVO = vo;
             drawAssistant();
+
+            /* The result and the helper appear once there is something
+               in them — no empty cards before the first analysis. */
+            const resultCard = document.getElementById("resultCard");
+            const firstTime = resultCard.hidden;
+            resultCard.hidden = false;
+            document.getElementById("askCard").hidden = false;
+            if (firstTime && window.matchMedia("(max-width: 1000px)").matches) {
+                setTimeout(() => resultCard.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+            }
 
             document.getElementById("assessmentResult").innerHTML =
                 renderAssessmentResult(a, basis, costs, session.role === "contractor");
@@ -425,5 +449,11 @@ if (typeof document !== "undefined") {
         }
 
         document.getElementById("analyseBtn").addEventListener("click", runAnalysis);
+
+        /* Read the project's contract in the background (once); if an
+           analysis is already on screen, run it again against it. */
+        if (typeof ensureContractReadings === "function") {
+            ensureContractReadings(project.id, null).then(changed => { if (changed && lastVO) runAnalysis(); });
+        }
     })();
 }

@@ -4,6 +4,7 @@
    numbers — every output traces to data the user entered. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
+    var { contractAnalysis } = require("./contractread.js");
     var { rm, contractorTotal, assessedTotal } = require("./calc.js");
     var { matchClause } = require("./clauses.js");
     var { detectElements, relatedElements } = require("./elements.js");
@@ -279,14 +280,26 @@ function rateSummary(vo, bq) {
 ----------------------------------------------------------- */
 
 const WORK_SECTIONS = [
-    { key: /tile|marble|finish|skirting|floor|paint|plaster/i, name: "Finishes" },
-    { key: /drain|sewer|pipe|sump|manhole/i,                   name: "External Works & Drainage" },
-    { key: /ceiling|cornice|cove/i,                            name: "Ceilings" },
-    { key: /door|window|ironmonger|glaz/i,                     name: "Doors & Windows" },
-    { key: /concrete|rebar|beam|column|slab|structur/i,        name: "Structural Works" },
-    { key: /electric|wiring|light|socket|db\b/i,               name: "Electrical Services" },
-    { key: /plumb|sanitary|water|toilet/i,                     name: "Plumbing & Sanitary" }
+    { key: /tile|marble|finish|skirting|floor|paint|plaster|瓷砖|地砖|大理石|饰面|踢脚|地板|地面|油漆|涂料|批荡|抹灰/i, name: "Finishes" },
+    { key: /drain|sewer|pipe|sump|manhole|排水|污水|管道|水管|集水井|沙井|水沟/i,                         name: "External Works & Drainage" },
+    { key: /ceiling|cornice|cove|天花|吊顶|天棚/i,                                                      name: "Ceilings" },
+    { key: /door|window|ironmonger|glaz|门|窗|五金|玻璃/i,                                              name: "Doors & Windows" },
+    { key: /concrete|rebar|beam|column|slab|structur|混凝土|钢筋|楼板|结构|横梁|柱子/i,                   name: "Structural Works" },
+    { key: /electric|wiring|light|socket|db\b|电线|线路|灯|插座|配电|电力/i,                            name: "Electrical Services" },
+    { key: /plumb|sanitary|water|toilet|水喉|卫浴|洁具|厕所|马桶|给水/i,                                  name: "Plumbing & Sanitary" }
 ];
+
+/* The wording that signals each kind of change, in English and in
+   Chinese (a contractor recording on site may well write 「客厅地砖由瓷砖
+   改为大理石」). Shared by classifyVariation and classificationBasis so
+   the two can never disagree. */
+const WORDING = {
+    substitution: /\bfrom\b.+\bto\b|substitut|replace|change of|upgrade|由.+改为|改为|改成|换成|替换|更换|代替|升级/i,
+    quantity: /remeasure|remeasurement|quantity variation|approximate quantit|provisional quantit|重新计量|重新测量|数量变更|暂定数量|估计数量/i,
+    omission: /\bomit|omission|delete|remove\b|删除|删减|取消|拆除|省略|减少/i,
+    design: /redesign|design revision|revised design|revision to|重新设计|设计修改|设计变更|修改设计|修订设计/i,
+    addition: /additional|extra work|add\b|new\b|增加|新增|追加|额外|加建|加装|加设|加一/i
+};
 
 function affectedWork(text) {
     const hit = WORK_SECTIONS.find(s => s.key.test(text || ""));
@@ -312,24 +325,24 @@ function classifyVariation(vo) {
     const hasNegative = rows.some(r => (Number(r.qty) || 0) < 0);
     const hasPositive = rows.some(r => (Number(r.qty) || 0) > 0);
 
-    if (/\bfrom\b.+\bto\b|substitut|replace|change of|upgrade/i.test(text) ||
+    if (WORDING.substitution.test(text) ||
         (hasNegative && hasPositive)) {
         return label("specification", "classification.specification");
     }
 
-    if (/remeasure|remeasurement|quantity variation|approximate quantit|provisional quantit/i.test(text)) {
+    if (WORDING.quantity.test(text)) {
         return label("quantity", "classification.quantity");
     }
 
-    if (/\bomit|omission|delete|remove\b/i.test(text) || (hasNegative && !hasPositive)) {
+    if (WORDING.omission.test(text) || (hasNegative && !hasPositive)) {
         return label("omission", "classification.omission");
     }
 
-    if (/redesign|design revision|revised design|revision to/i.test(text)) {
+    if (WORDING.design.test(text)) {
         return label("design", "classification.design");
     }
 
-    if (/additional|extra work|add\b|new\b/i.test(text) || hasPositive) {
+    if (WORDING.addition.test(text) || hasPositive) {
         /* Extra quantity of an item already in the BQ is a remeasurement,
            not new work. */
         const allLinked = rows.length > 0 && rows.every(r => r.bqItemId);
@@ -361,7 +374,7 @@ function classificationBasis(vo) {
     const hasPositive = rows.some(r => (Number(r.qty) || 0) > 0);
     const allLinked = rows.length > 0 && rows.every(r => r.bqItemId);
 
-    const wordingSubstitution = /\bfrom\b.+\bto\b|substitut|replace|change of|upgrade/i.test(text);
+    const wordingSubstitution = WORDING.substitution.test(text);
     if (wordingSubstitution || (hasNegative && hasPositive)) {
         const signals = [];
         if (wordingSubstitution) signals.push(t("basis.signal.wordingSubstitution"));
@@ -370,13 +383,13 @@ function classificationBasis(vo) {
                  summary: t("basis.summary.substitution", { signals: joinList(signals) }) };
     }
 
-    const wordingQuantity = /remeasure|remeasurement|quantity variation|approximate quantit|provisional quantit/i.test(text);
+    const wordingQuantity = WORDING.quantity.test(text);
     if (wordingQuantity) {
         return { signals: [t("basis.signal.wordingQuantity")],
                  summary: t("basis.summary.quantity") };
     }
 
-    const wordingOmission = /\bomit|omission|delete|remove\b/i.test(text);
+    const wordingOmission = WORDING.omission.test(text);
     if (wordingOmission || (hasNegative && !hasPositive)) {
         const signals = [];
         if (wordingOmission) signals.push(t("basis.signal.wordingOmission"));
@@ -385,13 +398,13 @@ function classificationBasis(vo) {
                  summary: t("basis.summary.omission", { signals: joinList(signals) }) };
     }
 
-    const wordingDesign = /redesign|design revision|revised design|revision to/i.test(text);
+    const wordingDesign = WORDING.design.test(text);
     if (wordingDesign) {
         return { signals: [t("basis.signal.wordingDesign")],
                  summary: t("basis.summary.design") };
     }
 
-    const wordingAddition = /additional|extra work|add\b|new\b/i.test(text);
+    const wordingAddition = WORDING.addition.test(text);
     if (wordingAddition || hasPositive) {
         const signals = [];
         if (wordingAddition) signals.push(t("basis.signal.wordingAddition"));
@@ -431,6 +444,10 @@ function analyse(vo, project) {
     const clause = matchClause(classification.id);
     const rates = rateSummary(vo, bq);
     const elements = elementAnalysis(vo);
+    /* the project's own contract, when one has been uploaded and read
+       (js/contractread.js); the bundled `clause` stays as the
+       standard-form reference */
+    const contract = typeof contractAnalysis === "function" ? contractAnalysis(vo, project) : null;
 
     const claimed = contractorTotal(vo);
     const assessed = assessedTotal(vo);
@@ -455,6 +472,18 @@ function analyse(vo, project) {
     if (!clause) {
         findings.push(t("analysis.finding.unclassified"));
     }
+    if (contract && contract.state === "read") {
+        const valuation = contract.topics.find(tp => tp.id === "valuation" && tp.clause);
+        if (valuation && (rates.star > 0 || rates.different > 0)) {
+            findings.push(t("analysis.finding.contractValuation", { no: valuation.clause.no, doc: valuation.clause.docName }));
+        }
+        const notice = contract.topics.find(tp => tp.id === "notice" && tp.clause);
+        if (notice && Number(vo.timeImpact) > 0) {
+            findings.push(t("analysis.finding.contractNotice", { no: notice.clause.no }));
+        }
+    } else if (contract && contract.state === "none") {
+        findings.push(t("analysis.finding.contractNone"));
+    }
     if ((vo.measurement || []).length === 0) {
         findings.push(t("analysis.finding.noMeasurement"));
     }
@@ -472,6 +501,7 @@ function analyse(vo, project) {
     return {
         classification: classification,
         clause: clause,
+        contract: contract,
         rates: rates,
         contractorTotal: claimed,
         assessedTotal: assessed,

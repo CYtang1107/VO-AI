@@ -216,3 +216,41 @@ test("a VO saved before the contract basis section existed renders it empty, not
     assert.match(html, /doc-field locked/);
     assert.match(html, /empty-state/);
 });
+
+test("a star row shows past project rates; only an editable assessment gets the add-to-BQ control", () => {
+    const { renderPastRates } = require("../js/page-vo.js");
+    const { pastRateSources, suggestPastRate } = require("../js/ratehistory.js");
+    const db = seedDB();
+    const row = db.projects[0].vos[1].measurement[1];
+    const s = suggestPastRate(row, pastRateSources(db, db.projects[0].id));
+    const withAdd = renderPastRates(1, s, true);
+    assert.ok(withAdd.includes("add-bq-item-btn"));
+    assert.ok(withAdd.includes('value="1080"'));
+    assert.ok(!renderPastRates(1, s, false).includes("add-bq-item-btn"));
+    assert.ok(renderPastRates(1, null, true).includes("past-rates none"));
+});
+
+test("each measurement row shows its verdict in one line; the explanation folds under it", () => {
+    const { rowSummary } = require("../js/page-vo.js");
+    const { checkRate } = require("../js/analysis.js");
+    const db = seedDB();
+    const p = db.projects[0];
+    const [m1, m2, m3] = p.vos[0].measurement;
+    assert.strictEqual(rowSummary(checkRate(m1, p.bq), p.bq[0]), "Matches BQ B/4.1");
+    assert.strictEqual(rowSummary(checkRate(m3, p.bq), p.bq[1]), "Overstated by RM 9.00 (40.9%) against BQ B/4.2".replace("Overstated", "overstated"));
+    assert.strictEqual(rowSummary(checkRate(m2, p.bq), null, null), "No BQ item · no comparable past rate either");
+    assert.strictEqual(rowSummary(checkRate(m2, p.bq), null, { rate: 235, matches: [{ unit: "m2" }] }),
+        "No BQ item · past projects suggest RM 235.00/m2");
+    const html = renderMeasurementRows(p.vos[0], p, "consultant");
+    assert.strictEqual((html.match(/<details class="fold row-fold"/g) || []).length, 3);
+    assert.ok(!/<details[^>]* open/.test(html), "folds start closed");
+});
+
+test("findings beyond the first three fold away", () => {
+    const { renderFindings } = require("../js/page-vo.js");
+    const five = renderFindings(["a", "b", "c", "d", "e"]);
+    assert.strictEqual((five.match(/class="finding"/g) || []).length, 5);
+    assert.ok(five.indexOf('data-fold="findings-more"') > five.indexOf("<span>c</span>"));
+    assert.ok(five.includes("2 more finding(s)"));
+    assert.ok(!renderFindings(["a", "b"]).includes("<details"));
+});

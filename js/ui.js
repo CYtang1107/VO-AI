@@ -1,8 +1,8 @@
 /* VO-AI | ui.js — shared page chrome, guards and small render helpers. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { ROLES, DEMO_FILES } = require("./store.js");
-    var { t, renderLangSwitch, wireLangSwitch, applyI18n } = require("./i18n.js");
+    var { ROLES, DEMO_FILES, SEED_ZH } = require("./store.js");
+    var { t, getLang, renderLangSwitch, wireLangSwitch, applyI18n } = require("./i18n.js");
 }
 
 /* `labelKey` looks up its display text via t() at render time (so it
@@ -166,6 +166,74 @@ function renderTopbar(title, crumb, session) {
         "</div>";
 }
 
+/* Phone layout: a bottom tab bar, the way site apps are laid out, so the
+   main pages are one thumb-tap away. For the contractor, its centre is a
+   large camera button that opens capture.html — recording a variation
+   on site, photo first. Hidden above 700px by style.css. */
+var TAB_ICON = {
+    dashboard: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    register:  '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+    documents: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    report:    '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 17v-3M12.5 17v-5M16 17v-2"/>',
+    capture:   '<path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.6"/>'
+};
+
+function tabIcon(id) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + TAB_ICON[id] + '</svg>';
+}
+
+function renderBottomTabs(active, session) {
+    const tab = id => {
+        const n = NAV.find(x => x.id === id);
+        return '<a href="' + n.href + '" class="tab-item' + (id === active ? ' active" aria-current="page' : '') + '">' +
+            tabIcon(id) + '<span>' + escapeHtml(t("tab." + id)) + '</span></a>';
+    };
+    const capture = session && session.role === "contractor"
+        ? '<a href="capture.html" class="tab-capture' + (active === "capture" ? ' active" aria-current="page' : '') + '">' +
+              '<span class="tab-capture-ring">' + tabIcon("capture") + '</span>' +
+              '<span>' + escapeHtml(t("tab.capture")) + '</span></a>'
+        : "";
+    return '<nav class="bottom-tabs' + (capture ? " has-capture" : "") + '" aria-label="' +
+        escapeHtml(t("nav.tabs")) + '">' +
+        tab("dashboard") + tab("register") + capture + tab("documents") + tab("report") +
+        '</nav>';
+}
+
+/* A detail that is there when wanted and out of the way otherwise:
+   <details> with a one-line summary always visible. `key` names it so
+   keepFolds() can reopen it after the page redraws. */
+function fold(key, summaryHtml, bodyHtml, extraClass) {
+    return '<details class="fold' + (extraClass ? " " + extraClass : "") + '" data-fold="' + escapeHtml(key) + '">' +
+        '<summary><span class="fold-summary">' + summaryHtml + "</span>" +
+        '<span class="fold-toggle"><span class="fold-more">' + escapeHtml(t("common.expand")) + "</span>" +
+        '<span class="fold-less">' + escapeHtml(t("common.collapse")) + "</span></span></summary>" +
+        '<div class="fold-body">' + bodyHtml + "</div></details>";
+}
+
+/* Runs `render` (which replaces innerHTML) and reopens every fold that
+   was open before, so an edit elsewhere never snaps a detail shut. */
+function keepFolds(render) {
+    const open = typeof document === "undefined" ? [] :
+        Array.from(document.querySelectorAll("details.fold[open]")).map(d => d.dataset.fold);
+    render();
+    if (typeof document === "undefined") return;
+    open.forEach(key => {
+        const el = document.querySelector('details.fold[data-fold="' + key.replace(/["\\]/g, "\\$&") + '"]');
+        if (el) el.open = true;
+    });
+}
+
+/* The demo's English text in Chinese when the interface is in Chinese
+   (js/store.js SEED_ZH). Text a user typed is returned unchanged. */
+function seedText(value) {
+    if (typeof getLang === "function" && getLang() === "zh" &&
+        typeof SEED_ZH !== "undefined" && Object.prototype.hasOwnProperty.call(SEED_ZH, value)) {
+        return SEED_ZH[value];
+    }
+    return value;
+}
+
 /* ---------- browser-only below ---------- */
 
 function requireSession() {
@@ -285,6 +353,11 @@ function mountChrome(active, title, crumb, opts) {
         });
     }
 
+    if (ctx.project && !document.querySelector("nav.bottom-tabs")) {
+        document.body.insertAdjacentHTML("beforeend", renderBottomTabs(active, ctx.session));
+        document.body.classList.add("has-bottom-tabs");
+    }
+
     wireLangSwitch(document.getElementById("langSwitch"));
 
     /* Translate every static [data-i18n*] element on the page (headings,
@@ -297,5 +370,5 @@ function mountChrome(active, title, crumb, opts) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink };
+    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds, seedText };
 }

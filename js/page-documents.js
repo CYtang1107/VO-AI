@@ -7,7 +7,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { prettyDate } = require("./calc.js");
-    var { escapeHtml, fileLink } = require("./ui.js");
+    var { escapeHtml, fileLink, seedText } = require("./ui.js");
     var { versionCount } = require("./documents.js");
     var { t, getLang } = require("./i18n.js");
 }
@@ -67,7 +67,7 @@ function collectDocuments(project) {
                     id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored, url: d.url,
                     uploadedBy: d.uploadedBy, at: d.at,
                     source: "vo", kind: f.field, bucket: f.bucket,
-                    voId: vo.id, voNo: vo.no, voDescription: vo.description,
+                    voId: vo.id, voNo: vo.no, voDescription: seedText(vo.description),
                     revisionCount: versionCount(d) - 1,
                     revisions: d.revisions || []
                 });

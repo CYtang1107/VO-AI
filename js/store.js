@@ -98,12 +98,25 @@ function loadDB() {
         return fresh;
     }
     try {
-        return JSON.parse(raw);
+        return upgradeDemo(JSON.parse(raw));
     } catch (e) {
         const fresh = demoDB(today());
         saveDB(fresh);
         return fresh;
     }
+}
+
+/* A register saved before the demo project had its conditions of
+   contract (D3) gets it added, so the contract-based analysis
+   (js/contractread.js) works there too. Touches only the demo project. */
+function upgradeDemo(db) {
+    const demo = db && (db.projects || []).find(p => p.id === "PRJ-CADANGAN");
+    if (demo && !(demo.documents || []).some(d => d.id === "D3")) {
+        const d3 = seedDB().projects[0].documents.find(d => d.id === "D3");
+        demo.documents = (demo.documents || []).concat([d3]);
+        saveDB(db);
+    }
+    return db;
 }
 
 /* The demo data the browser starts from: seedDB(), with each seeded VO's
@@ -446,6 +459,7 @@ function updateVO(projectId, voId, mutator) {
 var DEMO_FILES = {
     D1: "demo-files/contract-agreement-pam2018.pdf",
     D2: "demo-files/bills-of-quantities-priced.pdf",
+    D3: "demo-files/conditions-of-contract-demo.pdf",
     F1: "demo-files/A-201-revC-floor-finishes.pdf",
     F2: "demo-files/A-201-revB-floor-finishes.pdf",
     F3: "demo-files/marble-supplier-quotation.pdf",
@@ -457,6 +471,23 @@ var DEMO_FILES = {
     F8: "demo-files/contract-agreement-pam2018.pdf",
 };
 
+
+/* The demo's own English text as it reads in Chinese. Shown in place of
+   the stored text only while that text is still the demo's (see
+   seedText in js/ui.js) — anything a user has typed is shown as typed.
+   Measurement lines stay in English: they are matched against the
+   English priced BQ. */
+var SEED_ZH = {
+    "Change of living area floor finish from ceramic tile to marble tile": "客厅地面饰面由瓷砖改为大理石",
+    "Additional external drainage works to rear boundary": "后方边界加建室外排水工程",
+    "Revision to master bedroom ceiling design": "修改主人房天花设计",
+    "Marble supplied by nominated supplier. Lead time 4 weeks.": "大理石由指定供应商供货，交货期 4 周。",
+    "Instructed under AI-021 and outside the original scope, so the change ranks as a variation. The omission is valued at the contract BQ rate. The marble rate has no comparable BQ item and has been agreed as a star rate against the supplier quotation. The skirting rate reverts to the contract BQ rate.":
+        "依据建筑师指令 AI-021 发出，且超出原合同范围，因此构成变更。删减部分按合同工程量清单单价估价；大理石在清单中没有可比项目，已参照供应商报价单商定为新增单价；踢脚线单价按合同清单单价计算。",
+    "Recommend approval at the assessed value.": "建议按评估金额批准。",
+    "Certified for payment in interim certificate no. 8.": "已列入第 8 期中期付款证书核证付款。",
+    "Works instructed on site by the C&S engineer on 15/07/2026.": "土木结构工程师于 2026年7月15日 在现场指示施工。"
+};
 
 function seedDB() {
     const bq = [
@@ -482,7 +513,8 @@ function seedDB() {
             bq: bq,
             documents: [
                 { id: "D1", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.D1, category: "contract", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:10:00Z" },
-                { id: "D2", name: "Bills of Quantities (Priced).pdf", size: 80132, url: DEMO_FILES.D2, category: "bq", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:14:00Z" }
+                { id: "D2", name: "Bills of Quantities (Priced).pdf", size: 80132, url: DEMO_FILES.D2, category: "bq", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:14:00Z" },
+                { id: "D3", name: "Conditions of Contract (demo extract).pdf", size: 84703, url: DEMO_FILES.D3, category: "contract", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:12:00Z" }
             ],
             vos: [
                 {
@@ -613,7 +645,7 @@ function seedDB() {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         DB_KEY, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
-        loadDB, saveDB, resetDB, demoDB, shiftIsoDays, DEMO_FILES,
+        loadDB, saveDB, resetDB, demoDB, upgradeDemo, SEED_ZH, shiftIsoDays, DEMO_FILES,
         getSession, setSession, clearSession,
         isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,
         passcodeSupported,

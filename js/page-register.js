@@ -2,7 +2,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, voValue, today } = require("./calc.js");
-    var { statusPill, escapeHtml } = require("./ui.js");
+    var { statusPill, escapeHtml, seedText } = require("./ui.js");
     var { FIELD_OWNER } = require("./permissions.js");
     var { rateSummary } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
@@ -21,11 +21,11 @@ function instructionTypeLabel(value) {
 /* The VO DUE DATE column: if the consultant has entered a due date by
    hand, show that (marked manual). Otherwise fall back to the computed
    evaluation deadline from js/deadlines.js, with its state. */
-function dueDateCell(vo, todayIso) {
+function dueDateCell(vo, todayIso, project) {
     if (vo.dueDate) {
         return prettyDate(vo.dueDate) + ' <span class="rate-flag manual-due">' + escapeHtml(t("register.manual")) + '</span>';
     }
-    const evalClock = deadlinesFor(vo, todayIso)[0]; /* "evaluation" is always item 0 */
+    const evalClock = deadlinesFor(vo, todayIso, project)[0]; /* "evaluation" is always item 0 */
     if (!evalClock.dueDate) return "—";
     return prettyDate(evalClock.dueDate) +
         ' <span class="rate-flag deadline-' + evalClock.state + '">' +
@@ -48,11 +48,11 @@ const COLUMNS = [
     { field: "no",                label: "VO NO.",           labelKey: "register.col.no",
       render: v => "<strong>" + escapeHtml(v.no) + "</strong>" },
     { field: "description",       label: "DESCRIPTION",      labelKey: "register.col.description",
-      render: v => escapeHtml(v.description || "—") },
+      render: v => escapeHtml(seedText(v.description) || "—") },
     { field: "dateIssued",        label: "DATE ISSUED",      labelKey: "register.col.dateIssued",
       render: v => prettyDate(v.dateIssued) },
     { field: "dueDate",           label: "VO DUE DATE",      labelKey: "register.col.dueDate",
-      render: v => dueDateCell(v, today()) },
+      render: (v, p) => dueDateCell(v, today(), p) },
     { field: "typeOfInstruction", label: "TYPE",             labelKey: "register.col.type",
       render: v => escapeHtml(instructionTypeLabel(v.typeOfInstruction) || "—") },
     { field: "measurement",       label: "CONTRACTOR'S MEASUREMENT", labelKey: "register.col.contractorMeasurement",
@@ -92,7 +92,7 @@ function filterVos(vos, filters) {
         if (evaluateStatus !== "all" && v.evaluateStatus !== evaluateStatus) return false;
         if (certifiedStatus !== "all" && v.certifiedStatus !== certifiedStatus) return false;
         if (query) {
-            const haystack = [v.no, v.description, v.instructionNo]
+            const haystack = [v.no, v.description, seedText(v.description), v.instructionNo]
                 .map(s => String(s || "").toLowerCase())
                 .join(" \n ");
             if (!haystack.includes(query)) return false;
@@ -237,5 +237,10 @@ if (typeof document !== "undefined") {
         }
 
         render();
+        /* The contract sets the clocks shown here (js/deadlines.js);
+           read it the first time, then show the page again with it. */
+        if (typeof ensureContractReadings === "function") {
+            ensureContractReadings(project.id, null).then(changed => { if (changed) location.reload(); });
+        }
     })();
 }

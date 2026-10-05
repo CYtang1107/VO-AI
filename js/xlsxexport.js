@@ -21,6 +21,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { checkRate } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
     var { t, getLang } = require("./i18n.js");
+    var { seedText } = require("./ui.js");
 }
 
 /* ---------- ZIP (stored entries only) ---------- */
@@ -230,9 +231,9 @@ function xlsxInstructionType(value) {
 /* Same rule as the register's VO DUE DATE column (js/page-register.js
    dueDateCell): the consultant's manual date, else the computed
    evaluation deadline and its state. */
-function xlsxDueDate(vo, todayIso) {
+function xlsxDueDate(vo, todayIso, project) {
     if (vo.dueDate) return { date: vo.dueDate, basis: t("register.manual") };
-    var clock = deadlinesFor(vo, todayIso)[0];
+    var clock = deadlinesFor(vo, todayIso, project)[0];
     if (!clock || !clock.dueDate) return { date: null, basis: "" };
     return { date: clock.dueDate, basis: t("deadline.state." + clock.state, {}) };
 }
@@ -266,7 +267,7 @@ function registerSheet(project, todayIso) {
     ];
     vos.forEach(function (vo, i) {
         var r = H + 1 + i;
-        var due = xlsxDueDate(vo, todayIso);
+        var due = xlsxDueDate(vo, todayIso, project);
         var counts = { same: 0, different: 0, star: 0 };
         (vo.measurement || []).forEach(function (row) { counts[checkRate(row, bq).state]++; });
         var rateText = ["same", "different", "star"].filter(function (k) { return counts[k]; })
@@ -274,7 +275,7 @@ function registerSheet(project, todayIso) {
         var claimed = contractorTotal(vo);
         var assessed = assessedTotal(vo);
         rows.push({
-            cells: [vo.no, vo.description || "", { d: vo.dateIssued }, due.date ? { d: due.date } : null, due.basis,
+            cells: [vo.no, seedText(vo.description) || "", { d: vo.dateIssued }, due.date ? { d: due.date } : null, due.basis,
                     xlsxInstructionType(vo.typeOfInstruction), vo.instructionNo || "",
                     claimed, assessed, { f: "I" + r + "-H" + r, v: assessed - claimed },
                     rateText, xlsxBlankable(vo.timeImpact),

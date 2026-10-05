@@ -5,9 +5,11 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { canEdit, lockReason, fieldLabel, FIELD_OWNER } = require("./permissions.js");
     var { checkRate, analyse } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
-    var { escapeHtml, statusPill, fileLink } = require("./ui.js");
-    var { deadlinesFor, INFO_RESPONSE_DAYS, daysBetween } = require("./deadlines.js");
+    var { escapeHtml, statusPill, fileLink, fold, seedText } = require("./ui.js");
+    var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
+    var { suggestPastRate } = require("./ratehistory.js");
+    var { renderContractBlock } = require("./contractread.js");
     var { t } = require("./i18n.js");
 }
 
@@ -139,7 +141,76 @@ function bqOptions(project, selectedId) {
     return opts.join("");
 }
 
-function renderMeasurementRows(vo, project, role) {
+/* A star-rated row (no item in this project's BQ): what past projects
+   paid for the same thing, the rate they suggest, and every source.
+   The consultant, when the assessment is theirs to edit, can add it to
+   this project's BQ as a new item at the suggested rate or their own. */
+function renderPastRates(i, suggestion, canAdd) {
+    if (!suggestion) {
+        return '<div class="past-rates none">' + escapeHtml(t("vo.past.none")) + "</div>";
+    }
+    const unit = suggestion.matches[0].unit;
+    const list = suggestion.matches.map(m =>
+        "<li>" + (m.code ? '<span class="item-code">' + escapeHtml(m.code) + "</span> " : "") +
+            '<span class="past-src">' + escapeHtml(t("vo.past.source", { project: m.project, year: m.year || "—" })) +
+            ' <span class="past-basis">' + escapeHtml(t("vo.past.basis." + m.basis)) +
+            (m.sample ? " · " + escapeHtml(t("vo.past.sample")) : "") + "</span></span>" +
+            '<span class="past-desc">' + escapeHtml(m.description) + "</span>" +
+            "<strong>" + rm(m.rate) + "/" + escapeHtml(m.unit) + "</strong></li>"
+    ).join("");
+    return '<div class="past-rates">' +
+        '<div class="past-rates-head"><span class="rate-flag past">' + escapeHtml(t("vo.past.title")) + "</span> " +
+            escapeHtml(t("vo.past.suggest", {
+                rate: rm(suggestion.rate), unit: unit, n: suggestion.count,
+                low: rm(suggestion.low), high: rm(suggestion.high)
+            })) + "</div>" +
+        '<ul class="past-rates-list">' + list + "</ul>" +
+        '<p class="past-rates-note">' + escapeHtml(t("vo.past.note")) + "</p>" +
+        (canAdd
+            ? '<div class="past-rates-add"><label>' + escapeHtml(t("vo.past.rateLabel")) +
+                ' <input type="number" class="past-rate-input owned" data-row="' + i + '" min="0" step="any" value="' +
+                suggestion.rate + '"></label>' +
+                '<button type="button" class="primary-button add-bq-item-btn" data-row="' + i + '">' +
+                escapeHtml(t("vo.past.addBtn")) + "</button></div>"
+            : "") +
+        "</div>";
+}
+
+/* A line under a row linked to a BQ item that a VO added (see
+   newBqItemFromRow in js/ratehistory.js): where the item came from. */
+function renderBqOrigin(item) {
+    if (!item || !item.origin) return "";
+    const o = item.origin;
+    const n = (o.basedOn || []).length;
+    return '<div class="rate-detail bq-origin">' + escapeHtml(n
+        ? t("vo.past.origin", { code: item.code, vo: o.voNo, date: prettyDate(o.at), n: n, rate: rm(o.suggestedRate) })
+        : t("vo.past.originNoPast", { code: item.code, vo: o.voNo, date: prettyDate(o.at) })) + "</div>";
+}
+
+/* The row's verdict in one line — the full explanation, the past
+   project rates and any suggested match open under it. */
+function rowSummary(check, linkedItem, suggestion) {
+    let text;
+    if (check.state === "same") {
+        text = t("vo.row.same", { code: (check.matchedItem || linkedItem || {}).code || "" });
+    } else if (check.state === "different") {
+        text = t("vo.row.different", {
+            code: (check.matchedItem || linkedItem || {}).code || "",
+            word: t(check.diff > 0 ? "rate.overstated" : "rate.understated"),
+            diff: rm(Math.abs(check.diff)),
+            pct: check.pct === null || check.pct === undefined ? "" : t("rate.pctNote", { pct: Math.abs(check.pct).toFixed(1) })
+        });
+    } else {
+        text = suggestion
+            ? t("vo.row.starPast", { rate: rm(suggestion.rate), unit: suggestion.matches[0].unit })
+            : t(suggestion === null ? "vo.row.starNoPast" : "vo.row.star");
+    }
+    if (check.autoMatched) text += t("vo.row.suggested", { code: check.matchedItem.code });
+    if (linkedItem && linkedItem.origin) text += t("vo.row.newItem");
+    return text;
+}
+
+function renderMeasurementRows(vo, project, role, pastSources) {
     const rows = vo.measurement || [];
     if (rows.length === 0) {
         return '<tr><td colspan="8" class="empty-state">' +
@@ -151,9 +222,21 @@ function renderMeasurementRows(vo, project, role) {
     const assEdit = canEdit("assessment", vo, role);
     const assDis = assEdit ? "" : " disabled";
 
+    /* Column names on each cell: on a phone the table becomes one card
+       per row and each field carries its own label (style.css). */
+    const lbl = {
+        description: escapeHtml(t("vo.col.description")), bqItem: escapeHtml(t("vo.col.bqItem")),
+        unit: escapeHtml(t("vo.col.unit")), qty: escapeHtml(t("vo.col.qty")), rate: escapeHtml(t("vo.col.rate")),
+        claimed: escapeHtml(t("vo.col.claimed")), assessed: escapeHtml(t("vo.col.assessedQtyRate")),
+        check: escapeHtml(t("vo.col.rateCheck"))
+    };
+
     return rows.map((row, i) => {
         const check = checkRate(row, project.bq || []);
         const claimed = lineTotal(row.qty, row.rate);
+        const linkedItem = row.bqItemId ? (project.bq || []).find(b => b.id === row.bqItemId) : null;
+        /* undefined: not looked up; null: looked up, nothing comparable */
+        const suggestion = check.state === "star" && pastSources ? suggestPastRate(row, pastSources) : undefined;
 
         /* An auto-match is a SUGGESTION, not a decision — shown visually
            distinct (.rate-flag.auto-match, .rate-suggestion) from a
@@ -176,31 +259,36 @@ function renderMeasurementRows(vo, project, role) {
             : "";
 
         return '<tr data-row="' + i + '">' +
-            '<td><input data-col="description" value="' + escapeHtml(row.description) +
+            '<td class="m-desc" data-label="' + lbl.description + '"><input data-col="description" value="' + escapeHtml(row.description) +
                 '"' + conDis + (conEdit ? ' class="owned"' : "") + ' style="width:220px"></td>' +
-            '<td><select data-col="bqItemId"' + conDis + (conEdit ? ' class="owned"' : "") +
+            '<td class="m-bq" data-label="' + lbl.bqItem + '"><select data-col="bqItemId"' + conDis + (conEdit ? ' class="owned"' : "") +
                 ">" + bqOptions(project, row.bqItemId) + "</select></td>" +
-            '<td><input data-col="unit" value="' + escapeHtml(row.unit) + '"' + conDis +
+            '<td data-label="' + lbl.unit + '"><input data-col="unit" value="' + escapeHtml(row.unit) + '"' + conDis +
                 (conEdit ? ' class="owned"' : "") + ' style="width:60px"></td>' +
-            '<td><input type="number" data-col="qty" value="' + escapeHtml(row.qty) + '"' +
+            '<td data-label="' + lbl.qty + '"><input type="number" data-col="qty" value="' + escapeHtml(row.qty) + '"' +
                 conDis + (conEdit ? ' class="owned"' : "") + ' style="width:80px"></td>' +
-            '<td><input type="number" data-col="rate" value="' + escapeHtml(row.rate) + '"' +
+            '<td data-label="' + lbl.rate + '"><input type="number" data-col="rate" value="' + escapeHtml(row.rate) + '"' +
                 conDis + (conEdit ? ' class="owned"' : "") + ' style="width:90px"></td>' +
-            "<td><strong>" + rm(claimed) + "</strong></td>" +
-            '<td><input type="number" data-col="assessedQty" value="' +
+            '<td data-label="' + lbl.claimed + '"><strong>' + rm(claimed) + "</strong></td>" +
+            '<td class="m-assessed" data-label="' + lbl.assessed + '"><input type="number" data-col="assessedQty" value="' +
                 escapeHtml(row.assessedQty) + '"' + assDis +
                 (assEdit ? ' class="owned"' : "") + ' style="width:80px">' +
              '<input type="number" data-col="assessedRate" value="' +
                 escapeHtml(row.assessedRate) + '"' + assDis +
                 (assEdit ? ' class="owned"' : "") + ' style="width:90px;margin-top:5px"></td>' +
-            '<td><span class="rate-flag ' + check.state + '">' + check.label + "</span></td>" +
+            '<td class="m-flag" data-label="' + lbl.check + '"><span class="rate-flag ' + check.state + '">' + check.label + "</span></td>" +
         "</tr>" +
         /* The verdict's explanation runs the full width of the table on
            its own line under the item, instead of wrapping down a narrow
            last column and stretching every cell of the row. */
         '<tr class="rate-detail-row" data-row="' + i + '">' +
-            '<td colspan="8"><div class="rate-detail rate-detail-' + check.state + '">' +
-                escapeHtml(check.detail) + "</div>" + autoBlock + "</td>" +
+            '<td colspan="8">' + fold("row-" + (row.id || i),
+                '<span class="row-verdict row-verdict-' + check.state + '">' + escapeHtml(rowSummary(check, linkedItem, suggestion)) + "</span>",
+                '<div class="rate-detail rate-detail-' + check.state + '">' + escapeHtml(check.detail) + "</div>" + autoBlock +
+                renderBqOrigin(linkedItem) +
+                (suggestion !== undefined ? renderPastRates(i, suggestion, assEdit) : ""),
+                "row-fold") +
+            "</td>" +
         "</tr>";
     }).join("");
 }
@@ -229,6 +317,19 @@ function renderElementsBlock(a) {
             "</strong></p>" + relatedHtml);
 }
 
+/* The first three findings in full; any more open on demand. */
+function renderFindings(findings) {
+    if (findings.length === 0) {
+        return '<div class="empty-state">' + escapeHtml(t("vo.result.nothingToFlag")) + "</div>";
+    }
+    const item = f => '<div class="finding"><span>' + escapeHtml(f) + "</span></div>";
+    const shown = findings.slice(0, 3).map(item).join("");
+    const rest = findings.slice(3);
+    return shown + (rest.length
+        ? fold("findings-more", escapeHtml(t("vo.result.moreFindings", { n: rest.length })), rest.map(item).join(""))
+        : "");
+}
+
 function renderAssessmentPanel(vo, project, role) {
     const a = analyse(vo, project);
 
@@ -239,12 +340,25 @@ function renderAssessmentPanel(vo, project, role) {
         ? '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.governingClause")) + '</span>' +
           '<span class="result-value">' + escapeHtml(a.clause.form + " " + a.clause.ref) +
           "</span></div>" +
-          '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
-          escapeHtml(a.clause.entitlement) + "</p>" +
-          '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
-          escapeHtml(a.clause.evidence) + "</p>" +
-          '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>"
+          fold("std-clause", escapeHtml(t("clause.showWording", { title: a.clause.title })),
+              '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
+              escapeHtml(a.clause.entitlement) + "</p>" +
+              '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
+              escapeHtml(a.clause.evidence) + "</p>" +
+              '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>")
         : '<p class="rate-detail">' + escapeHtml(t("vo.result.noClause")) + "</p>";
+
+    /* This project's own contract leads when it has been read; the
+       bundled standard-form clause then follows as a reference. */
+    const contract = a.contract;
+    const contractRead = contract && contract.state === "read";
+    const contractBlock = contract
+        ? '<h4 class="contract-heading">' + escapeHtml(t("contract.title")) + "</h4>" +
+          renderContractBlock(contract, { fold: true }) +
+          (contract.state === "read" || contract.state === "noText"
+              ? '<button type="button" class="link-button contract-reread-btn">' + escapeHtml(t("contract.reread")) + "</button>"
+              : "")
+        : "";
 
     return '' +
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.classification")) + '</span>' +
@@ -252,6 +366,8 @@ function renderAssessmentPanel(vo, project, role) {
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.affectedWork")) + '</span>' +
             '<span class="result-value">' + escapeHtml(a.classification.affectedWork) + "</span></div>" +
         renderElementsBlock(a) +
+        contractBlock +
+        (contractRead ? '<h4 class="contract-heading">' + escapeHtml(t("contract.standardForm")) + "</h4>" : "") +
         clauseBlock +
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.contractorClaimed")) + '</span>' +
             '<span class="result-value">' + rm(a.contractorTotal) + "</span></div>" +
@@ -260,10 +376,7 @@ function renderAssessmentPanel(vo, project, role) {
         '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.variance")) + '</span>' +
             '<span class="result-value">' + rm(a.variance) + "</span></div>" +
         "<h4 style=\"font-size:12px;margin:18px 0 10px\">" + escapeHtml(t("vo.result.findings")) + "</h4>" +
-        (a.findings.length === 0
-            ? '<div class="empty-state">' + escapeHtml(t("vo.result.nothingToFlag")) + '</div>'
-            : a.findings.map(f => '<div class="finding"><span>' + escapeHtml(f) +
-                                  "</span></div>").join(""));
+        renderFindings(a.findings);
 }
 
 /* -----------------------------------------------------------
@@ -315,8 +428,8 @@ function renderAssistantPanel(context) {
    js/deadlines.js's t() calls — only the state flag and owner name are
    translated here. */
 
-function renderDeadlinesPanel(vo, todayIso) {
-    const items = deadlinesFor(vo, todayIso);
+function renderDeadlinesPanel(vo, todayIso, project) {
+    const items = deadlinesFor(vo, todayIso, project);
     return '<div class="deadline-list">' + items.map(d => {
         const daysText = d.daysRemaining === null ? ""
             : d.daysRemaining < 0
@@ -333,6 +446,10 @@ function renderDeadlinesPanel(vo, todayIso) {
                 (daysText ? " · " + escapeHtml(daysText) : "") +
             "</div>" +
             (d.note ? '<div class="deadline-note">' + escapeHtml(d.note) + "</div>" : "") +
+            '<div class="deadline-source' + (d.period && d.period.clause ? " from-contract" : "") + '">' +
+                escapeHtml(d.period && d.period.clause
+                    ? t("deadline.fromContract", { no: d.period.clause, n: d.period.days })
+                    : t("deadline.defaultPeriod", { n: d.period ? d.period.days : "" })) + "</div>" +
         "</div>";
     }).join("") + "</div>";
 }
@@ -340,7 +457,7 @@ function renderDeadlinesPanel(vo, todayIso) {
 /* The consultant-only control that starts the contractor's response
    clock. A dedicated button rather than a raw date field — the date is
    always "today", never backdated or postdated by hand. */
-function renderInfoRequestControl(vo, role) {
+function renderInfoRequestControl(vo, role, project) {
     const fieldLabel = t("vo.field.infoRequestedAt");
     if (vo.infoRequestedAt) {
         return '<div class="field locked"><label>' + escapeHtml(fieldLabel) + '</label>' +
@@ -358,7 +475,7 @@ function renderInfoRequestControl(vo, role) {
         '<input type="text" id="infoRequestNoteInput" placeholder="' + escapeHtml(t("vo.infoRequest.placeholder")) + '">' +
         '<button type="button" class="secondary-button" id="recordInfoRequestBtn">' +
         escapeHtml(t("vo.infoRequest.button")) + '</button>' +
-        '<span class="hint">' + escapeHtml(t("vo.infoRequest.hint", { days: INFO_RESPONSE_DAYS })) + "</span></div>";
+        '<span class="hint">' + escapeHtml(t("vo.infoRequest.hint", { days: clockPeriods(vo, project).response.days })) + "</span></div>";
 }
 
 /* The client-owned mirror of renderInfoRequestControl above: the client
@@ -435,6 +552,19 @@ function translateHistoryAction(action) {
     if ((m = a.match(/^Removed (.+) from (.+)$/))) {
         return t("history.removedDoc", { file: m[1], field: fieldLabel(m[2]) });
     }
+    if ((m = a.match(/^Assessment completed — (.+)$/))) {
+        return t("history.assessed", { status: t("status." + m[1], {}) });
+    }
+    if ((m = a.match(/^Certified — (.+)$/))) {
+        return t("history.certified", { status: t("status." + m[1], {}) });
+    }
+    if ((m = a.match(/^Recorded on site with (\d+) photos?$/))) {
+        return t("history.recordedOnSite", { n: m[1] });
+    }
+    if ((m = a.match(/^Added row (\d+) to the contract BQ as new item (\S+) at RM ([\d.]+)\/(\S+?)(, based on (\d+) past project rate\(s\))?$/))) {
+        return t(m[6] ? "history.addedBqItemPast" : "history.addedBqItem",
+                 { row: m[1], code: m[2], rate: m[3], unit: m[4], n: m[6] || "" });
+    }
     if ((m = a.match(/^Updated (.+)$/))) {
         return t("history.updatedField", { field: fieldLabel(m[1]) });
     }
@@ -453,8 +583,8 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, renderElementsBlock, renderAssessmentPanel,
-        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
+        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote
     };
 }
@@ -493,12 +623,14 @@ if (typeof document !== "undefined") {
         if (!vo) { toast(t("vo.noLongerExists"), "error");
                    setTimeout(() => location.href = "register.html", 1200); return; }
 
-        function draw() {
+        function draw() { keepFolds(drawNow); }
+
+        function drawNow() {
             const fresh = getProject(project.id);
             const v = fresh.vos.find(x => x.id === voId);
 
             document.getElementById("voTitle").textContent =
-                v.no + " — " + (v.description || t("vo.untitled"));
+                v.no + " — " + (seedText(v.description) || t("vo.untitled"));
             /* Two pills of the same kind side by side read as a duplicate —
                name each one. */
             document.getElementById("voStatus").innerHTML =
@@ -510,7 +642,7 @@ if (typeof document !== "undefined") {
             document.getElementById("contractorPanel").innerHTML =
                 panelLockNote(v, role, "contractor") +
                 field({ field: "description", label: t("vo.field.description"),
-                        type: "textarea", value: v.description, vo: v, role: role }) +
+                        type: "textarea", value: seedText(v.description), vo: v, role: role }) +
                 field({ field: "dateIssued", label: t("vo.field.dateIssued"), type: "date",
                         value: v.dateIssued, vo: v, role: role }) +
                 field({ field: "typeOfInstruction", label: t("vo.field.typeOfInstruction"),
@@ -520,7 +652,7 @@ if (typeof document !== "undefined") {
                 field({ field: "instructionNo", label: t("vo.field.instructionNo"), type: "text",
                         value: v.instructionNo, vo: v, role: role }) +
                 field({ field: "contractorRemark", label: t("vo.field.contractorRemark"),
-                        type: "textarea", value: v.contractorRemark, vo: v, role: role }) +
+                        type: "textarea", value: seedText(v.contractorRemark), vo: v, role: role }) +
                 renderDocList(v, "revisedDrawing", t("documents.field.revisedDrawing"), role) +
                 renderDocList(v, "oldDrawing", t("documents.field.oldDrawing"), role) +
                 renderDocList(v, "supportingDocs", t("documents.field.supportingDocs"), role) +
@@ -532,18 +664,18 @@ if (typeof document !== "undefined") {
                 field({ field: "dueDate", label: t("vo.field.dueDate"), type: "date",
                         value: v.dueDate, vo: v, role: role }) +
                 field({ field: "assessmentNote", label: t("vo.field.assessmentNote"),
-                        type: "textarea", value: v.assessmentNote, vo: v, role: role }) +
+                        type: "textarea", value: seedText(v.assessmentNote), vo: v, role: role }) +
                 field({ field: "timeImpact", label: t("vo.field.timeImpact"), type: "number",
                         value: v.timeImpact, vo: v, role: role }) +
                 field({ field: "evaluateStatus", label: t("vo.field.evaluateStatus"), type: "select",
                         options: ["Pending", "Under Review", "Approved", "Rejected"],
                         value: v.evaluateStatus, vo: v, role: role }) +
                 field({ field: "consultantRemark", label: t("vo.field.consultantRemark"),
-                        type: "textarea", value: v.consultantRemark, vo: v, role: role }) +
-                renderInfoRequestControl(v, role);
+                        type: "textarea", value: seedText(v.consultantRemark), vo: v, role: role }) +
+                renderInfoRequestControl(v, role, fresh);
 
             document.getElementById("deadlinesPanel").innerHTML =
-                renderDeadlinesPanel(v, today());
+                renderDeadlinesPanel(v, today(), fresh);
 
             document.getElementById("clientPanel").innerHTML =
                 panelLockNote(v, role, "client") +
@@ -554,13 +686,18 @@ if (typeof document !== "undefined") {
                         type: "number", value: v.finalPrice, vo: v, role: role,
                         hint: t("vo.field.finalPriceHint") }) +
                 field({ field: "clientRemark", label: t("vo.field.clientRemark"), type: "textarea",
-                        value: v.clientRemark, vo: v, role: role }) +
+                        value: seedText(v.clientRemark), vo: v, role: role }) +
                 renderClientInfoRequestControl(v, role, today());
 
             document.getElementById("measurementBody").innerHTML =
-                renderMeasurementRows(v, fresh, role);
+                renderMeasurementRows(v, fresh, role, pastRateSources(loadDB(), project.id));
             document.getElementById("assessmentPanel").innerHTML =
                 renderAssessmentPanel(v, fresh, role);
+            /* The contract is read once, the first time it is needed;
+               the panel redraws when the reading is in. */
+            if (typeof ensureContractReadings === "function") {
+                ensureContractReadings(project.id, v).then(changed => { if (changed) draw(); });
+            }
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
 
             document.getElementById("assistantPanel").innerHTML =
@@ -692,6 +829,46 @@ if (typeof document !== "undefined") {
                 logHistory(v, session, "Accepted suggested BQ match for row " + (i + 1));
             });
             toast(t("toast.suggestedMatchAccepted"));
+            draw();
+        });
+
+        /* Add a star-rated row to this project's BQ as a new item, at
+           the rate in the box (the past-projects suggestion unless the
+           consultant changed it), and link the row to it. */
+        document.getElementById("measurementBody").addEventListener("click", e => {
+            const btn = e.target.closest(".add-bq-item-btn");
+            if (!btn) return;
+            const i = Number(btn.dataset.row);
+            const input = document.querySelector('.past-rate-input[data-row="' + i + '"]');
+            const rate = Number(input && input.value);
+            if (!(rate > 0)) { toast(t("vo.past.badRate"), "error"); return; }
+            const sources = pastRateSources(loadDB(), project.id);
+            let code = "";
+            updateProject(project.id, p => {
+                const v = p.vos.find(x => x.id === voId);
+                const row = v && v.measurement[i];
+                if (!row || row.bqItemId) return;
+                const suggestion = suggestPastRate(row, sources);
+                const item = newBqItemFromRow(row, v, p, rate, suggestion, today());
+                p.bq = p.bq || [];
+                p.bq.push(item);
+                row.bqItemId = item.id;
+                if (row.assessedQty === "" || row.assessedQty === null) row.assessedQty = row.qty;
+                if (row.assessedRate === "" || row.assessedRate === null) row.assessedRate = rate;
+                code = item.code;
+                logHistory(v, session, "Added row " + (i + 1) + " to the contract BQ as new item " + item.code +
+                    " at RM " + rate + "/" + item.unit +
+                    (suggestion ? ", based on " + suggestion.count + " past project rate(s)" : ""));
+            });
+            if (code) toast(t("vo.past.added", { code: code }));
+            draw();
+        });
+
+        document.getElementById("assessmentPanel").addEventListener("click", e => {
+            if (!e.target.closest(".contract-reread-btn")) return;
+            const fresh = getProject(project.id);
+            const v = fresh.vos.find(x => x.id === voId);
+            forgetContractReadings(project.id, contractSourceDocs(fresh, v).map(d => d.id));
             draw();
         });
 

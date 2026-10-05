@@ -57,6 +57,16 @@ similarity and unit agreement, and explains how it matched. Where it cannot matc
 it returns nothing rather than guessing — a wrong automatic match would compare a claim
 against an unrelated contract rate while looking like it worked.
 
+**Star rates from past projects.** When an item has no comparable item in this project's BQ,
+VO-AI looks at what past projects paid for the same thing: a library of completed projects
+(demo sample data in this prototype) and every other project in the register, both their BQ
+rates and the star rates agreed on their VOs. A past item counts only if the unit, the size
+(600x600 is not 450x450) and the material (marble is not ceramic) all agree. It suggests the
+median, shows the range and lists every source, and says plainly that past rates are not
+adjusted for price changes. The consultant can then **add the item to this project's BQ** in one
+click, at the suggested rate or their own, coded after its VO (`VO-002/1`), and the row is
+checked against it from then on. Where past projects have nothing comparable either, it says so.
+
 ### Variation classification and contract clause analysis
 
 Classifies a change as a specification change, addition, omission, quantity variation or design
@@ -64,6 +74,17 @@ revision, then matches it to its governing clause from the **PAM 2018** and **PW
 standard forms — returning the entitlement the clause creates and the evidence the contractor
 must produce. Where a description is too vague to classify, it says so rather than offering a
 clause it cannot support.
+
+**Analysed against this project's own contract.** The contract uploaded for the project (on the
+Documents screen, or as a VO's contract basis) is **read by VO-AI itself**: PDF, Word (.docx) or
+text, with no PDF library. It is split into its numbered clauses, and each variation is
+analysed against them. VO-AI finds the clauses on what a variation is, how it is valued,
+extension of time and notice, **quotes them word for word**, and lists every period of days the
+contract states ("within 28 days ..."). Findings cite the clause by number, e.g. "valued under
+Clause 11.3 of this project's contract". The standard-form clause stays below as a reference. A
+scanned PDF with no text is reported as such. The demo project carries a short *Conditions of
+Contract* written for the demo, not the PAM text. This is keyword retrieval for a professional to
+read, and the screen says it is not legal advice.
 
 ### Element-based consequential measurement
 
@@ -99,9 +120,19 @@ retained. A project-wide Documents view shows the whole evidence trail.
 **Every document opens.** Click a file name to open it — from the VO, the
 Documents page or the report. An uploaded file is kept in the browser (IndexedDB), so it opens
 on the computer it was uploaded from. The demo project's documents — drawings A-201 Rev B/C and
-C-104, the marble supplier quotation, engineer's instruction EI-008, a site photo, the contract
+C-104, the marble supplier quotation, the demo conditions of contract, engineer's instruction EI-008, a site photo, the contract
 particulars and the priced BQ — are sample files in `demo-files/`, served with the app, so they
 open on any computer. Each is marked as a demo sample.
+
+### Record on site
+
+The contractor can raise a variation from the site itself. On a phone, a bottom tab bar holds the
+main pages, and its centre is a large **camera button**: take photos, key in what changed (with
+location, instruction type and number, and one optional measurement line), and it is saved
+straight away as a **draft VO** with the photos attached as supporting documents — named by date
+and time, scaled down to keep the register light. The rest (matching the contract BQ, the
+remaining rows) is finished later on the VO page. On a computer, the dashboard's
+**Record on site** button opens the same page.
 
 ### Reports
 
@@ -125,7 +156,7 @@ Role-based permissions — each role sees only its own panel, and a locked panel
 dashboard showing what each role owes · VO register with search and status filters ·
 **export the register to Excel** (every VO and every measured item, with live totals) · project
 export and import as a single file · optional device and project passcodes · **English / 中文
-interface** · works on a phone.
+interface** · works on a phone, with a bottom tab bar.
 
 ---
 
