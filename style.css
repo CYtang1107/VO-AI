@@ -2945,3 +2945,54 @@ details.fold[open] .fold-less { display: inline; }
 td.nowrap, .nowrap { white-space: nowrap; }
 .deadline-source { margin-top: 4px; font-size: 11.5px; color: var(--ink-3); }
 .deadline-source.from-contract { color: var(--accent-press); font-weight: 600; }
+
+/* ---------- measurement rows as cards on a phone ----------
+   A nine-column table cannot be read at 390px: each item becomes a card,
+   every field labelled, the description and BQ item full width, the
+   verdict line underneath. */
+@media (max-width: 700px) {
+    .measure-scroll { overflow: visible; }
+    .measure-table, .measure-table tbody { display: block; width: 100%; }
+    .measure-table thead { display: none; }
+    .measure-table tr[data-row]:not(.rate-detail-row) {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px 10px;
+        margin-top: 14px;
+        padding: 12px 12px 6px;
+        border: 1px solid var(--rule-strong);
+        border-bottom: none;
+        border-radius: 10px 10px 0 0;
+        background: var(--paper);
+    }
+    .measure-table tr.rate-detail-row {
+        display: block;
+        padding: 4px 8px 8px;
+        border: 1px solid var(--rule-strong);
+        border-top: 1px dashed var(--rule);
+        border-radius: 0 0 10px 10px;
+        background: var(--paper);
+    }
+    .measure-table td { display: block; padding: 0; border: none; min-width: 0; }
+    .measure-table tr.rate-detail-row td { display: block; }
+    .measure-table td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--ink-3);
+        margin-bottom: 3px;
+    }
+    .measure-table td.m-desc, .measure-table td.m-bq { grid-column: 1 / -1; }
+    .measure-table td.m-assessed { grid-column: span 2; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+    .measure-table td.m-assessed::before { flex-basis: 100%; }
+    .measure-table td.m-assessed input { flex: 1 1 0; margin-top: 0 !important; }
+    .measure-table td.m-flag { align-self: end; }
+    #measurementBody td:last-child { border-left: none; }
+    .measure-table input, .measure-table select { width: 100% !important; min-width: 0; font-size: 16px; }
+}
+@media (max-width: 700px) {
+    .table-scroll .measure-table { min-width: 0; }
+    .measure-table tr[data-row]:not(.rate-detail-row) { box-sizing: border-box; width: 100%; }
+    #measurementBody td, #measurementBody td:nth-child(n) { text-align: left; white-space: normal; }
+}

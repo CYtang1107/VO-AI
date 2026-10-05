@@ -222,6 +222,15 @@ function renderMeasurementRows(vo, project, role, pastSources) {
     const assEdit = canEdit("assessment", vo, role);
     const assDis = assEdit ? "" : " disabled";
 
+    /* Column names on each cell: on a phone the table becomes one card
+       per row and each field carries its own label (style.css). */
+    const lbl = {
+        description: escapeHtml(t("vo.col.description")), bqItem: escapeHtml(t("vo.col.bqItem")),
+        unit: escapeHtml(t("vo.col.unit")), qty: escapeHtml(t("vo.col.qty")), rate: escapeHtml(t("vo.col.rate")),
+        claimed: escapeHtml(t("vo.col.claimed")), assessed: escapeHtml(t("vo.col.assessedQtyRate")),
+        check: escapeHtml(t("vo.col.rateCheck"))
+    };
+
     return rows.map((row, i) => {
         const check = checkRate(row, project.bq || []);
         const claimed = lineTotal(row.qty, row.rate);
@@ -250,24 +259,24 @@ function renderMeasurementRows(vo, project, role, pastSources) {
             : "";
 
         return '<tr data-row="' + i + '">' +
-            '<td><input data-col="description" value="' + escapeHtml(row.description) +
+            '<td class="m-desc" data-label="' + lbl.description + '"><input data-col="description" value="' + escapeHtml(row.description) +
                 '"' + conDis + (conEdit ? ' class="owned"' : "") + ' style="width:220px"></td>' +
-            '<td><select data-col="bqItemId"' + conDis + (conEdit ? ' class="owned"' : "") +
+            '<td class="m-bq" data-label="' + lbl.bqItem + '"><select data-col="bqItemId"' + conDis + (conEdit ? ' class="owned"' : "") +
                 ">" + bqOptions(project, row.bqItemId) + "</select></td>" +
-            '<td><input data-col="unit" value="' + escapeHtml(row.unit) + '"' + conDis +
+            '<td data-label="' + lbl.unit + '"><input data-col="unit" value="' + escapeHtml(row.unit) + '"' + conDis +
                 (conEdit ? ' class="owned"' : "") + ' style="width:60px"></td>' +
-            '<td><input type="number" data-col="qty" value="' + escapeHtml(row.qty) + '"' +
+            '<td data-label="' + lbl.qty + '"><input type="number" data-col="qty" value="' + escapeHtml(row.qty) + '"' +
                 conDis + (conEdit ? ' class="owned"' : "") + ' style="width:80px"></td>' +
-            '<td><input type="number" data-col="rate" value="' + escapeHtml(row.rate) + '"' +
+            '<td data-label="' + lbl.rate + '"><input type="number" data-col="rate" value="' + escapeHtml(row.rate) + '"' +
                 conDis + (conEdit ? ' class="owned"' : "") + ' style="width:90px"></td>' +
-            "<td><strong>" + rm(claimed) + "</strong></td>" +
-            '<td><input type="number" data-col="assessedQty" value="' +
+            '<td data-label="' + lbl.claimed + '"><strong>' + rm(claimed) + "</strong></td>" +
+            '<td class="m-assessed" data-label="' + lbl.assessed + '"><input type="number" data-col="assessedQty" value="' +
                 escapeHtml(row.assessedQty) + '"' + assDis +
                 (assEdit ? ' class="owned"' : "") + ' style="width:80px">' +
              '<input type="number" data-col="assessedRate" value="' +
                 escapeHtml(row.assessedRate) + '"' + assDis +
                 (assEdit ? ' class="owned"' : "") + ' style="width:90px;margin-top:5px"></td>' +
-            '<td><span class="rate-flag ' + check.state + '">' + check.label + "</span></td>" +
+            '<td class="m-flag" data-label="' + lbl.check + '"><span class="rate-flag ' + check.state + '">' + check.label + "</span></td>" +
         "</tr>" +
         /* The verdict's explanation runs the full width of the table on
            its own line under the item, instead of wrapping down a narrow
