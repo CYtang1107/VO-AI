@@ -3000,3 +3000,11 @@ td.nowrap, .nowrap { white-space: nowrap; }
 /* AI Analysis: the form alone, full width, until there is a result. */
 .card[hidden] { display: none; }
 .analysis-grid:has(#resultCard[hidden]) { grid-template-columns: minmax(0, 860px); }
+
+/* The report's contractual basis, in brief. */
+.contract-compact .contract-source { margin: 0 0 6px; }
+.contract-compact-list { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.contract-compact-list li { margin: 4px 0; }
+.contract-compact-topic { font-size: 11px; color: var(--accent-press); }
+.contract-compact-quote { color: var(--ink-2); font-style: italic; }
+.contract-compact-periods { margin: 8px 0 4px; font-size: 13px; }

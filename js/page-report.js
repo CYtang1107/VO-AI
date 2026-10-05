@@ -171,11 +171,17 @@ function renderReport(vo, project, role) {
             "<strong>" + escapeHtml(t("clause.evidenceRequired")) + "</strong> " + escapeHtml(a.clause.evidence) + "</p>" +
             '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>"
         : '<p class="rate-detail">' + escapeHtml(t("report.clause.none")) + "</p>";
-    /* the project's own contract, quoted, ahead of the standard form */
+    /* the project's own contract in brief, ahead of the standard form;
+       once the contract has been read, the standard form is a one-line
+       reference rather than its full entitlement and evidence text */
+    const contractRead = a.contract && a.contract.state === "read";
     const contractBlock = a.contract && a.contract.state !== "unread"
-        ? renderContractBlock(a.contract) +
-          (a.contract.state === "read" ? "<p><strong>" + escapeHtml(t("contract.standardForm")) + "</strong></p>" : "")
+        ? renderContractBlock(a.contract, { compact: true })
         : "";
+    const standardBlock = contractRead && a.clause
+        ? '<p class="rate-detail"><strong>' + escapeHtml(t("contract.standardForm") + t("common.colon")) + "</strong>" +
+          escapeHtml(a.clause.form + " " + a.clause.ref + " — " + a.clause.title) + "</p>"
+        : clauseBlock;
 
     let measurementBody, totalsHtml;
     if (role === "client") {
@@ -224,7 +230,7 @@ function renderReport(vo, project, role) {
         }) + "</p>" +
       elementsBlock(a) +
 
-      "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + contractBlock + clauseBlock +
+      "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + contractBlock + standardBlock +
       docSection(vo.contractDocs, t("report.docLabel.contractDocs")) +
 
       "<h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) +
