@@ -2,7 +2,6 @@
    all-VO summary report. Both print cleanly via window.print(). */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { renderContractBlock } = require("./contractread.js");
     var { rm, today, prettyDate, contractorTotal, assessedTotal, voValue } = require("./calc.js");
     var { analyse, checkRate } = require("./analysis.js");
     var { escapeHtml, logoMark, fileLink, seedText } = require("./ui.js");
@@ -58,12 +57,12 @@ function elementsBlock(a) {
     let html = '<p class="rate-detail"><strong>' + escapeHtml(t("report.elementsAffected")) + '</strong> ' +
         detected.map(e => escapeHtml(t("element." + e.id + ".name"))).join(", ") + "</p>";
     if (related.length > 0) {
-        html += related.map(r =>
-            '<div class="finding"><span>' + t("report.confirmRelated", {
+        html += '<ul class="report-list">' + related.map(r =>
+            "<li>" + t("report.confirmRelated", {
                 name: escapeHtml(t("element." + r.element.id + ".name")),
                 note: escapeHtml(t("element." + r.because + ".note"))
-            }) + "</span></div>"
-        ).join("");
+            }) + "</li>"
+        ).join("") + "</ul>";
     }
     return html;
 }
@@ -73,6 +72,22 @@ function elementsBlock(a) {
    consultant's working document (and the default when no role is
    given, so nothing that previously relied on renderReport(vo, project)
    changes behaviour). */
+/* The rate check in one line for the printed report (the full
+   explanation is on the VO page): which BQ item, and by how much. */
+function reportRateNote(check, row, project) {
+    const item = check.matchedItem || (row.bqItemId ? (project.bq || []).find(b => b.id === row.bqItemId) : null) || {};
+    if (check.state === "same") return t("vo.row.same", { code: item.code || "" });
+    if (check.state === "different") {
+        return t("vo.row.different", {
+            code: item.code || "",
+            word: t(check.diff > 0 ? "rate.overstated" : "rate.understated"),
+            diff: rm(Math.abs(check.diff)),
+            pct: check.pct === null || check.pct === undefined ? "" : t("rate.pctNote", { pct: Math.abs(check.pct).toFixed(1) })
+        });
+    }
+    return t("vo.row.star");
+}
+
 function fullMeasurementTable(vo, project) {
     const rows = (vo.measurement || []).map((row, i) => {
         const check = checkRate(row, project.bq || []);
@@ -87,7 +102,7 @@ function fullMeasurementTable(vo, project) {
             "<td>" + rm((Number(row.qty) || 0) * (Number(row.rate) || 0)) + "</td>" +
             "<td>" + rm((Number(assessedQty) || 0) * (Number(assessedRate) || 0)) + "</td>" +
             '<td><span class="rate-flag ' + check.state + '">' + check.label + "</span>" +
-                '<div class="rate-detail">' + escapeHtml(check.detail) + "</div></td>" +
+                '<div class="rate-detail">' + escapeHtml(reportRateNote(check, row, project)) + "</div></td>" +
         "</tr>";
     }).join("") || '<tr><td colspan="8" class="empty-state">' + escapeHtml(t("report.measurement.none")) + '</td></tr>';
 
@@ -161,21 +176,29 @@ function renderReport(vo, project, role) {
         row.assessedQty !== "" && row.assessedQty !== null && row.assessedQty !== undefined
     ) || Boolean(vo.assessmentNote);
 
-    /* a.clause.title/entitlement/evidence are the clause's own English
-       text — see js/i18n.js's clause.note for why that is never
-       translated; the note itself is. */
-    const clauseBlock = a.clause
-        ? "<p><strong>" + escapeHtml(a.clause.form + " " + a.clause.ref + " — " +
-            a.clause.title) + "</strong></p><p class=\"rate-detail\">" +
-            escapeHtml(a.clause.entitlement) + "</p><p class=\"rate-detail\">" +
-            "<strong>" + escapeHtml(t("clause.evidenceRequired")) + "</strong> " + escapeHtml(a.clause.evidence) + "</p>" +
-            '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>"
-        : '<p class="rate-detail">' + escapeHtml(t("report.clause.none")) + "</p>";
-    /* the project's own contract, quoted, ahead of the standard form */
-    const contractBlock = a.contract && a.contract.state !== "unread"
-        ? renderContractBlock(a.contract) +
-          (a.contract.state === "read" ? "<p><strong>" + escapeHtml(t("contract.standardForm")) + "</strong></p>" : "")
-        : "";
+    /* What this VO is assessed under, in one line: the project's own
+       contract (and the clauses it was read against) when it has been
+       read, otherwise the standard form. The wording itself is on the
+       VO page — the report only names the basis. */
+    const contractRead = a.contract && a.contract.state === "read";
+    let basisLine;
+    if (contractRead) {
+        const refs = [];
+        a.contract.topics.forEach(tp => { if (tp.clause && refs.indexOf(tp.clause.no) === -1) refs.push(tp.clause.no); });
+        basisLine = t("report.basis.contract", {
+            doc: "<strong>" + escapeHtml(a.contract.docNames.join("、")) + "</strong>",
+            clauses: escapeHtml(refs.length ? t("contract.clauseRef", { no: refs.join(t("common.listSep")) }) : "—"),
+            form: escapeHtml(a.clause ? a.clause.form : "—")
+        });
+    } else if (a.clause) {
+        basisLine = t("report.basis.standard", {
+            ref: "<strong>" + escapeHtml(a.clause.form + " " + a.clause.ref) + "</strong>",
+            title: escapeHtml(a.clause.title)
+        });
+    } else {
+        basisLine = escapeHtml(t("report.clause.none"));
+    }
+    const basisBlock = '<p class="report-basis">' + basisLine + "</p>";
 
     let measurementBody, totalsHtml;
     if (role === "client") {
@@ -224,12 +247,13 @@ function renderReport(vo, project, role) {
         }) + "</p>" +
       elementsBlock(a) +
 
-      "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + contractBlock + clauseBlock +
+      "<h3>" + escapeHtml(t("report.section.contractualBasis")) + "</h3>" + basisBlock +
       docSection(vo.contractDocs, t("report.docLabel.contractDocs")) +
 
-      "<h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) +
-
-      "<h3>" + escapeHtml(t("report.section.oldDrawing")) + "</h3>" + docSection(vo.oldDrawing, t("report.docLabel.oldDrawing")) +
+      '<div class="report-pair">' +
+        "<div><h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) + "</div>" +
+        "<div><h3>" + escapeHtml(t("report.section.oldDrawing")) + "</h3>" + docSection(vo.oldDrawing, t("report.docLabel.oldDrawing")) + "</div>" +
+      "</div>" +
 
       "<h3>" + escapeHtml(t("report.section.measurement")) + "</h3>" +
       measurementBody + totalsHtml +
@@ -238,15 +262,15 @@ function renderReport(vo, project, role) {
 
       "<h3>" + escapeHtml(t("report.section.findings")) + "</h3>" +
       (a.findings.length === 0 ? "<p>" + escapeHtml(t("report.nothingFlagged")) + "</p>"
-        : a.findings.map(f => '<div class="finding"><span>' + escapeHtml(f) +
-                              "</span></div>").join("")) +
+        : '<ul class="report-list report-findings">' + a.findings.map(f => "<li>" + escapeHtml(f) + "</li>").join("") + "</ul>") +
 
-      "<h3>" + escapeHtml(t("report.section.timeImpact")) + "</h3>" +
-      "<p>" + t("report.timeImpactLine", { n: Number(vo.timeImpact) || 0 }) + "</p>" +
-
-      "<h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
-      "<p>" + t("report.evaluationLine", { status: "<strong>" + escapeHtml(t("status." + vo.evaluateStatus, {})) + "</strong>" }) + "<br>" +
-      t("report.certificationLine", { status: "<strong>" + escapeHtml(t("status." + vo.certifiedStatus, {})) + "</strong>" }) + "</p>" +
+      '<div class="report-pair">' +
+        "<div><h3>" + escapeHtml(t("report.section.timeImpact")) + "</h3>" +
+        "<p>" + t("report.timeImpactLine", { n: Number(vo.timeImpact) || 0 }) + "</p></div>" +
+        "<div><h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
+        "<p>" + t("report.evaluationLine", { status: "<strong>" + escapeHtml(t("status." + vo.evaluateStatus, {})) + "</strong>" }) + "<br>" +
+        t("report.certificationLine", { status: "<strong>" + escapeHtml(t("status." + vo.certifiedStatus, {})) + "</strong>" }) + "</p></div>" +
+      "</div>" +
       (vo.assessmentNote ? '<p class="rate-detail"><strong>' + t("report.assessmentNoteLabel") + '</strong> ' +
         escapeHtml(seedText(vo.assessmentNote)) + "</p>" : "") +
       (showRecommendation ? '<p class="rate-detail"><strong>' + t("report.recommendationLabel") + '</strong> ' +

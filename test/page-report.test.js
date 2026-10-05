@@ -266,3 +266,23 @@ test("seeded VO-001 still reports RM 62,808.00 claimed and RM 55,856.00 certifie
     assert.match(row, /RM 62,808\.00/);
     assert.match(row, /RM 55,856\.00/);
 });
+
+test("the report names the contract basis in one line, without quoting clauses", async () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const { contractFileText, makeReading } = require("../js/contractread.js");
+    const db = seedDB();
+    const p = db.projects[0];
+    const standard = renderReport(p.vos[0], p, "consultant");
+    assert.ok(standard.includes("PAM 2018 Clause 11.1"));
+    assert.ok(!standard.includes("ranks for valuation"), "no standard-form entitlement text");
+
+    const r = await contractFileText("c.pdf", fs.readFileSync(path.join(__dirname, "..", "demo-files", "conditions-of-contract-demo.pdf")));
+    p.contractReadings = { D3: makeReading({ id: "D3", name: "Conditions of Contract (demo extract).pdf" }, r.text, "2026-10-05") };
+    const html = renderReport(p.vos[0], p, "consultant");
+    const basis = html.match(/<p class="report-basis">(.*?)<\/p>/)[1];
+    assert.ok(basis.includes("Conditions of Contract (demo extract).pdf"));
+    assert.ok(basis.includes("Clause 11.1, 11.3, 23.1"));
+    assert.ok(!html.includes("In these Conditions a Variation means"), "no clause wording in the report");
+    assert.ok(!html.includes("Periods this contract states"));
+});
