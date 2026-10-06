@@ -3,12 +3,12 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
     var { canEdit, lockReason, fieldLabel, FIELD_OWNER } = require("./permissions.js");
-    var { checkRate, analyse } = require("./analysis.js");
+    var { checkRate, analyse, matchBqItem, suggestBqForChange } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill, fileLink, fold, seedText } = require("./ui.js");
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
-    var { suggestPastRate } = require("./ratehistory.js");
+    var { suggestPastRate, pastRateSources, pastRateWords, MATERIAL_WORDS } = require("./ratehistory.js");
     var { renderContractBlock } = require("./contractread.js");
     var { renderContractPane } = require("./askcontract.js");
     var { t } = require("./i18n.js");
@@ -190,7 +190,61 @@ function renderBqOrigin(item) {
 
 /* The row's verdict in one line — the full explanation, the past
    project rates and any suggested match open under it. */
-function rowSummary(check, linkedItem, suggestion) {
+/* A measurement row whose description was just typed: link it to the
+   BQ item it describes and fill what is still empty, the way the AI
+   Analysis form does.
+   - BQ item: the strict English matcher first, then the description
+     matcher that also reads Chinese site words; a match resting on one
+     word only ("Wall") is never linked, only suggested as before.
+   - Unit: the BQ item's, when the row has none.
+   - Rate: when the row has none, the contract BQ rate; with no BQ item,
+     the median of comparable past-project rates (a star rate). A rate
+     already typed is never replaced.
+   Only a row not linked by hand is matched. Records what it did on
+   row.auto ({code, basis, unit, rate: "bq" | "past"}) so the page can say
+   so; returns true when it changed anything. */
+function autoFillRow(row, bq, pastSources) {
+    if (!row || !String(row.description || "").trim()) return false;
+    if (row.bqItemId && !row.auto) return false;   /* linked by hand: leave it */
+    /* a BQ item made of a different material is not this item: marble
+       floor tiles are not the "ceramic floor tiles" item, they are a new
+       (star) rate. An item that names no material ("Skirting to match
+       floor finish") can still match. */
+    const mine = pastRateWords(row.description).filter(w => MATERIAL_WORDS.has(w));
+    const fits = it => {
+        const theirs = pastRateWords(it.description).filter(w => MATERIAL_WORDS.has(w));
+        return theirs.length === 0 || mine.length === 0 || mine.every(w => theirs.indexOf(w) !== -1);
+    };
+    const list = (bq || []).filter(fits);
+    const strict = matchBqItem(Object.assign({}, row, { unit: "" }), list);
+    const loose = strict ? null : suggestBqForChange(row.description, list);
+    const item = strict ? strict.item : (loose && !loose.weak ? loose.item : null);
+    const basis = strict ? strict.basis : (loose && !loose.weak ? loose.matched.join(", ") : "");
+    const before = JSON.stringify([row.bqItemId, row.unit, row.rate, row.auto]);
+    const prevAuto = row.auto || {};
+    const auto = {};
+
+    if (item) {
+        row.bqItemId = item.id;
+        auto.code = item.code;
+        auto.basis = basis;
+        if (!String(row.unit || "").trim() || prevAuto.unit) { row.unit = item.unit; auto.unit = true; }
+        if (!(Number(row.rate) > 0) || prevAuto.rate) { row.rate = Number(item.rate) || 0; auto.rate = "bq"; }
+    } else {
+        if (prevAuto.code) row.bqItemId = null;   /* an earlier auto-link no longer fits */
+        if (prevAuto.unit) row.unit = "";
+        const past = typeof suggestPastRate === "function" ? suggestPastRate(row, pastSources || []) : null;
+        if (past && (!(Number(row.rate) > 0) || prevAuto.rate)) {
+            row.rate = past.rate;
+            auto.rate = "past";
+            if (!String(row.unit || "").trim()) { row.unit = past.matches[0].unit; auto.unit = true; }
+        } else if (prevAuto.rate) row.rate = 0;
+    }
+    if (Object.keys(auto).length) row.auto = auto; else delete row.auto;
+    return JSON.stringify([row.bqItemId, row.unit, row.rate, row.auto]) !== before;
+}
+
+function rowSummary(check, linkedItem, suggestion, row) {
     let text;
     if (check.state === "same") {
         text = t("vo.row.same", { code: (check.matchedItem || linkedItem || {}).code || "" });
@@ -209,6 +263,10 @@ function rowSummary(check, linkedItem, suggestion) {
             : t(suggestion === null ? "vo.row.starNoPast" : "vo.row.star");
     }
     if (check.autoMatched) text += t("vo.row.suggested", { code: check.matchedItem.code });
+    if (row && row.auto) {
+        if (row.auto.code) text += t("vo.row.autoLinked", { code: row.auto.code });
+        if (row.auto.rate) text += t(row.auto.rate === "bq" ? "vo.row.autoRateBq" : "vo.row.autoRatePast");
+    }
     if (linkedItem && linkedItem.origin) text += t("vo.row.newItem");
     return text;
 }
@@ -286,8 +344,10 @@ function renderMeasurementRows(vo, project, role, pastSources) {
            last column and stretching every cell of the row. */
         '<tr class="rate-detail-row" data-row="' + i + '">' +
             '<td colspan="8">' + fold("row-" + (row.id || i),
-                '<span class="row-verdict row-verdict-' + check.state + '">' + escapeHtml(rowSummary(check, linkedItem, suggestion)) + "</span>",
+                '<span class="row-verdict row-verdict-' + check.state + '">' + escapeHtml(rowSummary(check, linkedItem, suggestion, row)) + "</span>",
                 '<div class="rate-detail rate-detail-' + check.state + '">' + escapeHtml(check.detail) + "</div>" + autoBlock +
+                (row.auto && row.auto.code ? '<div class="rate-detail auto-fill-note">' +
+                    escapeHtml(t("vo.row.autoBasis", { code: row.auto.code, basis: row.auto.basis || "" })) + "</div>" : "") +
                 renderBqOrigin(linkedItem) +
                 (suggestion !== undefined ? renderPastRates(i, suggestion, assEdit) : ""),
                 "row-fold") +
@@ -600,7 +660,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote
     };
@@ -822,6 +882,7 @@ if (typeof document !== "undefined") {
             if (!el || el.disabled) return;
             const i = Number(el.closest("tr").dataset.row);
             const col = el.dataset.col;
+            let autoNote = "";
             updateVO(project.id, voId, v => {
                 const row = v.measurement[i];
                 if (col === "qty" || col === "rate") row[col] = Number(el.value) || 0;
@@ -829,8 +890,19 @@ if (typeof document !== "undefined") {
                     row[col] = el.value === "" ? "" : Number(el.value);
                 else if (col === "bqItemId") row[col] = el.value || null;
                 else row[col] = el.value;
+                /* a hand-made choice ends the automatic one */
+                if (row.auto && col === "bqItemId") delete row.auto;
+                if (row.auto && col === "rate") { delete row.auto.rate; if (!Object.keys(row.auto).length) delete row.auto; }
+                if (row.auto && col === "unit") { delete row.auto.unit; }
+                if (col === "description" && autoFillRow(row, (getProject(project.id) || project).bq, pastRateSources(loadDB(), project.id)) && row.auto) {
+                    autoNote = row.auto.code ? t("vo.row.autoToast", { code: row.auto.code })
+                        : row.auto.rate === "past" ? t("vo.row.autoToastPast") : "";
+                    logHistory(v, session, "Row " + (i + 1) + " filled automatically" +
+                        (row.auto.code ? ": linked to BQ " + row.auto.code : "") +
+                        (row.auto.rate === "bq" ? ", contract rate" : row.auto.rate === "past" ? ", past-project rate" : ""));
+                }
             });
-            toast(t("toast.measurementUpdated"));
+            toast(autoNote || t("toast.measurementUpdated"));
             draw();
         });
 

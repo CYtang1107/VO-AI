@@ -75,8 +75,34 @@ function knowledgeFromText(docName, text) {
 
 /* entries: groupKnowledge(...); docs: the project's contract documents;
    progress: {docId, text} while an import runs. */
-function renderKnowledgeCard(entries, docs, canImport, progress) {
+/* One imported document's clauses, to read and check: pieces of a long
+   clause joined back, in contract order, filtered by number, title or
+   words. rows: [{clause_no, title, part, text}] in stored order. */
+function groupClauseRows(rows) {
+    const byNo = {}, order = [];
+    (rows || []).forEach(r => {
+        if (!byNo[r.clause_no]) { byNo[r.clause_no] = { no: r.clause_no, title: r.title || "", text: r.text }; order.push(r.clause_no); }
+        else byNo[r.clause_no].text += " " + r.text;
+    });
+    return order.map(no => byNo[no]);
+}
+
+function renderClauseList(clauses, filter) {
+    const q = String(filter || "").trim().toLowerCase();
+    const shown = q ? clauses.filter(c => (c.no + " " + c.title + " " + c.text).toLowerCase().indexOf(q) !== -1) : clauses;
+    return '<p class="assistant-note">' + escapeHtml(t("kb.view.count", { shown: shown.length, total: clauses.length })) + "</p>" +
+        (shown.length
+            ? shown.map(c => '<details class="cite-source"><summary>' +
+                escapeHtml((/^Article /.test(c.no) ? c.no : t("ask.clause", { no: c.no })) + (c.title ? " — " + c.title : "")) +
+                '</summary><p class="rate-detail">' + escapeHtml(c.text) + "</p></details>").join("")
+            : '<div class="empty-state">' + escapeHtml(t("kb.view.noMatch")) + "</div>");
+}
+
+/* view: {docName, clauses, filter} while a document's clauses are open,
+   {docName, loading} while they load. */
+function renderKnowledgeCard(entries, docs, canImport, progress, view) {
     const imported = new Set((entries || []).map(e => e.docName));
+    const open = docName => view && view.docName === docName;
     const list = (entries || []).length
         ? '<ul class="doc-list">' + entries.map(e =>
             '<li class="file-item doc-registry-item kb-entry"><div class="doc-current">' +
@@ -84,9 +110,19 @@ function renderKnowledgeCard(entries, docs, canImport, progress) {
             "<strong>" + escapeHtml(e.form) + "</strong>" +
             (e.docName !== e.form ? '<span class="file-date">' + escapeHtml(e.docName) + "</span>" : "") +
             '<span class="file-date">' + escapeHtml(t("kb.counts", { clauses: e.clauses, chunks: e.chunks })) + "</span>" +
+            '<button type="button" class="secondary-button kb-view-btn" data-doc-name="' + escapeHtml(e.docName) + '">' +
+                escapeHtml(t(open(e.docName) ? "kb.view.close" : "kb.view.open")) + "</button>" +
             (canImport ? '<button type="button" class="file-remove kb-remove-btn" data-doc-name="' + escapeHtml(e.docName) + '">' +
                 escapeHtml(t("kb.remove")) + "</button>" : "") +
-            "</div></li>").join("") + "</ul>"
+            "</div>" +
+            (open(e.docName)
+                ? '<div class="kb-clauses">' + (view.loading
+                    ? '<div class="empty-state">' + escapeHtml(t("kb.loading")) + "</div>"
+                    : '<input type="search" class="kb-clause-search" placeholder="' + escapeHtml(t("kb.view.search")) + '" value="' +
+                      escapeHtml(view.filter || "") + '">' +
+                      '<div class="kb-clause-list">' + renderClauseList(view.clauses, view.filter) + "</div>") + "</div>"
+                : "") +
+            "</li>").join("") + "</ul>"
         : '<div class="empty-state">' + escapeHtml(t("kb.empty")) + "</div>";
 
     let importRows = "";
@@ -222,10 +258,14 @@ async function loadKnowledge(projectId) {
     return groupKnowledge(await Cloud.knowledgeRows(projectId));
 }
 
+async function loadClauses(projectId, docName) {
+    return groupClauseRows(await Cloud.knowledgeText(projectId, docName));
+}
+
 async function removeKnowledge(projectId, docName) {
     return Cloud.invoke("import-contract", { action: "remove", project_id: projectId, doc_name: docName });
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { inBatches, formFor, groupKnowledge, knowledgeFromText, renderKnowledgeCard };
+    module.exports = { inBatches, formFor, groupKnowledge, knowledgeFromText, renderKnowledgeCard, groupClauseRows, renderClauseList };
 }

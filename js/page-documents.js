@@ -345,10 +345,11 @@ if (typeof document !== "undefined") {
             const canImport = session.role === "consultant";
             let entries = null;   /* null until loaded */
             let progress = null;
+            let view = null;   /* the document whose clauses are open */
 
             const contractDocs = () => ((getProject(project.id) || project).documents || [])
                 .filter(d => d.category === "contract" && /\.(pdf|docx|txt)$/i.test(d.name || ""));
-            const drawKb = () => { kbBody.innerHTML = renderKnowledgeCard(entries, contractDocs(), canImport, progress); };
+            const drawKb = () => { kbBody.innerHTML = renderKnowledgeCard(entries, contractDocs(), canImport, progress, view); };
             async function refreshKb() {
                 try { entries = await loadKnowledge(project.id); }
                 catch (e) { kbBody.innerHTML = '<div class="empty-state">' + escapeHtml(t("kb.loadFailed", { reason: e.message || String(e) })) + "</div>"; return; }
@@ -359,7 +360,24 @@ if (typeof document !== "undefined") {
             kbBody.innerHTML = '<div class="empty-state">' + escapeHtml(t("kb.loading")) + "</div>";
             refreshKb();
 
+            kbBody.addEventListener("input", e => {
+                if (!e.target.classList.contains("kb-clause-search") || !view || !view.clauses) return;
+                view.filter = e.target.value;
+                kbBody.querySelector(".kb-clause-list").innerHTML = renderClauseList(view.clauses, view.filter);
+            });
+
             kbBody.addEventListener("click", async e => {
+                const viewBtn = e.target.closest(".kb-view-btn");
+                if (viewBtn) {
+                    const name = viewBtn.dataset.docName;
+                    if (view && view.docName === name) { view = null; drawKb(); return; }
+                    view = { docName: name, loading: true };
+                    drawKb();
+                    try { view = { docName: name, clauses: await loadClauses(project.id, name), filter: "" }; }
+                    catch (err) { view = null; toast(t("kb.loadFailed", { reason: err.message || String(err) }), "error"); }
+                    drawKb();
+                    return;
+                }
                 const importBtn = e.target.closest(".kb-import-btn");
                 if (importBtn && !progress) {
                     const doc = contractDocs().find(d => d.id === importBtn.dataset.docId);

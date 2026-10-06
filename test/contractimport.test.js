@@ -105,3 +105,24 @@ test("the server embeds a clause exactly as the command-line import does", async
     assert.deepStrictEqual(rows[0], { project_id: "PRJ-1", doc_name: "PAM 2018", form: "PAM 2018", clause_no: "11.6",
         title: "Valuation rules", part: 2, text: "Where work...", embedding: "[0.1,0.2]" });
 });
+
+test("an imported document's clauses can be read back, long clauses joined, and searched", () => {
+    const { groupClauseRows, renderClauseList } = require("../js/contractimport.js");
+    const clauses = groupClauseRows([
+        { clause_no: "11.5", title: "Valuation", part: 1, text: "All Variations shall be valued." },
+        { clause_no: "11.6", title: "Valuation rules", part: 1, text: "Where work is similar" },
+        { clause_no: "11.6", title: "Valuation rules", part: 2, text: "daywork at cost plus 15%." }
+    ]);
+    assert.deepStrictEqual(clauses.map(c => c.no), ["11.5", "11.6"]);
+    assert.strictEqual(clauses[1].text, "Where work is similar daywork at cost plus 15%.");
+    assert.match(renderClauseList(clauses, ""), /Showing 2 of 2 clauses/);
+    const found = renderClauseList(clauses, "DAYWORK");
+    assert.match(found, /Showing 1 of 2 clauses/);
+    assert.match(found, /Clause 11\.6 — Valuation rules/);
+    assert.match(renderClauseList(clauses, "nothing like this"), /No clause matches/);
+    const card = renderKnowledgeCard([{ docName: "PAM 2018", form: "PAM 2018", clauses: 2, chunks: 3 }], [], false,
+        null, { docName: "PAM 2018", clauses: clauses, filter: "" });
+    assert.match(card, /Hide clauses/);
+    assert.match(card, /kb-clause-search/);
+    assert.ok(!/kb-remove-btn/.test(card), "a member who is not the consultant can read but not remove");
+});

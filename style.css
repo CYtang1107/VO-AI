@@ -3241,3 +3241,52 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .rate-suggest-use { margin: 0 0 6px; }
 .rate-suggest .past-rates-list { margin: 6px 0; padding-left: 18px; }
 .rate-suggest .past-rates-note { margin: 6px 0 0; color: var(--ink-3); }
+.kb-view-btn { margin-left: auto; }
+.kb-clauses { margin: 10px 0 4px; }
+.kb-clause-search { width: 100%; padding: 9px 12px; border: 1px solid var(--rule-strong); border-radius: 8px; font: inherit; font-size: 13px; margin-bottom: 6px; }
+.kb-clause-list { max-height: 480px; overflow-y: auto; }
+.kb-entry { flex-wrap: wrap; }
+.kb-entry > .doc-current { flex: 1 1 100%; }
+.kb-entry > .kb-clauses { flex: 1 1 100%; }
+.auto-fill-note { color: var(--accent); }
+
+/* ---------- register on a phone: each VO a clearly separate card ---------- */
+@media (max-width: 700px) {
+    .register-scroll { background: var(--paper-sunk); padding: 12px 10px 2px; border-radius: 10px; }
+    .register-scroll tbody tr.vo-row {
+        --stage: var(--rule-strong);
+        border: 1px solid var(--rule-strong);
+        border-left: 6px solid var(--stage);
+        border-radius: 10px;
+        margin-bottom: 22px;
+        padding: 0 14px 6px;
+        background: var(--paper);
+        box-shadow: 0 2px 8px rgba(22, 29, 46, 0.12);
+        overflow: hidden;
+    }
+    .register-scroll tbody tr.vo-row.stage-done { --stage: var(--verdict-same); }
+    .register-scroll tbody tr.vo-row.stage-progress { --stage: #d97706; }
+    .register-scroll tbody tr.vo-row.stage-rejected { --stage: var(--verdict-diff); }
+    .register-scroll tbody tr.vo-row.stage-draft { --stage: #8a93a6; }
+    /* the VO number: a dark band across the top of the card */
+    .register-scroll tbody tr.vo-row td.card-heading:first-child {
+        margin: 0 -14px 0;
+        width: calc(100% + 28px);
+        padding: 12px 14px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 17px;
+        letter-spacing: .02em;
+    }
+    .register-scroll tbody tr.vo-row td.card-heading:first-child * { color: #fff; }
+    .register-scroll tbody tr.vo-row td.card-heading:nth-child(2) { padding-top: 12px; font-weight: 600; }
+}
+@media (max-width: 700px) {
+    .register-scroll tbody tr.vo-row td.card-heading:first-child { display: flex; justify-content: space-between; align-items: center; }
+    .register-scroll tbody tr.vo-row td.card-heading:first-child::after {
+        content: attr(data-stage);
+        font-size: 12px; font-weight: 700; letter-spacing: 0;
+        padding: 3px 10px; border-radius: 12px;
+        background: var(--stage); color: #fff;
+    }
+}

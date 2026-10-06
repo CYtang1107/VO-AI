@@ -348,6 +348,14 @@ var Cloud = (function () {
         return invoke("ask-contract", body);
     }
 
+    /* One imported document's text, in stored (contract) order, for
+       reading and checking it on the Documents page. */
+    async function knowledgeText(projectId, docName) {
+        var c = await client();
+        return check(await c.from("contract_chunks").select("clause_no, title, part, text")
+            .eq("project_id", projectId).eq("doc_name", docName).order("id").range(0, 4999));
+    }
+
     /* The project's knowledge base, one row per stored chunk (no text):
        what js/contractimport.js lists on the Documents page. */
     async function knowledgeRows(projectId) {
@@ -470,7 +478,7 @@ var Cloud = (function () {
         pull: pull, push: push, schedulePush: schedulePush, flush: flush,
         uploadFile: uploadFile, downloadFile: downloadFile,
         addMember: addMember, removeMember: removeMember,
-        ask: ask, invoke: invoke, knowledgeRows: knowledgeRows, notify: notify
+        ask: ask, invoke: invoke, knowledgeRows: knowledgeRows, knowledgeText: knowledgeText, notify: notify
     };
 })();
 

@@ -110,6 +110,14 @@ function renderRegisterHead(role) {
     }).join("") + "</tr>";
 }
 
+/* Where a VO stands, for the coloured edge of its card on a phone:
+   certified, rejected, with the consultant or client, or a draft. */
+function voStage(vo) {
+    if (vo.certifiedStatus === "Approved") return "stage-done";
+    if (vo.certifiedStatus === "Rejected" || vo.evaluateStatus === "Rejected") return "stage-rejected";
+    return vo.submitted ? "stage-progress" : "stage-draft";
+}
+
 /* `opts.vos`, when given, is the already-filtered list to render (from
    filterVos()) — falls back to every VO on the project. `opts.filtered`
    tells the empty state whether the project genuinely has no VOs at all
@@ -127,7 +135,7 @@ function renderRegisterBody(project, role, opts) {
                "</td></tr>";
     }
     return vos.map(v =>
-        '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
+        '<tr class="vo-row ' + voStage(v) + '" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
         COLUMNS.map(c => {
             const owned = FIELD_OWNER[c.field] === role;
             /* VO NO. and DESCRIPTION double as the card heading at narrow
@@ -138,7 +146,8 @@ function renderRegisterBody(project, role, opts) {
             if (owned) classes.push("owned-col");
             if (heading) classes.push("card-heading");
             const cls = classes.length ? ' class="' + classes.join(" ") + '"' : "";
-            return "<td" + cls + ' data-label="' + escapeHtml(t(c.labelKey)) + '">' +
+            const stage = c.field === "no" ? ' data-stage="' + escapeHtml(t("register.stage." + voStage(v))) + '"' : "";
+            return "<td" + cls + stage + ' data-label="' + escapeHtml(t(c.labelKey)) + '">' +
                    c.render(v, project) + "</td>";
         }).join("") + "</tr>"
     ).join("");
@@ -146,7 +155,7 @@ function renderRegisterBody(project, role, opts) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        COLUMNS, columnsForRole, renderRegisterHead, renderRegisterBody, dueDateCell, filterVos
+        COLUMNS, columnsForRole, renderRegisterHead, renderRegisterBody, dueDateCell, filterVos, voStage
     };
 }
 
