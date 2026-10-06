@@ -115,7 +115,8 @@ test("revised drawing, old drawing and supporting documents each get their own s
 });
 
 test("a VO with no attachments still renders each document section without malformed markup", () => {
-    const html = renderReport(vo3, project);
+    const bare = Object.assign({}, vo3, { revisedDrawing: [], oldDrawing: [], supportingDocs: [] });
+    const html = renderReport(bare, project);
     assert.match(html, /No revised drawing attached/);
     assert.match(html, /No superseded drawing attached/);
     assert.match(html, /No supporting document attached/);

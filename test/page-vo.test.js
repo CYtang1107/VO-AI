@@ -151,7 +151,7 @@ test("seeded VO-001's revised drawing renders its actual file name", () => {
 });
 
 test("a field with no documents renders an empty state rather than a broken list", () => {
-    const html = renderDocList(vo3, "supportingDocs", "Supporting documents", "contractor");
+    const html = renderDocList(Object.assign({}, vo3, { supportingDocs: [] }), "supportingDocs", "Supporting documents", "contractor");
     assert.match(html, /empty-state/);
     assert.ok(!/<ul class="doc-list">/.test(html));
 });
