@@ -228,6 +228,39 @@ async function drawSiteMap(host, project, opts) {
     layers[t("map.street")] = street;
     layers[t("map.satellite")] = satellite;
     L.control.layers(layers, null, { collapsed: false, position: "topright" }).addTo(map);
+
+    /* full screen: the browser's own where it has one, else the map fills
+       the window (iPhone Safari has no full screen for a page element) */
+    const box = host.querySelector(".site-map");
+    const FullScreen = L.Control.extend({
+        options: { position: "topleft" },
+        onAdd: () => {
+            const btn = L.DomUtil.create("button", "site-map-full-btn");
+            btn.type = "button";
+            btn.title = t("map.fullScreen");
+            btn.setAttribute("aria-label", t("map.fullScreen"));
+            btn.textContent = "⛶";
+            L.DomEvent.disableClickPropagation(btn);
+            btn.addEventListener("click", () => {
+                const native = document.fullscreenElement === box;
+                const faked = box.classList.contains("site-map-filled");
+                if (native) { document.exitFullscreen(); return; }
+                if (faked) { box.classList.remove("site-map-filled"); setTimeout(() => map.invalidateSize(), 50); return; }
+                if (box.requestFullscreen) box.requestFullscreen().catch(() => box.classList.add("site-map-filled"));
+                else box.classList.add("site-map-filled");
+                setTimeout(() => map.invalidateSize(), 50);
+            });
+            return btn;
+        }
+    });
+    new FullScreen().addTo(map);
+    document.addEventListener("fullscreenchange", () => setTimeout(() => map.invalidateSize(), 50));
+    document.addEventListener("keydown", e => {
+        if (e.key === "Escape" && box.classList.contains("site-map-filled")) {
+            box.classList.remove("site-map-filled");
+            setTimeout(() => map.invalidateSize(), 50);
+        }
+    });
     map.on("baselayerchange", ev => {
         try { localStorage.setItem(MAP_VIEW_KEY, ev.layer === street ? "street" : "satellite"); } catch (e) { /* not kept */ }
     });

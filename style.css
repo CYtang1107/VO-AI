@@ -3290,3 +3290,15 @@ td.nowrap, .nowrap { white-space: nowrap; }
         background: var(--stage); color: #fff;
     }
 }
+
+/* ---------- site map: larger, and full screen ---------- */
+.site-map { height: 480px; }
+.site-map:fullscreen { height: 100%; border-radius: 0; border: 0; }
+.site-map.site-map-filled { position: fixed; inset: 0; height: auto; z-index: 2000; border-radius: 0; border: 0; }
+.site-map-full-btn {
+    width: 34px; height: 34px; border: 2px solid rgba(0,0,0,.2); border-radius: 4px;
+    background: #fff; font-size: 18px; line-height: 1; cursor: pointer; color: var(--ink);
+}
+.site-map-full-btn:hover { background: #f4f4f4; }
+@media (max-width: 700px) { .site-map { height: 340px; } }
+.login-note { font-size: 12px; color: var(--ink-3); background: var(--paper-sunk); border-radius: 8px; padding: 8px 10px; margin: 0 0 14px; line-height: 1.5; }

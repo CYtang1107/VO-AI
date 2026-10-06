@@ -125,11 +125,28 @@ function loadDB() {
    (js/contractread.js) works there too. Touches only the demo project. */
 function upgradeDemo(db) {
     const demo = db && (db.projects || []).find(p => p.id === "PRJ-CADANGAN");
-    if (demo && !(demo.documents || []).some(d => d.id === "D3")) {
-        const d3 = seedDB().projects[0].documents.find(d => d.id === "D3");
-        demo.documents = (demo.documents || []).concat([d3]);
-        saveDB(db);
+    if (!demo) return db;
+    const seed = seedDB().projects[0];
+    let changed = false;
+    if (!(demo.documents || []).some(d => d.id === "D3")) {
+        demo.documents = (demo.documents || []).concat([seed.documents.find(d => d.id === "D3")]);
+        changed = true;
     }
+    /* the site map (js/sitemap.js): the demo site, and the demo's site
+       photos with where they were taken. Added only where missing — a site
+       the consultant set, or a photo removed, is left as it is. */
+    if (!demo.site) { demo.site = seed.site; changed = true; }
+    seed.vos.forEach(sv => {
+        const vo = (demo.vos || []).find(v => v.id === sv.id);
+        if (!vo) return;
+        vo.supportingDocs = vo.supportingDocs || [];
+        (sv.supportingDocs || []).filter(d => d.geo).forEach(sd => {
+            const have = vo.supportingDocs.find(d => d.id === sd.id);
+            if (!have) { vo.supportingDocs.push(Object.assign({}, sd)); changed = true; }
+            else if (!have.geo) { have.geo = sd.geo; have.size = sd.size; changed = true; }
+        });
+    });
+    if (changed) saveDB(db);
     return db;
 }
 

@@ -197,7 +197,11 @@
         });
         let saved = null;
         try { saved = localStorage.getItem(MODE_KEY); } catch (e) { /* ignore */ }
-        showMode(saved === "demo" ? "demo" : "team");
+        /* the demo first: anyone opening the link (a judge, a visitor)
+           lands in the full demo project without an account */
+        showMode(saved === "team" ? "team" : "demo");
+        const demoNote = document.getElementById("demoNote");
+        if (demoNote) demoNote.hidden = false;
 
         document.getElementById("teamRole").innerHTML = Object.values(ROLES).map(r =>
             '<option value="' + r.id + '">' + escapeHtml(t("role." + r.id + ".label", {})) + "</option>").join("");
