@@ -22,6 +22,11 @@ var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.m
 var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
 var OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 var OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+/* Satellite view: Esri World Imagery, with Esri's place names on top. */
+var SAT_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+var SAT_LABELS = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
+var SAT_ATTRIBUTION = "Imagery &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community";
+var MAP_VIEW_KEY = "voai.mapView.v1";
 var GEO_FIELDS = ["supportingDocs", "revisedDrawing", "oldDrawing", "contractDocs"];
 
 /* ---------- pure (tested in test/sitemap.test.js) ---------- */
@@ -140,20 +145,29 @@ function mapSummary(site, pins) {
 
 /* ---------- browser ---------- */
 
+/* Leaflet's script AND its stylesheet: a map drawn before the stylesheet
+   applies measures itself wrongly (tiles out of place, the view fitted to
+   the wrong size, so it opens zoomed out on half the world). */
+var leafletReady = null;
 function loadLeaflet() {
-    if (window.L && window.L.map) return Promise.resolve(window.L);
-    if (!document.querySelector('link[data-leaflet]')) {
-        const css = document.createElement("link");
-        css.rel = "stylesheet"; css.href = LEAFLET_CSS; css.setAttribute("data-leaflet", "");
-        document.head.appendChild(css);
-    }
-    return new Promise((resolve, reject) => {
+    if (leafletReady) return leafletReady;
+    const css = new Promise(resolve => {
+        const el = document.createElement("link");
+        el.rel = "stylesheet"; el.href = LEAFLET_CSS; el.setAttribute("data-leaflet", "");
+        el.onload = resolve;
+        el.onerror = resolve;   /* the map still works, only less tidy */
+        document.head.appendChild(el);
+    });
+    const js = window.L && window.L.map ? Promise.resolve() : new Promise((resolve, reject) => {
         const el = document.createElement("script");
         el.src = LEAFLET_JS;
-        el.onload = () => resolve(window.L);
+        el.onload = resolve;
         el.onerror = () => reject(new Error("leaflet"));
         document.head.appendChild(el);
     });
+    leafletReady = Promise.all([css, js]).then(() => window.L);
+    leafletReady.catch(() => { leafletReady = null; });
+    return leafletReady;
 }
 
 /* The phone's current position, watched from when the capture page opens,
@@ -200,7 +214,23 @@ async function drawSiteMap(host, project, opts) {
     catch (e) { host.querySelector(".site-map").innerHTML = '<div class="empty-state">' + escapeHtml(t("map.offline")) + "</div>"; return; }
 
     const map = L.map(host.querySelector(".site-map"), { scrollWheelZoom: false });
-    L.tileLayer(OSM_TILES, { maxZoom: 19, attribution: OSM_ATTRIBUTION }).addTo(map);
+    /* street map or satellite photo, switched top right; the choice is
+       remembered in this browser */
+    const street = L.tileLayer(OSM_TILES, { maxZoom: 19, attribution: OSM_ATTRIBUTION });
+    const satellite = L.layerGroup([
+        L.tileLayer(SAT_TILES, { maxZoom: 19, maxNativeZoom: 18, attribution: SAT_ATTRIBUTION }),
+        L.tileLayer(SAT_LABELS, { maxZoom: 19, maxNativeZoom: 18 })
+    ]);
+    let view = "satellite";
+    try { view = localStorage.getItem(MAP_VIEW_KEY) === "street" ? "street" : "satellite"; } catch (e) { /* default */ }
+    (view === "street" ? street : satellite).addTo(map);
+    const layers = {};
+    layers[t("map.street")] = street;
+    layers[t("map.satellite")] = satellite;
+    L.control.layers(layers, null, { collapsed: false, position: "topright" }).addTo(map);
+    map.on("baselayerchange", ev => {
+        try { localStorage.setItem(MAP_VIEW_KEY, ev.layer === street ? "street" : "satellite"); } catch (e) { /* not kept */ }
+    });
     const siteIcon = L.divIcon({ className: "site-pin", html: "<span>⌂</span>", iconSize: [30, 30], iconAnchor: [15, 15] });
     let siteMarker = site ? L.marker([site.lat, site.lng], { icon: siteIcon, title: t("map.site") })
         .bindPopup("<strong>" + escapeHtml(t("map.site")) + "</strong><br>" + escapeHtml(site.address || "")).addTo(map) : null;
@@ -234,15 +264,32 @@ async function drawSiteMap(host, project, opts) {
     });
 
     const points = pins.map(p => [p.lat, p.lng]).concat(site ? [[site.lat, site.lng]] : []);
-    if (points.length > 1) map.fitBounds(points, { padding: [30, 30], maxZoom: 18 });
-    else if (points.length === 1) map.setView(points[0], 17);
-    else map.setView([3.139, 101.6869], 11);   /* Kuala Lumpur until a site is set */
+    function fitAll() {
+        if (points.length > 1) map.fitBounds(points, { padding: [40, 40], maxZoom: 18 });
+        else if (points.length === 1) map.setView(points[0], 17);
+        else map.setView([3.139, 101.6869], 11);   /* Kuala Lumpur until a site is set */
+    }
+    fitAll();
+    /* once the page has laid itself out, measure again and fit again */
+    setTimeout(() => { map.invalidateSize(); fitAll(); }, 250);
+    if (typeof ResizeObserver !== "undefined") {
+        new ResizeObserver(() => map.invalidateSize()).observe(map.getContainer());
+    }
+
+    /* a click on the site or on a photo zooms in to it */
+    if (siteMarker) siteMarker.on("click", () => map.flyTo(siteMarker.getLatLng(), 18, { duration: 0.8 }));
+    map.eachLayer(layer => {
+        if (layer instanceof L.CircleMarker) layer.on("click", () => map.flyTo(layer.getLatLng(), 19, { duration: 0.8 }));
+    });
 
     if (!o.canSetSite) return;
     function setSite(lat, lng, address) {
         const next = { lat: round6(lat), lng: round6(lng), address: address || "" };
         if (siteMarker) siteMarker.setLatLng([next.lat, next.lng]);
-        else siteMarker = L.marker([next.lat, next.lng], { icon: siteIcon }).addTo(map);
+        else {
+            siteMarker = L.marker([next.lat, next.lng], { icon: siteIcon }).addTo(map);
+            siteMarker.on("click", () => map.flyTo(siteMarker.getLatLng(), 18, { duration: 0.8 }));
+        }
         siteMarker.bindPopup("<strong>" + escapeHtml(t("map.site")) + "</strong><br>" + escapeHtml(next.address));
         o.onSiteSaved && o.onSiteSaved(next);
         host.querySelector(".site-map-summary").textContent = mapSummary(next, pins);
