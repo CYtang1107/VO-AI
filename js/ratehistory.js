@@ -54,9 +54,33 @@ var PAST_RATE_FILLER = new Set([
     "add", "omit", "new", "additional", "extra", "supply", "install", "provide", "lay", "laid", "fix", "match"
 ]);
 
+/* Chinese item words → the English the past rates are written in, so
+   「600x600mm 大理石地砖」 finds "Marble floor tiles 600x600mm". Longer
+   words first, so 地砖 is read before 砖. */
+var PAST_RATE_ZH = [
+    ["大理石", "marble"], ["花岗岩", "granite"], ["抛光砖", "porcelain tile"], ["瓷砖", "ceramic tile"],
+    ["陶瓷", "ceramic"], ["地砖", "floor tile"], ["墙砖", "wall tile"], ["踢脚线", "skirting"], ["踢脚", "skirting"],
+    ["预制混凝土", "precast concrete"], ["混凝土", "concrete"], ["集水井", "sump"], ["沙井", "sump"],
+    ["排水管", "drainage pipe"], ["石膏板", "plasterboard"], ["吊顶", "suspended ceiling"], ["天花", "ceiling"],
+    ["不锈钢", "stainless steel"], ["铝", "aluminium"], ["玻璃", "glass"], ["木门", "timber door"], ["木", "timber"],
+    ["门", "door"], ["窗", "window"], ["砖墙", "brick wall"], ["砌块", "block"], ["砖", "brick"], ["墙", "wall"],
+    ["油漆", "paint"], ["批荡", "plaster"], ["地板", "floor"], ["地面", "floor"], ["盖", "cover"], ["管", "pipe"]
+];
+
+function pastRateEnglish(text) {
+    let s = String(text || "");
+    PAST_RATE_ZH.forEach(([zh, en]) => { s = s.split(zh).join(" " + en + " "); });
+    return s;
+}
+
+/* singular and plural are one word ("tiles" = "tile"); "glass" stays */
+function pastRateFold(w) {
+    return w.length > 3 && /s$/.test(w) && !/ss$/.test(w) ? w.slice(0, -1) : w;
+}
+
 function pastRateWords(text) {
-    return String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
-        .split(" ").filter(w => w && !PAST_RATE_FILLER.has(w));
+    return pastRateEnglish(text).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+        .split(" ").filter(w => w && !PAST_RATE_FILLER.has(w)).map(pastRateFold);
 }
 
 /* "600x600mm", "900 x 2100" -> "600x600": a size that must agree. */

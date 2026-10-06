@@ -10,6 +10,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, fold } = require("./ui.js");
     var { t } = require("./i18n.js");
+    var { suggestPastRate } = require("./ratehistory.js");
 }
 
 /* Raw English data VALUEs — never renamed, see optionDisplayText() in
@@ -77,10 +78,41 @@ function renderForm(project) {
         '<input type="number" id="vaQty" min="0" step="any"></div>' +
 
         '<div class="field"><label>' + escapeHtml(t("analysis.field.rate")) + '</label>' +
-        '<input type="number" id="vaRate" min="0" step="any"></div>' +
+        '<input type="number" id="vaRate" min="0" step="any">' +
+        '<div id="vaRateSuggest" class="rate-suggest" hidden></div></div>' +
 
         '<button type="button" class="primary-button" id="analyseBtn" ' +
         'style="margin-top:4px">' + escapeHtml(t("analysis.runBtn")) + '</button>';
+}
+
+/* What past projects paid for the revised item (js/ratehistory.js): the
+   median rate, its range and every source, so the figure can be checked
+   and argued. With nothing comparable, the rate is a new (star) rate and
+   must rest on a quotation: no figure is offered at all. `filled`: the
+   suggestion was put into the rate field. */
+function renderRateSuggestion(suggestion, filled) {
+    if (!suggestion) {
+        return '<p class="rate-suggest-none">' + escapeHtml(t("analysis.pastRate.none")) + "</p>";
+    }
+    const unit = suggestion.matches[0].unit;
+    const head = t("analysis.pastRate.suggest", {
+        rate: rm(suggestion.rate), unit: unit, n: suggestion.count,
+        low: rm(suggestion.low), high: rm(suggestion.high)
+    });
+    const list = suggestion.matches.map(m =>
+        "<li>" + escapeHtml(m.project) + (m.year ? " (" + m.year + ")" : "") +
+        (m.code ? " · " + escapeHtml(m.code) : "") + " — " + escapeHtml(m.description) +
+        " <strong>" + rm(m.rate) + "/" + escapeHtml(m.unit) + "</strong>" +
+        ' <span class="past-basis">' + escapeHtml(t("vo.past.basis." + m.basis)) +
+        (m.sample ? " · " + escapeHtml(t("vo.past.sample")) : "") + "</span></li>").join("");
+    return '<p class="rate-suggest-head"><span class="rate-flag past">' + escapeHtml(t("vo.past.title")) + "</span> " +
+        escapeHtml(head) + "</p>" +
+        (filled ? '<p class="rate-suggest-filled">' + escapeHtml(t("analysis.pastRate.filled")) + "</p>"
+                : '<button type="button" class="secondary-button rate-suggest-use">' +
+                  escapeHtml(t("analysis.pastRate.use", { rate: rm(suggestion.rate) })) + "</button>") +
+        fold("past-rate-sources", escapeHtml(t("analysis.pastRate.sources", { n: suggestion.count })),
+             '<ul class="past-rates-list">' + list + "</ul>") +
+        '<p class="past-rates-note">' + escapeHtml(t("analysis.pastRate.note")) + "</p>";
 }
 
 function renderAssessmentEmpty() {
@@ -328,7 +360,7 @@ function renderAssistantPanel(context) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        bqOptions, renderOriginalItemField, renderForm, renderAssessmentEmpty,
+        bqOptions, renderOriginalItemField, renderForm, renderAssessmentEmpty, renderRateSuggestion,
         buildSyntheticVO, computeCosts,
         renderClassificationBlock, renderElementsBlock, renderClauseBlock, renderCostBlock, autoMatchHint,
         renderRateRows, renderFindings, renderAssessmentResult,
@@ -367,14 +399,60 @@ if (typeof document !== "undefined") {
                     hint.textContent = autoMatchHint(suggestion);
                     hint.classList.toggle("weak", !!(suggestion && suggestion.weak));
                     hint.hidden = false;
+                    updateRateSuggestion();
                 }, 250);
             });
             select.addEventListener("change", () => {
                 chosenByHand = true;
                 select.classList.remove("auto-matched");
                 hint.hidden = true;
+                updateRateSuggestion();
             });
         })();
+
+        /* The revised rate from past projects (js/ratehistory.js), as the
+           revised item is described: filled in while the rate field is
+           empty or still holds an earlier suggestion; once the user types
+           a rate of their own, it is only offered. */
+        let rateWasSuggested = false;
+        let rateTimer = null;
+        function updateRateSuggestion() {
+            const box = document.getElementById("vaRateSuggest");
+            const rateInput = document.getElementById("vaRate");
+            const text = (document.getElementById("vaRevisedDesc").value || "").trim();
+            if (!box || !rateInput) return;
+            if (!text || typeof suggestPastRate !== "function") { box.hidden = true; return; }
+            const select = document.getElementById("vaOriginalItem");
+            const item = select ? (project.bq || []).find(b => b.id === select.value) : null;
+            const suggestion = suggestPastRate({ description: text, unit: item ? item.unit : "" },
+                                               pastRateSources(loadDB(), project.id));
+            const free = rateInput.value === "" || rateWasSuggested;
+            if (suggestion && free) {
+                rateInput.value = suggestion.rate;
+                rateWasSuggested = true;
+            } else if (!suggestion && rateWasSuggested) {
+                rateInput.value = "";
+                rateWasSuggested = false;
+            }
+            box.innerHTML = renderRateSuggestion(suggestion, suggestion && rateWasSuggested && Number(rateInput.value) === suggestion.rate);
+            box.hidden = false;
+            box.dataset.rate = suggestion ? suggestion.rate : "";
+        }
+        document.getElementById("vaRevisedDesc").addEventListener("input", () => {
+            clearTimeout(rateTimer);
+            rateTimer = setTimeout(updateRateSuggestion, 250);
+        });
+        document.getElementById("vaRate").addEventListener("input", () => {
+            rateWasSuggested = false;
+            updateRateSuggestion();
+        });
+        document.getElementById("vaFormBody").addEventListener("click", e => {
+            if (!e.target.closest(".rate-suggest-use")) return;
+            const box = document.getElementById("vaRateSuggest");
+            document.getElementById("vaRate").value = box.dataset.rate;
+            rateWasSuggested = true;
+            updateRateSuggestion();
+        });
         document.getElementById("assessmentResult").innerHTML = renderAssessmentEmpty();
 
         let lastVO = null; /* the synthetic VO from the most recent analysis */
