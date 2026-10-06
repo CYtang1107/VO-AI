@@ -88,3 +88,23 @@ test("photos without a place are counted, so the page can ask before saving them
     assert.strictEqual(unplacedPhotos([{ geo: { lat: 3.1, lng: 101.7 } }]), 0);
     assert.strictEqual(unplacedPhotos([]), 0);
 });
+
+test("demo data saved before the site map gets the demo site and its placed photos", () => {
+    const { upgradeDemo } = require("../js/store.js");
+    const old = seedDB();
+    const demo = old.projects[0];
+    delete demo.site;
+    demo.vos.forEach(v => { v.supportingDocs = (v.supportingDocs || []).filter(d => !/^P\d$/.test(d.id)); });
+    const f4 = demo.vos[0].supportingDocs.find(d => d.id === "F4");
+    delete f4.geo;
+    assert.strictEqual(photoPins(demo).length, 0);
+
+    upgradeDemo(old);
+    assert.ok(siteOf(demo));
+    assert.strictEqual(photoPins(demo).length, photoPins(seedDB().projects[0]).length);
+
+    /* a site the consultant set is kept */
+    demo.site = { lat: 3.2, lng: 101.6, address: "Our own site" };
+    upgradeDemo(old);
+    assert.strictEqual(demo.site.address, "Our own site");
+});
