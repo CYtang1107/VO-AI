@@ -110,6 +110,13 @@ reasoning, previews what it will import and reports which rows it skipped (heade
 titles, subtotals). Nothing is imported until you confirm, and you can correct any column
 first — these rates become the benchmark for every later comparison.
 
+Before you confirm, VO-AI **checks the BQ's own arithmetic**: on every priced row, Qty × Rate =
+Amount, and every subtotal equals the priced rows above it (following a section across
+"carried forward" / "brought forward" page breaks). It finds the Qty and Amount columns by that
+arithmetic itself. A figure that does not add up is listed by its code and description, with the
+difference in ringgit; nothing is corrected, and the surveyor decides which figure is wrong. A
+grand total with no priced rows above it is not checked rather than guessed at.
+
 ### Documents and evidence
 
 Project documents (contract, priced BQ, addenda, specifications) and variation documents

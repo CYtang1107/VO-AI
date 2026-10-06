@@ -1791,12 +1791,24 @@ td.owned-col { background: #fffdf2; }
 
 .bq-map-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     margin-bottom: 6px;
 }
 
 .bq-map-grid .field { margin-bottom: 0; }
+
+.bq-check {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+.bq-check.ok { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.bq-check.warn { background: #fde7bf; color: #92400e; }
+.bq-check p { margin: 0; }
+.bq-check ul { margin: 6px 0; padding-left: 18px; }
 
 .bq-preview-table-wrap {
     overflow-x: auto;
@@ -3220,3 +3232,12 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .capture-geo.denied, .capture-geo.unavailable { color: #b45309; }
 .capture-thumb-geo { position: absolute; left: 4px; bottom: 4px; font-size: 14px; text-shadow: 0 0 3px #fff; }
 @media (max-width: 700px) { .site-map { height: 280px; } }
+
+/* ---------- AI Analysis: revised rate from past projects ---------- */
+.rate-suggest { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper-sunk); font-size: 12px; }
+.rate-suggest-head { margin: 0 0 6px; color: var(--ink); }
+.rate-suggest-filled { margin: 0 0 6px; color: var(--verdict-same); font-weight: 600; }
+.rate-suggest-none { margin: 0; color: #b45309; }
+.rate-suggest-use { margin: 0 0 6px; }
+.rate-suggest .past-rates-list { margin: 6px 0; padding-left: 18px; }
+.rate-suggest .past-rates-note { margin: 6px 0 0; color: var(--ink-3); }

@@ -186,8 +186,36 @@ function importProject(parsed, db) {
     return project;
 }
 
+/* The BQ arithmetic check (checkArithmetic in bqimport.js) as the
+   import preview shows it: each figure that does not add up, named by
+   its code and description, or one line saying everything did. */
+function renderBqCheck(check) {
+    if (!check || !check.available) {
+        return '<p class="hint">' + escapeHtml(t("projects.bq.check.notAvailable")) + "</p>";
+    }
+    const issues = check.rowIssues.length + check.totalIssues.length;
+    if (issues === 0) {
+        return '<p class="bq-check ok">' + escapeHtml(t("projects.bq.check.ok",
+            { rows: check.rowsChecked, totals: check.totalsChecked })) + "</p>";
+    }
+    const name = it => escapeHtml(it.code ? it.code + " " + it.description : it.description);
+    const lines = check.rowIssues.map(it => t("projects.bq.check.row", {
+        item: name(it), qty: escapeHtml(String(it.qty)), rate: rm(it.rate),
+        expected: rm(it.expected), amount: rm(it.amount), diff: rm(Math.abs(it.amount - it.expected))
+    })).concat(check.totalIssues.map(it => t("projects.bq.check.total", {
+        item: name(it), stated: rm(it.stated), computed: rm(it.computed),
+        diff: rm(Math.abs(it.stated - it.computed))
+    })));
+    return '<div class="bq-check warn">' +
+        "<p><strong>" + escapeHtml(t("projects.bq.check.issues", { n: issues })) + "</strong></p>" +
+        "<ul>" + lines.map(l => "<li>" + l + "</li>").join("") + "</ul>" +
+        "<p>" + escapeHtml(t("projects.bq.check.summary",
+            { rows: check.rowsChecked, totals: check.totalsChecked })) + "</p>" +
+        "</div>";
+}
+
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { parseBqPaste, renderProjectCard, renderMembersBlock, exportProject, validateImport, importProject };
+    module.exports = { renderBqCheck, parseBqPaste, renderProjectCard, renderMembersBlock, exportProject, validateImport, importProject };
 }
 
 /* ---------- browser wiring ---------- */
@@ -225,6 +253,7 @@ if (typeof document !== "undefined") {
             const result = extractItems(bqFileState.rows, bqFileState.mapping);
             bqFileState.items = result.items;
             bqFileState.skipped = result.skipped;
+            const check = checkArithmetic(bqFileState.rows, bqFileState.mapping);
 
             const maxCols = bqFileState.rows.reduce((m, r) => Math.max(m, r.length), 0);
 
@@ -273,8 +302,11 @@ if (typeof document !== "undefined") {
                     roleField("description", t("projects.bq.descColumn")) +
                     roleField("unit", t("projects.bq.unitColumn")) +
                     roleField("rate", t("projects.bq.rateColumn")) +
+                    roleField("qty", t("projects.bq.qtyColumn")) +
+                    roleField("amount", t("projects.bq.amountColumn")) +
                 "</div>" +
                 '<p class="hint">' + t("projects.bq.itemsWillImport", { n: bqFileState.items.length, summary: skipSummary }) + "</p>" +
+                renderBqCheck(check) +
                 '<div class="bq-preview-table-wrap"><table class="bq-preview-table">' +
                     "<thead><tr><th>" + escapeHtml(t("projects.bq.col.code")) + "</th><th>" + escapeHtml(t("projects.bq.col.description")) +
                     "</th><th>" + escapeHtml(t("projects.bq.col.unit")) + "</th><th>" + escapeHtml(t("projects.bq.col.rate")) + "</th></tr></thead>" +
@@ -619,7 +651,8 @@ if (typeof document !== "undefined") {
                         rows: rows,
                         mapping: {
                             code: detection.code, description: detection.description,
-                            unit: detection.unit, rate: detection.rate
+                            unit: detection.unit, rate: detection.rate,
+                            qty: detection.qty, amount: detection.amount
                         },
                         confidence: detection.confidence,
                         reasons: detection.reasons,
