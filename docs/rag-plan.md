@@ -25,6 +25,9 @@ Branch `claude/eager-ramanujan-6i2lox`.
   opens, used if under 10 minutes old). The dashboard shows every VO's photos; a VO page shows its own, each pin
   opening the photo; the summary warns when a photo is over 1 km from the site. Demo: a made-up site in Cheras.
   CCTV left for a later version.
+- **Deleting a draft VO (7 Oct):** `supabase/migrations/0002_delete_vo.sql` (`delete_vo`), applied through the
+  Management API like 0001. Only the project's contractor or consultant, only a VO not yet submitted; checked live
+  (client refused, submitted VO refused, anonymous refused).
 - **Sign-up:** open. Email confirmation is off (no mail server; the built-in mailer only reaches the project's own
   team, 2 emails an hour), and the site URL is GitHub Pages. A new account sees nothing until a consultant adds it.
   Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,

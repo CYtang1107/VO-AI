@@ -68,6 +68,14 @@ function canEdit(field, vo, role) {
     return false;
 }
 
+/* A draft VO (not yet submitted) raised by mistake can be deleted by the
+   contractor or the consultant; a submitted VO is part of the record and
+   can only be rejected. Same rule as delete_vo in
+   supabase/migrations/0002_delete_vo.sql. */
+function canDeleteVO(vo, role) {
+    return !!vo && !vo.submitted && (role === "contractor" || role === "consultant");
+}
+
 function lockReason(field, vo, role) {
     if (canEdit(field, vo, role)) return "";
 
@@ -109,5 +117,6 @@ function fieldLabel(name) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { FIELD_OWNER, ROLE_LABEL, canEdit, lockReason, FIELD_LABEL_KEY, fieldLabel };
+    module.exports = {
+        canDeleteVO, FIELD_OWNER, ROLE_LABEL, canEdit, lockReason, FIELD_LABEL_KEY, fieldLabel };
 }

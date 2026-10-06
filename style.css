@@ -3302,3 +3302,13 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .site-map-full-btn:hover { background: #f4f4f4; }
 @media (max-width: 700px) { .site-map { height: 340px; } }
 .login-note { font-size: 12px; color: var(--ink-3); background: var(--paper-sunk); border-radius: 8px; padding: 8px 10px; margin: 0 0 14px; line-height: 1.5; }
+
+/* ---------- deleting a measurement row or a draft VO ---------- */
+.row-delete-btn {
+    margin-left: 8px; width: 26px; height: 26px; border-radius: 50%;
+    border: 1px solid var(--rule-strong); background: var(--paper); color: var(--verdict-diff);
+    font-size: 12px; line-height: 1; cursor: pointer; vertical-align: middle;
+}
+.row-delete-btn:hover { background: var(--verdict-diff); color: #fff; border-color: var(--verdict-diff); }
+.danger-button { color: var(--verdict-diff); border-color: color-mix(in srgb, var(--verdict-diff) 45%, transparent); }
+.danger-button:hover { background: var(--verdict-diff); color: #fff; }

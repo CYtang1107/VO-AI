@@ -469,15 +469,35 @@ function logHistory(vo, session, action) {
     });
 }
 
+/* The next VO number: one past the highest in use, so deleting a draft
+   never makes a number repeat. */
+function nextVoNumber(vos) {
+    return (vos || []).reduce((max, v) => {
+        const m = /(\d+)\s*$/.exec(v.no || "");
+        return m ? Math.max(max, Number(m[1])) : max;
+    }, 0) + 1;
+}
+
 function createVO(projectId, session) {
     let created = null;
     updateProject(projectId, project => {
-        const vo = newVO(project.vos.length + 1);
+        const vo = newVO(nextVoNumber(project.vos));
         logHistory(vo, session, "VO created");
         project.vos.push(vo);
         created = vo;
     });
     return created;
+}
+
+/* Removes a draft VO from the register (see canDeleteVO). Returns the
+   removed VO, or null. */
+function deleteVO(projectId, voId) {
+    let removed = null;
+    updateProject(projectId, project => {
+        const i = project.vos.findIndex(v => v.id === voId);
+        if (i !== -1 && !project.vos[i].submitted) removed = project.vos.splice(i, 1)[0];
+    });
+    return removed;
 }
 
 function updateVO(projectId, voId, mutator) {
@@ -706,7 +726,7 @@ function seedDB() {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         DB_KEY, CLOUD_DB_KEY, cloudSession, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
-        loadDB, saveDB, resetDB, demoDB, upgradeDemo, SEED_ZH, shiftIsoDays, DEMO_FILES,
+        loadDB, saveDB, resetDB, demoDB, upgradeDemo, nextVoNumber, deleteVO, SEED_ZH, shiftIsoDays, DEMO_FILES,
         getSession, setSession, clearSession,
         isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,
         passcodeSupported,

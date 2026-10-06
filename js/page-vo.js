@@ -2,7 +2,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
-    var { canEdit, lockReason, fieldLabel, FIELD_OWNER } = require("./permissions.js");
+    var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER } = require("./permissions.js");
     var { checkRate, analyse, matchBqItem, suggestBqForChange } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill, fileLink, fold, seedText } = require("./ui.js");
@@ -337,7 +337,9 @@ function renderMeasurementRows(vo, project, role, pastSources) {
              '<input type="number" data-col="assessedRate" value="' +
                 escapeHtml(row.assessedRate) + '"' + assDis +
                 (assEdit ? ' class="owned"' : "") + ' style="width:90px;margin-top:5px"></td>' +
-            '<td class="m-flag" data-label="' + lbl.check + '"><span class="rate-flag ' + check.state + '">' + check.label + "</span></td>" +
+            '<td class="m-flag" data-label="' + lbl.check + '"><span class="rate-flag ' + check.state + '">' + check.label + "</span>" +
+                (conEdit ? '<button type="button" class="row-delete-btn" data-row="' + i + '" title="' + escapeHtml(t("vo.row.delete")) +
+                    '" aria-label="' + escapeHtml(t("vo.row.delete")) + '">✕</button>' : "") + "</td>" +
         "</tr>" +
         /* The verdict's explanation runs the full width of the table on
            its own line under the item, instead of wrapping down a narrow
@@ -784,6 +786,7 @@ if (typeof document !== "undefined") {
 
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
+            document.getElementById("deleteVoBtn").hidden = !canDeleteVO(v, role);
             document.getElementById("submitBtn").style.display =
                 (role === "contractor" && !v.submitted) ? "" : "none";
         }
@@ -961,6 +964,41 @@ if (typeof document !== "undefined") {
             const v = fresh.vos.find(x => x.id === voId);
             forgetContractReadings(project.id, contractSourceDocs(fresh, v).map(d => d.id));
             draw();
+        });
+
+        /* Remove one measurement row (the contractor, while they may edit
+           the measurement). */
+        document.getElementById("measurementBody").addEventListener("click", e => {
+            const btn = e.target.closest(".row-delete-btn");
+            if (!btn) return;
+            const i = Number(btn.dataset.row);
+            const v = getProject(project.id).vos.find(x => x.id === voId);
+            const row = v && v.measurement[i];
+            if (!row) return;
+            const label = row.description || t("vo.row.untitled", { n: i + 1 });
+            if ((row.description || Number(row.qty) || Number(row.rate)) &&
+                !window.confirm(t("vo.row.deleteConfirm", { row: label }))) return;
+            updateVO(project.id, voId, vo => {
+                vo.measurement.splice(i, 1);
+                logHistory(vo, session, "Removed measurement row " + (i + 1) + (row.description ? " (" + row.description + ")" : ""));
+            });
+            toast(t("vo.row.deleted"));
+            draw();
+        });
+
+        /* Delete a draft VO (canDeleteVO): on the server first when signed
+           in with a team account, so a failure leaves it where it was. */
+        document.getElementById("deleteVoBtn").addEventListener("click", async () => {
+            const v = getProject(project.id).vos.find(x => x.id === voId);
+            if (!canDeleteVO(v, role)) return;
+            if (!window.confirm(t("vo.delete.confirm", { no: v.no }))) return;
+            if (typeof Cloud !== "undefined" && Cloud.active()) {
+                try { await Cloud.deleteVO(project.id, voId); }
+                catch (err) { toast(t("vo.delete.failed", { reason: err.message || String(err) }), "error"); return; }
+            }
+            deleteVO(project.id, voId);
+            toast(t("vo.delete.done", { no: v.no }));
+            window.location.href = "register.html";
         });
 
         document.getElementById("addRowBtn").addEventListener("click", () => {
