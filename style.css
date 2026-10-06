@@ -3241,3 +3241,10 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .rate-suggest-use { margin: 0 0 6px; }
 .rate-suggest .past-rates-list { margin: 6px 0; padding-left: 18px; }
 .rate-suggest .past-rates-note { margin: 6px 0 0; color: var(--ink-3); }
+.kb-view-btn { margin-left: auto; }
+.kb-clauses { margin: 10px 0 4px; }
+.kb-clause-search { width: 100%; padding: 9px 12px; border: 1px solid var(--rule-strong); border-radius: 8px; font: inherit; font-size: 13px; margin-bottom: 6px; }
+.kb-clause-list { max-height: 480px; overflow-y: auto; }
+.kb-entry { flex-wrap: wrap; }
+.kb-entry > .doc-current { flex: 1 1 100%; }
+.kb-entry > .kb-clauses { flex: 1 1 100%; }
