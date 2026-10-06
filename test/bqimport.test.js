@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const {
-    parseCsv, parseXlsx, detectColumns, extractItems,
+    parseCsv, parseXlsx, detectColumns, extractItems, checkArithmetic,
     parseSheetXml, parseSharedStrings
 } = require("../js/bqimport.js");
 
@@ -265,4 +265,128 @@ test("parseXlsx rejects a file that is not a ZIP", async () => {
     const notZip = Buffer.from("this is not a zip file at all", "utf8");
     const ab = notZip.buffer.slice(notZip.byteOffset, notZip.byteOffset + notZip.byteLength);
     await assert.rejects(() => parseXlsx(ab));
+});
+
+/* ==========================================================
+   The BQ's own arithmetic — checkArithmetic
+========================================================== */
+
+/* Laid out like demo-files/sample-priced-bq.csv: title rows, a header,
+   section headings, priced rows and a subtotal per bill. */
+function pricedRows() {
+    return [
+        ["VO-AI DEMO SAMPLE", "", "", "", "", ""],
+        ["Item", "Description", "Unit", "Qty", "Rate (RM)", "Amount (RM)"],
+        ["", "BILL B - FINISHES", "", "", "", ""],
+        ["B/4.1", "Ceramic floor tiles 600x600mm to living area", "m2", "320", "85.00", "27,200.00"],
+        ["B/4.2", "Skirting to match floor finish", "m", "168", "22.00", "3,696.00"],
+        ["B/5.1", "Plaster and paint to internal walls", "m2", "860", "34.00", "29,240.00"],
+        ["", "Sub-total Bill B carried to summary", "", "", "", "60,136.00"],
+        ["", "BILL C - DOORS AND WINDOWS", "", "", "", ""],
+        ["C/2.3", "Timber flush door 900x2100mm with ironmongery", "no", "14", "640.00", "8,960.00"],
+        ["", "Sub-total Bill C carried to summary", "", "", "", "8,960.00"]
+    ];
+}
+
+test("detectColumns finds Qty and Amount from Qty x Rate = Amount, and leaves the rest as before", () => {
+    const d = detectColumns(pricedRows());
+    assert.strictEqual(d.rate, 4);
+    assert.strictEqual(d.qty, 3);
+    assert.strictEqual(d.amount, 5);
+    assert.strictEqual(d.description, 1);
+    assert.ok(d.reasons.some(r => /Qty × Rate = Amount on 4 of 4/.test(r)));
+});
+
+test("detectColumns leaves Qty and Amount unassigned when no pair of columns multiplies out", () => {
+    const d = detectColumns(messyRows());
+    assert.strictEqual(d.qty, null);
+    assert.strictEqual(d.amount, null);
+    assert.ok(d.reasons.some(r => /not checked/.test(r)));
+});
+
+test("checkArithmetic passes a BQ whose rows and subtotals add up", () => {
+    const rows = pricedRows();
+    const c = checkArithmetic(rows, detectColumns(rows));
+    assert.strictEqual(c.available, true);
+    assert.strictEqual(c.rowsChecked, 4);
+    assert.strictEqual(c.totalsChecked, 2);
+    assert.deepStrictEqual(c.rowIssues, []);
+    assert.deepStrictEqual(c.totalIssues, []);
+});
+
+test("checkArithmetic flags a mistyped amount, and the subtotal it throws out", () => {
+    const rows = pricedRows();
+    rows[3][5] = "27,020.00";
+    const c = checkArithmetic(rows, detectColumns(rows));
+    assert.strictEqual(c.rowIssues.length, 1);
+    assert.strictEqual(c.rowIssues[0].code, "B/4.1");
+    assert.strictEqual(c.rowIssues[0].expected, 27200);
+    assert.strictEqual(c.rowIssues[0].amount, 27020);
+    assert.strictEqual(c.totalIssues.length, 1);
+    assert.strictEqual(c.totalIssues[0].stated, 60136);
+    assert.strictEqual(c.totalIssues[0].computed, 59956);
+});
+
+test("checkArithmetic flags a mistyped rate even though the amount is right", () => {
+    const rows = pricedRows();
+    rows[4][4] = "2.20";
+    const c = checkArithmetic(rows, detectColumns(pricedRows()));
+    assert.strictEqual(c.rowIssues.length, 1);
+    assert.strictEqual(c.rowIssues[0].code, "B/4.2");
+    assert.deepStrictEqual(c.totalIssues, [], "the amounts still add up to the subtotal");
+});
+
+test("checkArithmetic flags a subtotal that does not add up when every row does", () => {
+    const rows = pricedRows();
+    rows[9][5] = "9,860.00";
+    const c = checkArithmetic(rows, detectColumns(rows));
+    assert.deepStrictEqual(c.rowIssues, []);
+    assert.strictEqual(c.totalIssues.length, 1);
+    assert.match(c.totalIssues[0].description, /Bill C/);
+});
+
+test("checkArithmetic allows for a rounded quantity and amounts to the sen", () => {
+    const rows = [
+        ["Code", "Description", "Unit", "Qty", "Rate", "Amount"],
+        ["A/1.1", "Excavate trench", "m3", "12.35", "18.33", "226.33"],
+        ["A/1.2", "Hardcore filling", "m3", "7.5", "45.00", "337.50"]
+    ];
+    const c = checkArithmetic(rows, { code: 0, description: 1, unit: 2, qty: 3, rate: 4, amount: 5 });
+    assert.strictEqual(c.rowsChecked, 2);
+    assert.deepStrictEqual(c.rowIssues, []);
+});
+
+test("checkArithmetic follows a section over a page break (carried and brought forward)", () => {
+    const rows = [
+        ["Code", "Description", "Unit", "Qty", "Rate", "Amount"],
+        ["B/1.1", "Floor screed", "m2", "100", "20.00", "2,000.00"],
+        ["", "Carried forward", "", "", "", "2,000.00"],
+        ["", "Brought forward", "", "", "", "2,000.00"],
+        ["B/1.2", "Floor tiles", "m2", "100", "80.00", "8,000.00"],
+        ["", "Sub-total Bill B", "", "", "", "10,000.00"]
+    ];
+    const c = checkArithmetic(rows, { code: 0, description: 1, unit: 2, qty: 3, rate: 4, amount: 5 });
+    assert.strictEqual(c.totalsChecked, 2);
+    assert.deepStrictEqual(c.totalIssues, []);
+});
+
+test("checkArithmetic does not check a grand total with no priced rows above it", () => {
+    const rows = pricedRows().concat([
+        ["", "SUMMARY", "", "", "", ""],
+        ["", "Grand total carried to Form of Tender", "", "", "", "99,999.00"]
+    ]);
+    const c = checkArithmetic(rows, detectColumns(rows));
+    assert.strictEqual(c.totalsChecked, 2);
+    assert.deepStrictEqual(c.totalIssues, []);
+});
+
+test("checkArithmetic is unavailable until the Amount column is mapped, and follows a corrected mapping", () => {
+    const rows = pricedRows();
+    const none = checkArithmetic(rows, { code: 0, description: 1, unit: 2, rate: 4, qty: 3, amount: null });
+    assert.strictEqual(none.available, false);
+    assert.strictEqual(none.rowsChecked, 0);
+
+    // Amount wrongly mapped to the Qty column: every row is reported.
+    const wrong = checkArithmetic(rows, { code: 0, description: 1, unit: 2, rate: 4, qty: 5, amount: 3 });
+    assert.strictEqual(wrong.rowIssues.length, 4);
 });

@@ -1791,12 +1791,24 @@ td.owned-col { background: #fffdf2; }
 
 .bq-map-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     margin-bottom: 6px;
 }
 
 .bq-map-grid .field { margin-bottom: 0; }
+
+.bq-check {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+.bq-check.ok { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.bq-check.warn { background: #fde7bf; color: #92400e; }
+.bq-check p { margin: 0; }
+.bq-check ul { margin: 6px 0; padding-left: 18px; }
 
 .bq-preview-table-wrap {
     overflow-x: auto;

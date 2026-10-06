@@ -455,9 +455,157 @@ function detectColumns(rows) {
         }
     );
 
+    /* Qty and Amount are found by the BQ's own arithmetic rather than by
+       their look: the pair of remaining columns for which Qty x Rate =
+       Amount on most priced rows. They are used only to check that
+       arithmetic (checkArithmetic), never imported. */
+    var qtyCol = null, amountCol = null;
+    if (rateCol !== null) {
+        var qa = bqFindQtyAmount(usableRows, rateCol, used, maxCols);
+        if (qa) {
+            qtyCol = qa.qty;
+            amountCol = qa.amount;
+            reasons.push(t("bqimport.detect.qtyAmount.found",
+                { qty: qtyCol + 1, amount: amountCol + 1, m: qa.matches, n: qa.rows }));
+        } else {
+            reasons.push(t("bqimport.detect.qtyAmount.none"));
+        }
+    }
+
     var confidence = (rateCol !== null && descCol !== null) ? "high" : "needs review";
 
-    return { code: codeCol, description: descCol, unit: unitCol, rate: rateCol, confidence: confidence, reasons: reasons };
+    return {
+        code: codeCol, description: descCol, unit: unitCol, rate: rateCol,
+        qty: qtyCol, amount: amountCol,
+        confidence: confidence, reasons: reasons
+    };
+}
+
+/* Rounding allowance when a BQ's arithmetic is re-checked. Amounts are
+   written to the sen and a quantity may be shown rounded, so a
+   difference within RM 0.05, or 0.01% of the amount, is not a mistake.
+   A typed-wrong figure (27,020 for 27,200) is far outside it. */
+var BQ_ARITH_ABS_TOL = 0.05;
+var BQ_ARITH_REL_TOL = 0.0001;
+
+function bqAmountsAgree(a, b) {
+    return Math.abs(a - b) <= Math.max(BQ_ARITH_ABS_TOL, BQ_ARITH_REL_TOL * Math.max(Math.abs(a), Math.abs(b)));
+}
+
+/* The pair of unused columns (qty, amount) for which qty x rate =
+   amount on the most priced rows: at least 2 rows and at least 60% of
+   the rows where all three are numbers. Null when no pair qualifies. */
+function bqFindQtyAmount(rows, rateCol, used, maxCols) {
+    var best = null;
+    for (var q = 0; q < maxCols; q++) {
+        if (used[q] || q === rateCol) continue;
+        for (var a = 0; a < maxCols; a++) {
+            if (a === q || used[a] || a === rateCol) continue;
+            var n = 0, m = 0;
+            rows.forEach(function (row) {
+                var rate = bqNumericLoose(row[rateCol]);
+                var qty = bqNumericLoose(row[q]);
+                var amount = bqNumericLoose(row[a]);
+                if (rate === null || qty === null || amount === null || amount <= 0) return;
+                n++;
+                if (bqAmountsAgree(qty * rate, amount)) m++;
+            });
+            if (m >= 2 && m / n >= 0.6 && (!best || m > best.matches)) {
+                best = { qty: q, amount: a, matches: m, rows: n };
+            }
+        }
+    }
+    return best;
+}
+
+/* A page that opens with the running total of the page before. The
+   figure counts towards the section's subtotal; the "carried forward"
+   row that closed that page is checked like any other total. */
+var BQ_BROUGHT_RE = /\b(brought forward|b\/f)\b/i;
+
+/* Checks the priced BQ's own arithmetic under a column mapping, before
+   it becomes the benchmark every claimed rate is compared against:
+
+   - each priced row: Qty x Rate = Amount;
+   - each subtotal row: the Amounts of the priced rows since the
+     previous subtotal (plus any amount brought forward) add up to it.
+
+   A total with no priced rows above it (a summary page or grand total)
+   is not checked: its lines are not item rows, and guessing what it
+   sums would raise false alarms. Nothing is corrected — a row that does
+   not add up is reported, and its rate is imported as written; the
+   surveyor decides which figure is wrong.
+
+   Returns { available, rowsChecked, rowIssues, totalsChecked, totalIssues }.
+   `available` is false when the Rate or Amount column is not mapped. */
+function checkArithmetic(rows, mapping) {
+    mapping = mapping || {};
+    var result = { available: false, rowsChecked: 0, rowIssues: [], totalsChecked: 0, totalIssues: [] };
+    if (mapping.rate === null || mapping.rate === undefined ||
+        mapping.amount === null || mapping.amount === undefined) return result;
+    result.available = true;
+
+    function cell(row, key) {
+        var idx = mapping[key];
+        if (idx === null || idx === undefined) return undefined;
+        return row[idx];
+    }
+    function text(row, key) {
+        var v = cell(row, key);
+        return v === undefined || v === null ? "" : String(v).trim();
+    }
+    function num(row, key) {
+        var v = cell(row, key);
+        return v === undefined ? null : bqNumericLoose(v);
+    }
+
+    var sectionSum = 0;
+    var sectionItems = 0;
+
+    (rows || []).forEach(function (row) {
+        if (bqIsBlankRow(row) || bqLooksLikeHeaderRow(row)) return;
+        var desc = text(row, "description");
+        var rate = num(row, "rate");
+        var amount = num(row, "amount");
+
+        if (desc !== "" && rate !== null) {
+            var qty = num(row, "qty");
+            if (qty !== null && amount !== null) {
+                result.rowsChecked++;
+                var expected = qty * rate;
+                if (!bqAmountsAgree(expected, amount)) {
+                    result.rowIssues.push({
+                        code: text(row, "code"), description: desc,
+                        qty: qty, rate: rate, amount: amount, expected: expected
+                    });
+                }
+            }
+            if (amount !== null) sectionSum += amount;
+            sectionItems++;
+            return;
+        }
+
+        if (amount === null) return;
+
+        if (BQ_BROUGHT_RE.test(desc)) {
+            sectionSum = amount;
+            sectionItems = 0;
+            return;
+        }
+
+        if (BQ_TOTAL_RE.test(desc)) {
+            if (sectionItems > 0) {
+                result.totalsChecked++;
+                if (!bqAmountsAgree(sectionSum, amount)) {
+                    result.totalIssues.push({ description: desc, stated: amount, computed: sectionSum });
+                }
+            }
+            sectionSum = 0;
+            sectionItems = 0;
+        }
+    });
+
+    return result;
 }
 
 /* Classifies and extracts items from `rows` using an explicit
@@ -519,6 +667,7 @@ if (typeof module !== "undefined" && module.exports) {
         parseXlsx: parseXlsx,
         detectColumns: detectColumns,
         extractItems: extractItems,
+        checkArithmetic: checkArithmetic,
         parseSheetXml: parseSheetXml,
         parseSharedStrings: parseSharedStrings,
         bqReadZipEntries: bqReadZipEntries,

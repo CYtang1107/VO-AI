@@ -204,3 +204,28 @@ test("a project name containing markup is escaped when rendered", () => {
     assert.ok(!html.includes("<img src=x"));
     assert.match(html, /&lt;img/);
 });
+
+const { renderBqCheck } = require("../js/page-projects.js");
+
+test("renderBqCheck asks for the Qty and Amount columns when the check cannot run", () => {
+    assert.match(renderBqCheck({ available: false }), /Qty and Amount/);
+});
+
+test("renderBqCheck says plainly when the BQ adds up", () => {
+    const html = renderBqCheck({ available: true, rowsChecked: 6, totalsChecked: 4, rowIssues: [], totalIssues: [] });
+    assert.match(html, /bq-check ok/);
+    assert.match(html, /all 6 row\(s\); 4 subtotal\(s\) add up/);
+});
+
+test("renderBqCheck names every figure that does not add up, escaped", () => {
+    const html = renderBqCheck({
+        available: true, rowsChecked: 3, totalsChecked: 1,
+        rowIssues: [{ code: "B/4.1", description: "Tiles <600x600>", qty: 320, rate: 85, amount: 27020, expected: 27200 }],
+        totalIssues: [{ description: "Sub-total Bill B", stated: 60136, computed: 59956 }]
+    });
+    assert.match(html, /bq-check warn/);
+    assert.match(html, /2 figure\(s\)/);
+    assert.match(html, /B\/4\.1 Tiles &lt;600x600&gt;: 320 × RM 85\.00 = RM 27,200\.00, but the BQ says RM 27,020\.00 \(difference RM 180\.00\)/);
+    assert.match(html, /Sub-total Bill B: the BQ says RM 60,136\.00, but the priced rows above add up to RM 59,956\.00/);
+    assert.doesNotMatch(html, /<600x600>/);
+});
