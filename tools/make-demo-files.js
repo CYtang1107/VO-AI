@@ -8,6 +8,7 @@
 
        NODE_PATH=$(npm root -g) node tools/make-demo-files.js
 */
+const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 
@@ -178,9 +179,15 @@ const photoHtml = `<!doctype html><html><head><meta charset="utf-8"><style>${css
         await page.pdf({ path: path.join(OUT, name), format: "A4", landscape: /^(A-201|C-104)/.test(name), printBackground: true });
         console.log("wrote", name);
     }
-    await page.setViewportSize({ width: 1200, height: 800 });
-    await page.setContent(photoHtml, { waitUntil: "load" });
-    await page.screenshot({ path: path.join(OUT, "site-photo-living-area.jpg"), type: "jpeg", quality: 82 });
-    console.log("wrote site-photo-living-area.jpg");
+    /* site-photo-living-area.jpg is now a photo-realistic AI image the team
+       supplied, labelled "AI-GENERATED · DEMO ONLY" on the image itself;
+       the drawn illustration below is only written when that file is
+       missing. */
+    if (!fs.existsSync(path.join(OUT, "site-photo-living-area.jpg"))) {
+        await page.setViewportSize({ width: 1200, height: 800 });
+        await page.setContent(photoHtml, { waitUntil: "load" });
+        await page.screenshot({ path: path.join(OUT, "site-photo-living-area.jpg"), type: "jpeg", quality: 82 });
+        console.log("wrote site-photo-living-area.jpg");
+    }
     await browser.close();
 })();

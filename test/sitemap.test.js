@@ -78,3 +78,10 @@ test("the summary says how far the farthest photo is, and warns past 1 km", () =
     assert.match(mapSummary(site, [{ lat: 3.13, lng: 101.74 }]), /check it was taken on this site/);
     assert.match(mapSummary(null, []), /No site location set/);
 });
+
+test("photos without a place are counted, so the page can ask before saving them", () => {
+    const { unplacedPhotos } = require("../js/capture.js");
+    assert.strictEqual(unplacedPhotos([{ geo: { lat: 3.1, lng: 101.7 } }, { geo: null }, {}]), 2);
+    assert.strictEqual(unplacedPhotos([{ geo: { lat: 3.1, lng: 101.7 } }]), 0);
+    assert.strictEqual(unplacedPhotos([]), 0);
+});

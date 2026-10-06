@@ -129,6 +129,9 @@ if (typeof document !== "undefined") {
             list.innerHTML = problems.map(k => "<li>" + escapeHtml(t(k)) + "</li>").join("");
             if (problems.length) { list.scrollIntoView({ block: "center" }); return; }
 
+            const unplaced = unplacedPhotos(photos);
+            if (unplaced > 0 && !window.confirm(t("capture.geo.confirmMissing", { n: unplaced, total: photos.length }))) return;
+
             const saveBtn = document.getElementById("captureSaveBtn");
             saveBtn.disabled = true;
             saveBtn.textContent = t("capture.saving");
