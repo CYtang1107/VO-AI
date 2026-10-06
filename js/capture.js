@@ -34,7 +34,7 @@ function siteRecordProblems(rec) {
 /* Writes a site record onto a freshly created VO (the contractor's own
    columns only). `rec`: {description, location, typeOfInstruction,
    instructionNo, dateIssued, line: {unit, qty, rate}, photos: [{id, name,
-   size, stored}]}. Mutates and returns `vo`. */
+   size, stored, geo?}]}. Mutates and returns `vo`. */
 function applySiteRecord(vo, rec, session, todayIso) {
     const description = String(rec.description || "").trim();
     const location = String(rec.location || "").trim();
@@ -58,6 +58,7 @@ function applySiteRecord(vo, rec, session, todayIso) {
     (rec.photos || []).forEach(p => {
         const doc = { id: p.id, name: p.name, size: p.size, uploadedBy: session.name, at: todayIso };
         if (p.stored) doc.stored = true;
+        if (p.geo) doc.geo = p.geo;
         vo.supportingDocs.push(doc);
     });
     return vo;

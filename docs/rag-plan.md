@@ -19,6 +19,12 @@ Branch `claude/eager-ramanujan-6i2lox`.
   Clauses are split by `js/kbsplit.js` (the same code as `tools/ingest-contract.js`), embedded and stored by the
   function under that project only; only the project's consultant may call it. Tested end to end in a browser on a
   2-page image-only PDF: 14 of 14 clauses in 28 s, then 「问合同」 cited them.
+- **Site map (7 Oct):** OpenStreetMap through Leaflet (cdnjs, loaded only when a map is shown), `js/sitemap.js`.
+  The consultant sets `project.site` on the dashboard map (Nominatim address search, or a click). A site photo
+  taken in 「工地记录」 keeps `doc.geo`: its own EXIF GPS, else the phone's position (watched from when the page
+  opens, used if under 10 minutes old). The dashboard shows every VO's photos; a VO page shows its own, each pin
+  opening the photo; the summary warns when a photo is over 1 km from the site. Demo: a made-up site in Cheras.
+  CCTV left for a later version.
 - **Sign-up:** open. Email confirmation is off (no mail server; the built-in mailer only reaches the project's own
   team, 2 emails an hour), and the site URL is GitHub Pages. A new account sees nothing until a consultant adds it.
   Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,
