@@ -58,16 +58,34 @@ if (typeof document !== "undefined") {
                 ? '<p class="capture-empty">' + escapeHtml(t("capture.noPhotos")) + "</p>"
                 : photos.map((p, i) =>
                     '<figure class="capture-thumb"><img src="' + p.url + '" alt="">' +
+                    (p.geo ? '<span class="capture-thumb-geo" title="' + escapeHtml(t("capture.geo.placed")) + '">📍</span>' : "") +
                     '<button type="button" class="capture-remove" data-index="' + i + '" aria-label="' +
                     escapeHtml(t("capture.removePhoto")) + '">×</button></figure>'
                   ).join("");
         }
 
+        /* Where each photo was taken (js/sitemap.js): the photo's own GPS
+           when it carries one, else the phone's position right now. The
+           position is watched from the moment the page opens. */
+        const geoStatus = document.getElementById("capGeoStatus");
+        function showGeoState(state) {
+            geoStatus.textContent = t("capture.geo." + state);
+            geoStatus.className = "capture-geo " + state;
+        }
+        if (typeof SiteGeo !== "undefined") SiteGeo.start(showGeoState);
+
+        function placeOf(file) {
+            return file.arrayBuffer()
+                .then(buf => typeof exifGps === "function" ? exifGps(buf) : null, () => null)
+                .then(exif => typeof photoGeo === "function"
+                    ? photoGeo(exif, SiteGeo.position(), Date.now()) : null);
+        }
+
         function addFiles(input) {
             const files = Array.from(input.files || []);
             input.value = "";
-            Promise.all(files.map(shrink)).then(list => {
-                list.forEach(p => photos.push({ blob: p.blob, ext: p.ext, url: URL.createObjectURL(p.blob) }));
+            Promise.all(files.map(f => Promise.all([shrink(f), placeOf(f)]))).then(list => {
+                list.forEach(([p, geo]) => photos.push({ blob: p.blob, ext: p.ext, url: URL.createObjectURL(p.blob), geo: geo }));
                 drawPhotos();
             });
         }
@@ -118,14 +136,14 @@ if (typeof document !== "undefined") {
             const stamp = localStamp();
             const files = photos.map((p, i) => {
                 const name = sitePhotoName(stamp, i + 1, p.ext);
-                return { id: uid("DOC"), name: name, file: new File([p.blob], name, { type: p.blob.type || "image/jpeg" }) };
+                return { id: uid("DOC"), name: name, geo: p.geo, file: new File([p.blob], name, { type: p.blob.type || "image/jpeg" }) };
             });
 
             Promise.all(files.map(f => FileStore.put(f.id, f.file))).then(stored => {
                 const created = createVO(project.id, session);
                 updateVO(project.id, created.id, v => {
                     applySiteRecord(v, Object.assign({}, rec, {
-                        photos: files.map((f, k) => ({ id: f.id, name: f.name, size: f.file.size, stored: stored[k] }))
+                        photos: files.map((f, k) => ({ id: f.id, name: f.name, size: f.file.size, stored: stored[k], geo: f.geo }))
                     }), session, today());
                     logHistory(v, session, "Recorded on site with " + files.length +
                         (files.length === 1 ? " photo" : " photos"));

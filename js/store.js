@@ -530,6 +530,8 @@ function seedDB() {
             createdByRole: "consultant",
             createdAt: "2026-06-01T09:00:00Z",
             passcode: null,
+            /* a made-up demo location (Cheras, Kuala Lumpur) for the site map */
+            site: { lat: 3.0857, lng: 101.7425, address: "Demo site, Cheras, Kuala Lumpur" },
             bq: bq,
             documents: [
                 { id: "D1", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.D1, category: "contract", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:10:00Z" },
@@ -548,7 +550,8 @@ function seedDB() {
                     oldDrawing: [{ id: "F2", name: "A-201 Rev B - Floor Finishes.pdf", size: 98363, url: DEMO_FILES.F2, uploadedBy: "Ong Wei Han", at: "2026-07-14" }],
                     supportingDocs: [
                         { id: "F3", name: "Marble supplier quotation.pdf", size: 81540, url: DEMO_FILES.F3, uploadedBy: "Ong Wei Han", at: "2026-07-15" },
-                        { id: "F4", name: "Site photos - living area.jpg", size: 51860, url: DEMO_FILES.F4, uploadedBy: "Ong Wei Han", at: "2026-07-15" }
+                        { id: "F4", name: "Site photos - living area.jpg", size: 51860, url: DEMO_FILES.F4, uploadedBy: "Ong Wei Han", at: "2026-07-15",
+                          geo: { lat: 3.08594, lng: 101.74271, acc: 8, src: "gps" } }
                     ],
                     contractDocs: [{ id: "F7", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.F7, uploadedBy: "Ong Wei Han", at: "2026-07-14" }],
                     measurement: [

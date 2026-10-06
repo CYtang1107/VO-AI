@@ -175,5 +175,18 @@ if (typeof document !== "undefined") {
         if (typeof ensureContractReadings === "function") {
             ensureContractReadings(project.id, null).then(changed => { if (changed) location.reload(); });
         }
+
+        /* The site map (js/sitemap.js): the consultant sets the site's
+           location; everyone sees it and where each site photo was taken. */
+        const mapHost = document.getElementById("siteMapBody");
+        if (mapHost && typeof drawSiteMap === "function") {
+            drawSiteMap(mapHost, getProject(project.id) || project, {
+                canSetSite: session.role === "consultant",
+                onSiteSaved: site => {
+                    updateProject(project.id, p => { p.site = site; });
+                    toast(t("map.siteSaved"));
+                }
+            });
+        }
     })();
 }

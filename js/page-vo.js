@@ -1012,6 +1012,15 @@ if (typeof document !== "undefined") {
             askTheContract(e.target.value);
         });
 
+        /* Where this VO's site photos were taken (js/sitemap.js); drawn
+           once, hidden when neither the site nor any photo has a place. */
+        const voMapHost = document.getElementById("voMapBody");
+        if (voMapHost && typeof drawSiteMap === "function") {
+            const p = getProject(project.id);
+            if (siteOf(p) || photoPins(p, voId).length) drawSiteMap(voMapHost, p, { voId: voId });
+            else voMapHost.closest(".site-map-card").hidden = true;
+        }
+
         draw();
     })();
 }
