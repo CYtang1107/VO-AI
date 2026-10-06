@@ -527,8 +527,12 @@ if (typeof document !== "undefined") {
         /* Stage 2 — only the consultant may create a project. */
         const createBox = document.getElementById("createBox");
         if (!isConsultant) {
-            createBox.innerHTML =
-                '<div class="empty-state">' + escapeHtml(t("projects.consultantOnly")) + '</div>';
+            /* A new team account belongs to no project until a consultant
+               adds it: say so, with the address to give them. */
+            const waiting = session.cloud && loadDB().projects.length === 0;
+            createBox.innerHTML = '<div class="empty-state">' + escapeHtml(waiting
+                ? t("projects.waitForInvite", { email: session.email || "" })
+                : t("projects.consultantOnly")) + '</div>';
         } else {
             document.getElementById("createBtn").addEventListener("click", async () => {
                 const name = document.getElementById("pName").value.trim();
