@@ -31,6 +31,13 @@ function siteRecordProblems(rec) {
     return problems;
 }
 
+/* How many photos have no recorded place (GPS off, refused, or not
+   available indoors). The page asks before saving them: they will not
+   show on the site map, but recording the variation is never blocked. */
+function unplacedPhotos(photos) {
+    return (photos || []).filter(p => !p.geo).length;
+}
+
 /* Writes a site record onto a freshly created VO (the contractor's own
    columns only). `rec`: {description, location, typeOfInstruction,
    instructionNo, dateIssued, line: {unit, qty, rate}, photos: [{id, name,
@@ -65,5 +72,5 @@ function applySiteRecord(vo, rec, session, todayIso) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { sitePhotoName, siteRecordProblems, applySiteRecord };
+    module.exports = { sitePhotoName, siteRecordProblems, unplacedPhotos, applySiteRecord };
 }

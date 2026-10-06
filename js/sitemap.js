@@ -279,7 +279,13 @@ async function drawSiteMap(host, project, opts) {
     /* a click on the site or on a photo zooms in to it */
     if (siteMarker) siteMarker.on("click", () => map.flyTo(siteMarker.getLatLng(), 18, { duration: 0.8 }));
     map.eachLayer(layer => {
-        if (layer instanceof L.CircleMarker) layer.on("click", () => map.flyTo(layer.getLatLng(), 19, { duration: 0.8 }));
+        if (!(layer instanceof L.CircleMarker)) return;
+        /* aim above the pin, so its photo popup fits on the map */
+        layer.on("click", () => {
+            const z = Math.max(map.getZoom(), 19);
+            const centre = map.unproject(map.project(layer.getLatLng(), z).subtract([0, 130]), z);
+            map.flyTo(centre, z, { duration: 0.8 });
+        });
     });
 
     if (!o.canSetSite) return;
