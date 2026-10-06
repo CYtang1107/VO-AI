@@ -67,8 +67,14 @@ var PAST_RATE_ZH = [
     ["油漆", "paint"], ["批荡", "plaster"], ["地板", "floor"], ["地面", "floor"], ["盖", "cover"], ["管", "pipe"]
 ];
 
+/* "600mm x 600mm", "600 X 600", "600mmx600mm", "600×600" → "600x600mm":
+   one way of writing a size, so it matches the past items' "600x600mm". */
+function normaliseSizes(text) {
+    return String(text || "").replace(/(\d+)\s*(?:mm)?\s*[x×*]\s*(\d+)(?:\s*mm)?/gi, "$1x$2mm");
+}
+
 function pastRateEnglish(text) {
-    let s = String(text || "");
+    let s = normaliseSizes(text);
     PAST_RATE_ZH.forEach(([zh, en]) => { s = s.split(zh).join(" " + en + " "); });
     return s;
 }
@@ -88,7 +94,7 @@ function sizeTokens(text) {
     const out = [];
     const re = /(\d+)\s*x\s*(\d+)/gi;
     let m;
-    while ((m = re.exec(String(text || "")))) out.push(m[1] + "x" + m[2]);
+    while ((m = re.exec(normaliseSizes(text)))) out.push(m[1] + "x" + m[2]);
     return out;
 }
 
@@ -154,7 +160,12 @@ function pastRateScore(row, source) {
     let overlap = 0;
     a.forEach(w => { if (b.has(w)) overlap++; });
     if (overlap < 2) return 0;
-    return (2 * overlap) / (a.size + b.size);
+    const dice = (2 * overlap) / (a.size + b.size);
+    /* a short description whose every word the past item has, its
+       material among them ("600x600mm 大理石" → "Marble floor tiles
+       600x600mm polished"), is as good as a longer close match */
+    const all = overlap === a.size && [...a].some(w => MATERIAL_WORDS.has(w));
+    return all ? Math.max(dice, PAST_RATE_THRESHOLD) : dice;
 }
 
 function median(values) {

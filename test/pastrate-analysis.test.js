@@ -35,3 +35,14 @@ test("the panel shows the median, its range and its sources, or asks for a quota
     assert.match(none, /supplier quotation or a market check/);
     assert.ok(!/RM/.test(none), "no figure is offered without evidence");
 });
+
+test("a size written any common way, and a short material + size description, still find past rates", () => {
+    ["600mmx 600mm 大理石", "600 X 600 marble", "600×600 大理石", "600 x 600 mm 大理石地砖"].forEach(d => {
+        const s = suggestPastRate({ description: d, unit: "" }, sources);
+        assert.ok(s, d);
+        assert.strictEqual(s.rate, 235, d);
+    });
+    assert.strictEqual(suggestPastRate({ description: "大理石", unit: "m2" }, sources), null, "one word alone is not enough");
+    const small = suggestPastRate({ description: "450x450 预制混凝土集水井", unit: "no" }, sources);
+    assert.deepStrictEqual(small.matches.map(m => m.rate), [760], "a 600x600 sump is no evidence for a 450x450 one");
+});
