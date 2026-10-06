@@ -491,7 +491,9 @@ var DEMO_FILES = {
     F8: "demo-files/contract-agreement-pam2018.pdf",
     /* site photos: photo-realistic AI images labelled as such on the
        image ("AI-GENERATED · DEMO ONLY"), each placed on the site map */
+    P1: "demo-files/site-photo-skirting.jpg",
     P2: "demo-files/site-photo-marble-delivery.jpg",
+    P3: "demo-files/site-photo-trench.jpg",
     P4: "demo-files/site-photo-drain-pipe.jpg",
     P5: "demo-files/site-photo-sump.jpg",
     P6: "demo-files/site-photo-ceiling-before.jpg",
@@ -559,6 +561,7 @@ function seedDB() {
                         { id: "F3", name: "Marble supplier quotation.pdf", size: 81540, url: DEMO_FILES.F3, uploadedBy: "Ong Wei Han", at: "2026-07-15" },
                         { id: "F4", name: "Site photos - living area.jpg", size: 163003, url: DEMO_FILES.F4, uploadedBy: "Ong Wei Han", at: "2026-07-15",
                           geo: { lat: 3.08594, lng: 101.74271, acc: 8, src: "gps" } },
+                        { id: "P1", name: "Site photo - existing skirting.jpg", size: 178624, url: DEMO_FILES.P1, uploadedBy: "Ong Wei Han", at: "2026-07-15", geo: { lat: 3.08597, lng: 101.74276, acc: 6, src: "gps" } },
                         { id: "P2", name: "Site photo - marble tiles delivered.jpg", size: 272972, url: DEMO_FILES.P2, uploadedBy: "Ong Wei Han", at: "2026-07-16", geo: { lat: 3.08562, lng: 101.74258, acc: 6, src: "gps" } }
                     ],
                     contractDocs: [{ id: "F7", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.F7, uploadedBy: "Ong Wei Han", at: "2026-07-14" }],
@@ -614,6 +617,7 @@ function seedDB() {
                     supportingDocs: [
                         { id: "F6", name: "Site instruction EI-008.pdf", size: 77160, url: DEMO_FILES.F6, uploadedBy: "Ong Wei Han", at: "2026-07-15" },
                         /* along the rear boundary wall, left to right */
+                        { id: "P3", name: "Site photo - trench along rear boundary.jpg", size: 343443, url: DEMO_FILES.P3, uploadedBy: "Ong Wei Han", at: "2026-09-16", geo: { lat: 3.08612, lng: 101.74226, acc: 6, src: "gps" } },
                         { id: "P4", name: "Site photo - uPVC pipe laid in trench.jpg", size: 391980, url: DEMO_FILES.P4, uploadedBy: "Ong Wei Han", at: "2026-09-18", geo: { lat: 3.08611, lng: 101.74252, acc: 6, src: "gps" } },
                         { id: "P5", name: "Site photo - precast sump at rear corner.jpg", size: 516295, url: DEMO_FILES.P5, uploadedBy: "Ong Wei Han", at: "2026-09-19", geo: { lat: 3.08609, lng: 101.74281, acc: 6, src: "gps" } }
                     ],
