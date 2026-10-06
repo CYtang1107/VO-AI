@@ -12,6 +12,13 @@ Branch `claude/eager-ramanujan-6i2lox`.
   imported as shared (`project_id` null, readable by every signed-in user), which exposed the copyrighted text once
   sign-up was opened to anyone. A new project needs its own import:
   `node tools/ingest-contract.js --file PAM-2018-OCR.txt --form "PAM 2018" --project <id>`. The text file is not in the repo.
+- **「导入合同到知识库」 (6 Oct):** the Documents page has a knowledge-base card for team accounts. The consultant
+  imports a project document of category Contract: a text PDF, .docx or .txt is read in the browser
+  (`js/contractread.js`); a scanned PDF is drawn page by page with pdf.js (CDN, loaded only then) and read by the
+  `import-contract` Edge Function's OCR (`qwen-vl-plus`, then `qwen3-vl-flash`), 4 pages at a time, about 8 s a page.
+  Clauses are split by `js/kbsplit.js` (the same code as `tools/ingest-contract.js`), embedded and stored by the
+  function under that project only; only the project's consultant may call it. Tested end to end in a browser on a
+  2-page image-only PDF: 14 of 14 clauses in 28 s, then 「问合同」 cited them.
 - **Sign-up:** open. Email confirmation is off (no mail server; the built-in mailer only reaches the project's own
   team, 2 emails an hour), and the site URL is GitHub Pages. A new account sees nothing until a consultant adds it.
   Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,

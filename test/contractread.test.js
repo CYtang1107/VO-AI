@@ -205,3 +205,15 @@ test("a VO's own contract basis, once readable, is its contract: the project's d
     const plain = Object.assign({}, p.vos[2], { contractDocs: [] });
     assert.deepStrictEqual(contractAnalysis(plain, p).docNames, ["Demo.pdf"]);
 });
+
+test("a clause headed Daywork is a clause; a line starting \"14 days\" is not", () => {
+    const clauses = splitClauses([
+        "11.5 Daywork",
+        "Where work cannot properly be measured it is valued at the daywork rates.",
+        "11.6 Notice of additional expense",
+        "The Contractor shall give written notice within",
+        "14 days of the instruction."
+    ].join("\n"));
+    assert.deepStrictEqual(clauses.map(c => c.no + " " + c.title), ["11.5 Daywork", "11.6 Notice of additional expense"]);
+    assert.match(clauses[1].text, /14 days of the instruction/);
+});

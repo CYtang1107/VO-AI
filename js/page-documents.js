@@ -272,11 +272,13 @@ if (typeof document !== "undefined") {
            called after every upload/removal so a change is visible
            immediately (there is no project-level history log to append
            to, unlike a VO's). */
+        let afterReload = () => {};   /* the knowledge-base card redraws too */
         function reload() {
             const fresh = getProject(project.id);
             list = collectDocuments(fresh);
             refreshSummary();
             draw();
+            afterReload();
         }
 
         const voOptions = ((project.vos) || []).map(v =>
@@ -333,5 +335,56 @@ if (typeof document !== "undefined") {
         }
 
         reload();
+
+        /* The contract knowledge base behind 「问合同」 (js/contractimport.js):
+           team accounts see what is in it; the project's consultant imports
+           contract documents into it. */
+        if (typeof Cloud !== "undefined" && Cloud.active() && typeof renderKnowledgeCard === "function") {
+            const kbCard = document.getElementById("kbCard");
+            const kbBody = document.getElementById("kbBody");
+            const canImport = session.role === "consultant";
+            let entries = null;   /* null until loaded */
+            let progress = null;
+
+            const contractDocs = () => ((getProject(project.id) || project).documents || [])
+                .filter(d => d.category === "contract" && /\.(pdf|docx|txt)$/i.test(d.name || ""));
+            const drawKb = () => { kbBody.innerHTML = renderKnowledgeCard(entries, contractDocs(), canImport, progress); };
+            async function refreshKb() {
+                try { entries = await loadKnowledge(project.id); }
+                catch (e) { kbBody.innerHTML = '<div class="empty-state">' + escapeHtml(t("kb.loadFailed", { reason: e.message || String(e) })) + "</div>"; return; }
+                drawKb();
+            }
+            afterReload = () => { if (entries) drawKb(); };
+            kbCard.hidden = false;
+            kbBody.innerHTML = '<div class="empty-state">' + escapeHtml(t("kb.loading")) + "</div>";
+            refreshKb();
+
+            kbBody.addEventListener("click", async e => {
+                const importBtn = e.target.closest(".kb-import-btn");
+                if (importBtn && !progress) {
+                    const doc = contractDocs().find(d => d.id === importBtn.dataset.docId);
+                    if (!doc) return;
+                    progress = { docId: doc.id, text: t("kb.progress.reading") };
+                    drawKb();
+                    try {
+                        const r = await importContractDoc(project.id, doc, text => { progress.text = text; drawKb(); });
+                        toast(t(r.ocr ? "kb.done.ocr" : "kb.done", { form: r.form, clauses: r.clauses, chunks: r.chunks }));
+                    } catch (err) {
+                        toast(t("kb.failed", { reason: err.message || String(err) }), "error");
+                    }
+                    progress = null;
+                    await refreshKb();
+                    return;
+                }
+                const removeBtn = e.target.closest(".kb-remove-btn");
+                if (removeBtn && !progress) {
+                    const name = removeBtn.dataset.docName;
+                    if (!window.confirm(t("kb.confirmRemove", { name: name }))) return;
+                    try { await removeKnowledge(project.id, name); toast(t("kb.removed", { name: name })); }
+                    catch (err) { toast(t("kb.failed", { reason: err.message || String(err) }), "error"); }
+                    await refreshKb();
+                }
+            });
+        }
     })();
 }

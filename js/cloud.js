@@ -333,15 +333,27 @@ var Cloud = (function () {
 
     /* ---------- ask the contract (Edge Function ask-contract) ---------- */
 
-    async function ask(body) {
+    async function invoke(name, body) {
         var c = await client();
-        var res = await c.functions.invoke("ask-contract", { body: body });
+        var res = await c.functions.invoke(name, { body: body });
         if (res.error) {
             var detail = "";
             try { detail = (await res.error.context.json()).error || ""; } catch (e) { /* not json */ }
             throw new Error(detail || res.error.message);
         }
         return res.data;
+    }
+
+    function ask(body) {
+        return invoke("ask-contract", body);
+    }
+
+    /* The project's knowledge base, one row per stored chunk (no text):
+       what js/contractimport.js lists on the Documents page. */
+    async function knowledgeRows(projectId) {
+        var c = await client();
+        return check(await c.from("contract_chunks").select("doc_name, form, clause_no")
+            .eq("project_id", projectId).order("id").range(0, 4999));
     }
 
     /* ---------- page wiring ---------- */
@@ -458,7 +470,7 @@ var Cloud = (function () {
         pull: pull, push: push, schedulePush: schedulePush, flush: flush,
         uploadFile: uploadFile, downloadFile: downloadFile,
         addMember: addMember, removeMember: removeMember,
-        ask: ask, notify: notify
+        ask: ask, invoke: invoke, knowledgeRows: knowledgeRows, notify: notify
     };
 })();
 
