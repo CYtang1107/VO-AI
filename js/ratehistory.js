@@ -209,6 +209,7 @@ function newBqItemFromRow(row, vo, project, rate, suggestion, todayIso) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        PAST_PROJECTS, pastRateSources, pastRateScore, suggestPastRate, newBqItemFromRow, sizeTokens
+        PAST_PROJECTS, pastRateSources, pastRateScore, suggestPastRate, newBqItemFromRow, sizeTokens,
+        pastRateWords, MATERIAL_WORDS
     };
 }

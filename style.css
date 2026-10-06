@@ -3248,3 +3248,4 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .kb-entry { flex-wrap: wrap; }
 .kb-entry > .doc-current { flex: 1 1 100%; }
 .kb-entry > .kb-clauses { flex: 1 1 100%; }
+.auto-fill-note { color: var(--accent); }
