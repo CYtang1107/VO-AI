@@ -413,7 +413,7 @@ function splitClauses(text) {
         const margin = m && m[1] ? m[1].trim() : "";
         const looksLikeHeading = m &&
             !/^\d/.test(m[3]) &&
-            !/^(days?|months?|weeks?|%|per\b|mm\b|m2?\b|no\b)/i.test(m[3]) &&
+            !/^(?:(?:days?|months?|weeks?|per|mm|m2?|no)\b|%)/i.test(m[3]) &&
             (!margin || (margin.split(/\s+/).length <= 6 && !sentenceLead.test(margin) &&
                          /^[A-Z\u201c"(\u2018']/.test(m[3])));
         if (looksLikeHeading) {

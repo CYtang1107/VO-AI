@@ -3197,3 +3197,9 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .cite-sim { font-weight: 400; color: var(--ink-3); margin-left: 6px; }
 .cite-source .rate-detail { margin: 8px 0 0; white-space: pre-wrap; }
 .ask-ocr-note { margin-top: 10px; }
+
+/* ---------- contract knowledge base card (js/contractimport.js) ---------- */
+.kb-tag { background: #ebe2fd; color: #6527d1; }
+.kb-subhead { font-size: 12px; margin: 18px 0 8px; }
+.kb-progress { margin: 6px 0 0; font-size: 12px; color: var(--accent); font-weight: 600; }
+.kb-import-btn { margin-left: auto; }
