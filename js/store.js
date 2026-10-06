@@ -489,6 +489,13 @@ var DEMO_FILES = {
     /* each VO's contract basis: the project's own contract */
     F7: "demo-files/contract-agreement-pam2018.pdf",
     F8: "demo-files/contract-agreement-pam2018.pdf",
+    /* site photos: photo-realistic AI images labelled as such on the
+       image ("AI-GENERATED · DEMO ONLY"), each placed on the site map */
+    P2: "demo-files/site-photo-marble-delivery.jpg",
+    P4: "demo-files/site-photo-drain-pipe.jpg",
+    P5: "demo-files/site-photo-sump.jpg",
+    P6: "demo-files/site-photo-ceiling-before.jpg",
+    P7: "demo-files/site-photo-ceiling-cove.jpg",
 };
 
 
@@ -551,7 +558,8 @@ function seedDB() {
                     supportingDocs: [
                         { id: "F3", name: "Marble supplier quotation.pdf", size: 81540, url: DEMO_FILES.F3, uploadedBy: "Ong Wei Han", at: "2026-07-15" },
                         { id: "F4", name: "Site photos - living area.jpg", size: 163003, url: DEMO_FILES.F4, uploadedBy: "Ong Wei Han", at: "2026-07-15",
-                          geo: { lat: 3.08594, lng: 101.74271, acc: 8, src: "gps" } }
+                          geo: { lat: 3.08594, lng: 101.74271, acc: 8, src: "gps" } },
+                        { id: "P2", name: "Site photo - marble tiles delivered.jpg", size: 272972, url: DEMO_FILES.P2, uploadedBy: "Ong Wei Han", at: "2026-07-16", geo: { lat: 3.08562, lng: 101.74258, acc: 6, src: "gps" } }
                     ],
                     contractDocs: [{ id: "F7", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.F7, uploadedBy: "Ong Wei Han", at: "2026-07-14" }],
                     measurement: [
@@ -603,7 +611,12 @@ function seedDB() {
                     instructionNo: "EI-008",
                     revisedDrawing: [{ id: "F5", name: "C-104 Rev A - External Drainage.pdf", size: 95122, url: DEMO_FILES.F5, uploadedBy: "Ong Wei Han", at: "2026-07-15" }],
                     oldDrawing: [],
-                    supportingDocs: [{ id: "F6", name: "Site instruction EI-008.pdf", size: 77160, url: DEMO_FILES.F6, uploadedBy: "Ong Wei Han", at: "2026-07-15" }],
+                    supportingDocs: [
+                        { id: "F6", name: "Site instruction EI-008.pdf", size: 77160, url: DEMO_FILES.F6, uploadedBy: "Ong Wei Han", at: "2026-07-15" },
+                        /* along the rear boundary wall, left to right */
+                        { id: "P4", name: "Site photo - uPVC pipe laid in trench.jpg", size: 391980, url: DEMO_FILES.P4, uploadedBy: "Ong Wei Han", at: "2026-09-18", geo: { lat: 3.08611, lng: 101.74252, acc: 6, src: "gps" } },
+                        { id: "P5", name: "Site photo - precast sump at rear corner.jpg", size: 516295, url: DEMO_FILES.P5, uploadedBy: "Ong Wei Han", at: "2026-09-19", geo: { lat: 3.08609, lng: 101.74281, acc: 6, src: "gps" } }
+                    ],
                     contractDocs: [{ id: "F8", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.F8, uploadedBy: "Ong Wei Han", at: "2026-07-15" }],
                     measurement: [
                         { id: "M4", bqItemId: "BQ5", description: "100mm dia uPVC drainage pipe laid in trench to rear boundary",
@@ -637,7 +650,11 @@ function seedDB() {
                     dateIssued: "2026-08-18",
                     typeOfInstruction: "Architect's Instruction (AI)",
                     instructionNo: "AI-027",
-                    revisedDrawing: [], oldDrawing: [], supportingDocs: [], contractDocs: [],
+                    revisedDrawing: [], oldDrawing: [], contractDocs: [],
+                    supportingDocs: [
+                        { id: "P6", name: "Site photo - master bedroom ceiling before.jpg", size: 126362, url: DEMO_FILES.P6, uploadedBy: "Ong Wei Han", at: "2026-09-28", geo: { lat: 3.08583, lng: 101.74236, acc: 6, src: "gps" } },
+                        { id: "P7", name: "Site photo - ceiling cove framing.jpg", size: 221839, url: DEMO_FILES.P7, uploadedBy: "Ong Wei Han", at: "2026-10-02", geo: { lat: 3.08585, lng: 101.74239, acc: 6, src: "gps" } }
+                    ],
                     measurement: [
                         { id: "M6", bqItemId: "BQ6", description: "Suspended plasterboard ceiling with additional cove detail",
                           unit: "m2", qty: 96, rate: 76, assessedQty: "", assessedRate: "" }

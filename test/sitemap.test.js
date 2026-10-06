@@ -64,9 +64,12 @@ test("pins: every placed document, or one VO's; the demo has a site and a placed
     const project = seedDB().projects[0];
     assert.ok(siteOf(project));
     const all = photoPins(project);
-    assert.strictEqual(all.length, 1);
-    assert.strictEqual(all[0].voNo, "VO-001");
-    assert.strictEqual(photoPins(project, "VO-SEED-2").length, 0);
+    const perVo = {};
+    all.forEach(p => { perVo[p.voNo] = (perVo[p.voNo] || 0) + 1; });
+    assert.ok(perVo["VO-001"] >= 2 && perVo["VO-002"] >= 2 && perVo["VO-003"] >= 2, JSON.stringify(perVo));
+    assert.ok(photoPins(project, "VO-SEED-2").every(p => p.voNo === "VO-002"));
+    assert.ok(all.every(p => /\.jpg$/.test(p.name)), "only photos are placed, not the PDFs");
+    assert.strictEqual(photoPins({ vos: [{ id: "V", supportingDocs: [{ id: "x", name: "a.pdf" }] }] }).length, 0);
     assert.strictEqual(siteOf({ site: { lat: "x" } }), null);
 });
 
