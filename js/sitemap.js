@@ -260,6 +260,13 @@ async function drawSiteMap(host, project, opts) {
             try { url = await photoUrl(pins[i].doc); } catch (e) { url = ""; }
             loaded[i] = url ? '<img src="' + url + '" alt="">' : escapeHtml(t("map.photoNotHere"));
             ev.popup.setContent(popupHtml(pins[i], i, loaded[i]));
+            /* a photo that fails to load (not on the site yet, offline)
+               says so instead of leaving an empty box */
+            const img = ev.popup.getElement() && ev.popup.getElement().querySelector(".site-photo-img img");
+            if (img) img.addEventListener("error", () => {
+                loaded[i] = escapeHtml(t("map.photoNotHere"));
+                ev.popup.setContent(popupHtml(pins[i], i, loaded[i]));
+            }, { once: true });
         }
     });
 
