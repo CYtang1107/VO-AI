@@ -213,7 +213,7 @@ async function drawSiteMap(host, project, opts) {
     try { L = await loadLeaflet(); }
     catch (e) { host.querySelector(".site-map").innerHTML = '<div class="empty-state">' + escapeHtml(t("map.offline")) + "</div>"; return; }
 
-    const map = L.map(host.querySelector(".site-map"), { scrollWheelZoom: false });
+    const map = L.map(host.querySelector(".site-map"), { scrollWheelZoom: true, wheelPxPerZoomLevel: 90 });
     /* street map or satellite photo, switched top right; the choice is
        remembered in this browser */
     const street = L.tileLayer(OSM_TILES, { maxZoom: 19, attribution: OSM_ATTRIBUTION });
