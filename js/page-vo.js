@@ -12,6 +12,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { renderContractBlock } = require("./contractread.js");
     var { renderContractPane } = require("./askcontract.js");
     var { t } = require("./i18n.js");
+    var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
 }
 
 /* An <option> VALUE is always the raw English data value (evaluateStatus,
@@ -35,8 +36,11 @@ function renderAdministratorPanel(vo, role) {
         .filter(Boolean).join(" · ");
     const status = vo.instructionStatus || (vo.submitted ? "Confirmed" : "Pending");
     const certStatus = vo.caCertifiedStatus || (vo.evaluateStatus === "Approved" ? "Certified" : "Pending");
+    const recorded = vo.claimCheck && vo.claimCheck.verdict
+        ? '<p class="ca-ref">' + escapeHtml(t("claim.recorded", {
+              verdict: t("claim.verdict." + vo.claimCheck.verdict), date: prettyDate(vo.claimCheck.at) })) + "</p>" : "";
     return panelLockNote(vo, role, "administrator") +
-        '<h4 class="ca-step">' + escapeHtml(t("vo.ca.step1")) + "</h4>" +
+        '<h4 class="ca-step">' + escapeHtml(t("vo.ca.step1")) + "</h4>" + recorded +
         '<p class="ca-ref">' + escapeHtml(t("vo.ca.instructionRef", { ref: ref || t("vo.ca.noRef") })) + "</p>" +
         (vo.submitted || status !== "Returned" ? "" : '<p class="ca-note">' + escapeHtml(t("vo.ca.returnedWaiting")) + "</p>") +
         field({ field: "instructionStatus", label: t("vo.field.instructionStatus"), type: "select",
@@ -641,6 +645,7 @@ function translateHistoryAction(action) {
     if (a === "Instruction confirmed") return t("history.instructionConfirmedNoRef");
     if ((m = a.match(/^Instruction returned to contractor: (.+)$/))) return t("history.instructionReturnedWithNote", { note: m[1] });
     if (a === "Instruction returned to contractor") return t("history.instructionReturned");
+    if ((m = a.match(/^Contract agent: (claimable|needsInfo|notClaimable)$/))) return t("history.claimCheck", { verdict: t("claim.verdict." + m[1]) });
     if (a === "Created from AI Analysis") return t("history.createdFromAnalysis");
     if (a === "Requested further information") return t("history.infoRequested");
     if ((m = a.match(/^Requested further information: (.+)$/))) {
@@ -796,6 +801,10 @@ if (typeof document !== "undefined") {
                 field({ field: "consultantRemark", label: t("vo.field.consultantRemark"),
                         type: "textarea", value: seedText(v.consultantRemark), vo: v, role: role }) +
                 renderInfoRequestControl(v, role, fresh);
+
+            document.getElementById("claimCheckPanel").innerHTML =
+                renderClaimCheck(claimCheck(v, fresh), { recorded: v.claimCheck && v.claimCheck.verdict
+                    ? { verdict: v.claimCheck.verdict, at: prettyDate(v.claimCheck.at) } : null });
 
             document.getElementById("deadlinesPanel").innerHTML =
                 renderDeadlinesPanel(v, today(), fresh);
@@ -1097,9 +1106,19 @@ if (typeof document !== "undefined") {
         });
 
         document.getElementById("submitBtn").addEventListener("click", () => {
+            /* the contract agent (js/claimcheck.js) runs first; a VO it
+               finds not claimable, or short of information, is submitted
+               only when the contractor says so */
+            const fresh = getProject(project.id);
+            const check = claimCheck(fresh.vos.find(x => x.id === voId), fresh);
+            const reasons = state => check.checks.filter(c => c.state === state).map(c => c.reason).join("\n");
+            if (check.verdict === "notClaimable" && !window.confirm(t("claim.confirmSubmit", { reason: reasons("fail") }))) return;
+            if (check.verdict === "needsInfo" && !window.confirm(t("claim.confirmNeedsInfo", { reason: reasons("missing") }))) return;
             updateVO(project.id, voId, v => {
                 v.submitted = true;
                 v.evaluateStatus = "Pending";
+                v.claimCheck = { verdict: check.verdict, at: today(), form: check.form };
+                logHistory(v, session, "Contract agent: " + check.verdict);
                 logHistory(v, session, "Submitted to contract administrator");
             });
             toast(t("toast.submittedToCa"));

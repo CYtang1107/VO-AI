@@ -3358,3 +3358,19 @@ td.nowrap, .nowrap { white-space: nowrap; }
 /* site photos: on site or not (js/sitemap.js photoLocations) */
 .photo-loc-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
 .photo-loc-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+/* the contract agent (js/claimcheck.js) */
+.claim-verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.claim-verdict .status { font-weight: 700; font-size: 13px; }
+.claim-summary { font-size: 14px; }
+.claim-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.claim-check { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: start; }
+.claim-check .rate-detail { margin: 3px 0 0; }
+.claim-icon { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.claim-ok .claim-icon { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.claim-fail .claim-icon { background: var(--verdict-diff-bg); color: var(--verdict-diff); }
+.claim-missing .claim-icon { background: #fde7bf; color: #92400e; }
+.claim-info .claim-icon { background: var(--tag-bg); color: var(--ink-2); }
+.claim-clause { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.claim-check strong { font-size: 14px; }
+.claim-card .claim-checks + .assistant-note, .claim-card .assistant-note { margin-top: 10px; }

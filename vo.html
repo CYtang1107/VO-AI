@@ -22,7 +22,7 @@
         <div class="page-actions" style="margin:0">
             <button class="secondary-button danger-button" id="deleteVoBtn" hidden data-i18n="vo.delete.btn">Delete this draft VO</button>
             <button class="secondary-button" id="reportBtn" data-i18n="vo.reportBtn">Generate VO report</button>
-            <button class="primary-button" id="submitBtn" data-i18n="vo.submitBtn">Submit to consultant</button>
+            <button class="primary-button" id="submitBtn" data-i18n="vo.submitBtn">Submit to design team</button>
         </div>
     </section>
 
@@ -34,6 +34,16 @@
             </div>
         </div>
         <div class="card-body" id="deadlinesPanel"></div>
+    </div>
+
+    <div class="card tone-purple claim-card" style="margin-bottom:20px">
+        <div class="card-header">
+            <div>
+                <h3 data-i18n="claim.title">Contract agent: can this VO be claimed?</h3>
+                <p data-i18n="claim.sub">Checked against the contract's conditions for a variation, before it goes to the design team</p>
+            </div>
+        </div>
+        <div class="card-body" id="claimCheckPanel"></div>
     </div>
 
     <div class="card tone-blue" style="margin-bottom:20px">
@@ -155,6 +165,7 @@
 <script src="js/contractread.js?v=20261007v"></script>
 <script src="js/filestore.js?v=20261007v"></script>
 <script src="js/sitemap.js?v=20261007v"></script>
+<script src="js/claimcheck.js?v=20261007v"></script>
 <script src="js/page-vo.js?v=20261007v"></script>
 
 </body>
