@@ -327,6 +327,8 @@ function tile(label, value, sub, cls) {
 }
 
 /* opts: { editable, width (px the chart is shown at) } */
+var MORE_START = "<!--cp-more-->";
+
 function renderCostOverview(project, todayIso, opts) {
     const o = costOverview(project);
     const curve = sCurve(project, todayIso);
@@ -361,6 +363,7 @@ function renderCostOverview(project, todayIso, opts) {
             '<div class="sc-wrap">' + renderSCurveSvg(viewCurve(curve, range), opts && opts.width, opts && opts.height) + '<div class="sc-tip" hidden></div></div>' +
             '<p class="assistant-note">' + escapeHtml(t("costplan.curveNote")) + "</p>" +
             tiles +
+            MORE_START +
             fold("cp-table", escapeHtml(t("costplan.tableTitle")),
                 '<div class="table-scroll"><table class="cp-table"><thead><tr><th>' + escapeHtml(t("costplan.col.month")) + "</th><th>" +
                 escapeHtml(t("costplan.series.planned")) + "</th><th>" + escapeHtml(t("costplan.series.forecast")) + "</th><th>" +
@@ -384,7 +387,12 @@ function renderCostOverview(project, todayIso, opts) {
             '<input type="number" min="0" step="0.01" id="cpCertActual" placeholder="' + escapeHtml(t("costplan.certActual")) + '">' +
             '<button type="button" class="secondary-button" id="cpCertAdd">' + escapeHtml(t("costplan.certAdd")) + "</button></div>" : "") +
         '<p class="assistant-note">' + escapeHtml(t(editable ? "costplan.inputsNote" : "costplan.inputsReadOnly")) + "</p>");
-    return chart + inputs;
+    /* everything after the figures (the table, earned value, the
+       programme and certificates) behind one fold */
+    const more = chart.indexOf(MORE_START);
+    const head = more === -1 ? chart : chart.slice(0, more);
+    const rest = (more === -1 ? "" : chart.slice(more + MORE_START.length)) + inputs;
+    return head + fold("cp-more", escapeHtml(t("costplan.more")), rest, "cp-more");
 }
 
 /* The crosshair: snaps to the nearest month, lists all three series. */

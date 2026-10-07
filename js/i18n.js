@@ -1549,7 +1549,8 @@ var I18N_EN = {
     "history.infoSentBack": "Further information sent back",
     "history.submittedClient": "Submitted to the client",
     "register.allColumns": "Show all columns",
-    "register.fewerColumns": "Show fewer columns"
+    "register.fewerColumns": "Show fewer columns",
+    "costplan.more": "More: earned value, the figures as a table, programme and interim certificates"
 };
 
 var I18N_ZH = {
@@ -3057,7 +3058,8 @@ var I18N_ZH = {
     "history.infoSentBack": "已送回补充资料",
     "history.submittedClient": "已提交业主",
     "register.allColumns": "显示全部栏位",
-    "register.fewerColumns": "显示较少栏位"
+    "register.fewerColumns": "显示较少栏位",
+    "costplan.more": "更多：挣值、数据表、工期与期中证书"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract
