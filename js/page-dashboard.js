@@ -136,11 +136,14 @@ if (typeof document !== "undefined") {
             });
         });
 
-        /* The cost overview and S-curve (js/costplan.js): everyone sees
-           it; the consultant QS and the client keep the programme and the
-           interim certificates. */
+        /* The cost overview and S-curve (js/costplan.js): for the
+           contractor, the design team and the client, not the consultant QS.
+           The design team (who issues the interim certificates) and the client
+           keep the programme and the certificates. */
+        const costCard = document.querySelector(".cost-plan-card");
+        if (costCard && !costOverviewVisible(session.role)) costCard.remove();
         const costHost = document.getElementById("costPlanBody");
-        const costEditable = session.role === "consultant" || session.role === "client";
+        const costEditable = costOverviewEditable(session.role);
         /* the S-curve zoomed to date, or the whole programme: this viewer's choice */
         let costRange = "toDate";
         try { if (localStorage.getItem("voai.scRange.v1") === "all") costRange = "all"; } catch (e) { /* default */ }
@@ -219,18 +222,6 @@ if (typeof document !== "undefined") {
                 escapeHtml(i.text) + "</span></a>"
             ).join("");
 
-        /* Only the contractor raises a new VO. */
-        const newBtn = document.getElementById("newVoBtn");
-        if (session.role !== "contractor") {
-            newBtn.style.display = "none";
-        } else {
-            /* ...and can do it from site: photos first (capture.html). */
-            document.getElementById("captureBtn").hidden = false;
-            newBtn.addEventListener("click", () => {
-                const vo = createVO(project.id, session);
-                window.location.href = "vo.html?id=" + encodeURIComponent(vo.id);
-            });
-        }
         /* The contract sets the clocks shown here (js/deadlines.js);
            read it the first time, then show the page again with it. */
         if (typeof ensureContractReadings === "function") {

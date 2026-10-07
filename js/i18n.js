@@ -1383,8 +1383,8 @@ var I18N_EN = {
     "costplan.certAdded": "Certificate added.",
     "costplan.badCert": "Enter the certificate's date and an amount above zero.",
     "costplan.badProgramme": "Completion must be after the start.",
-    "costplan.inputsNote": "The consultant QS or the client keeps these: each interim certificate's value as certified.",
-    "costplan.inputsReadOnly": "Kept by the consultant QS and the client.",
+    "costplan.inputsNote": "The design team (who issues the interim certificates) or the client keeps these: each interim certificate's value as certified.",
+    "costplan.inputsReadOnly": "Kept by the design team and the client.",
     "costplan.month.1": "Jan",
     "costplan.month.2": "Feb",
     "costplan.month.3": "Mar",
@@ -1512,7 +1512,11 @@ var I18N_EN = {
     "copilot.ai.source": "Answered by AI from this project's data and contract; every amount was checked against VO-AI's figures. Check before relying on it.",
     "copilot.ai.refused.amount-check": "The AI's answer quoted an amount that is not in the project's data, so it is not shown. Ask in another way, or ask one of the questions above.",
     "copilot.ai.refused.format": "The AI could not give a usable answer to that. Ask in another way.",
-    "copilot.ai.refused.guest-limit": "Today's limit for the demo has been reached: sign in with a team account, or try again tomorrow."
+    "copilot.ai.refused.guest-limit": "Today's limit for the demo has been reached: sign in with a team account, or try again tomorrow.",
+    "evm.group.baseline": "Cost baseline",
+    "evm.group.variance": "Variance",
+    "evm.group.estimate": "Estimation",
+    "evm.detail": "Show the figures behind these (PV, EV, AC, SPI, CPI)"
 };
 
 var I18N_ZH = {
@@ -2855,8 +2859,8 @@ var I18N_ZH = {
     "costplan.certAdded": "已添加证书。",
     "costplan.badCert": "请输入证书日期及大于零的金额。",
     "costplan.badProgramme": "竣工日期必须在开工日期之后。",
-    "costplan.inputsNote": "由咨询工料测量师或业主维护：每期付款证书的核证金额。",
-    "costplan.inputsReadOnly": "由咨询工料测量师和业主维护。",
+    "costplan.inputsNote": "由设计团队（签发期中付款证书）或业主维护：每期付款证书的核证金额。",
+    "costplan.inputsReadOnly": "由设计团队和业主维护。",
     "costplan.month.1": "1月",
     "costplan.month.2": "2月",
     "costplan.month.3": "3月",
@@ -2984,7 +2988,11 @@ var I18N_ZH = {
     "copilot.ai.source": "由 AI 依据本项目数据与合同作答；所有金额已与 VO-AI 的数据核对。依据前请再核实。",
     "copilot.ai.refused.amount-check": "AI 的回答出现项目数据中没有的金额，因此不予显示。请换个方式提问，或点选上方问题。",
     "copilot.ai.refused.format": "AI 无法就此给出可用的回答，请换个方式提问。",
-    "copilot.ai.refused.guest-limit": "今日演示次数已用完：请以团队账号登录，或明天再试。"
+    "copilot.ai.refused.guest-limit": "今日演示次数已用完：请以团队账号登录，或明天再试。",
+    "evm.group.baseline": "成本基准",
+    "evm.group.variance": "偏差",
+    "evm.group.estimate": "估算",
+    "evm.detail": "显示计算依据（PV、EV、AC、SPI、CPI）"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

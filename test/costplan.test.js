@@ -163,3 +163,19 @@ test("the S-curve zoomed to date ends the month after today; the whole programme
     assert.match(html, /class="sc-range-btn on" data-range="toDate"/, "zoomed in by default");
 });
 
+
+test("the earned value table shows the baseline, the three variances and the two estimates; the rest is folded", () => {
+    const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), {});
+    const shown = html.slice(0, html.indexOf('data-fold="evm-detail"'));
+    const order = ["Cost baseline", "<abbr>BAC</abbr>", "Variance", "<abbr>CV</abbr>", "<abbr>SV</abbr>", "<abbr>VAC</abbr>", "Estimation", "<abbr>EAC</abbr>", "<abbr>ETC</abbr>"];
+    let at = -1;
+    order.forEach(k => { const i = shown.indexOf(k); assert.ok(i > at, k + " in order"); at = i; });
+    ["PV", "EV", "AC", "SPI", "CPI"].forEach(k => assert.ok(!shown.includes("<abbr>" + k + "</abbr>"), k + " is folded"));
+    const folded = html.slice(html.indexOf('data-fold="evm-detail"'));
+    ["PV", "EV", "AC", "SPI", "CPI"].forEach(k => assert.ok(folded.includes("<abbr>" + k + "</abbr>"), k + " one click away"));
+});
+
+test("the cost overview is for the contractor, the design team and the client; the design team and the client keep it", () => {
+    assert.deepStrictEqual(["contractor", "administrator", "consultant", "client"].map(c.costOverviewVisible), [true, true, false, true]);
+    assert.deepStrictEqual(["contractor", "administrator", "consultant", "client"].map(c.costOverviewEditable), [false, true, false, true]);
+});

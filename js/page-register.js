@@ -195,6 +195,17 @@ if (typeof document !== "undefined") {
         if (ctx && document.getElementById("statCards")) {
             document.getElementById("statCards").innerHTML = renderStatCards(projectStats(ctx.project), ctx.session.role);
         }
+        /* Only the contractor raises a new VO: from the register, or from
+           site, photos first (capture.html). Moved here from the dashboard. */
+        if (ctx && ctx.session.role === "contractor") {
+            const newBtn = document.getElementById("newVoBtn");
+            document.getElementById("captureBtn").hidden = false;
+            newBtn.hidden = false;
+            newBtn.addEventListener("click", () => {
+                const vo = createVO(ctx.project.id, ctx.session);
+                window.location.href = "vo.html?id=" + encodeURIComponent(vo.id);
+            });
+        }
         if (!ctx) return;
         const { session, project } = ctx;
 

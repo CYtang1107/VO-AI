@@ -3502,3 +3502,5 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .copilot-source { font-size: 12px; color: var(--ink-2); margin: 8px 0 0; }
 .copilot-reask { margin-top: 6px; font-size: 12px; }
 .copilot-ai { border-color: var(--accent); }
+.evm-table tr.evm-group th { background: var(--paper-sunk); color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .04em; padding-top: 10px; }
+details[data-fold="evm-detail"] { margin-top: 8px; }
