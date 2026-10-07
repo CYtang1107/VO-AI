@@ -1547,7 +1547,9 @@ var I18N_EN = {
     "history.designApproved": "Design team approved — {no}",
     "history.designRejected": "Design team rejected: {note}",
     "history.infoSentBack": "Further information sent back",
-    "history.submittedClient": "Submitted to the client"
+    "history.submittedClient": "Submitted to the client",
+    "register.allColumns": "Show all columns",
+    "register.fewerColumns": "Show fewer columns"
 };
 
 var I18N_ZH = {
@@ -3053,7 +3055,9 @@ var I18N_ZH = {
     "history.designApproved": "设计团队已批准 — {no}",
     "history.designRejected": "设计团队已退回：{note}",
     "history.infoSentBack": "已送回补充资料",
-    "history.submittedClient": "已提交业主"
+    "history.submittedClient": "已提交业主",
+    "register.allColumns": "显示全部栏位",
+    "register.fewerColumns": "显示较少栏位"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

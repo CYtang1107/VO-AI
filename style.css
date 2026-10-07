@@ -3556,3 +3556,26 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 #wfInfoText { width: 100%; min-height: 80px; box-sizing: border-box; }
 .role-panels.record:not(.show-others) { display: none; }
 #assessmentSection[hidden], .card[hidden] { display: none !important; }
+
+/* the VO register: site map and the VO counts on the left, the VO list on the right */
+.register-layout { display: grid; grid-template-columns: minmax(320px, 2fr) 3fr; gap: 20px; align-items: start; margin-bottom: 20px; }
+.register-side { display: grid; gap: 20px; }
+.register-main { min-width: 0; }
+.register-main .legend-bar { margin-top: 0; }
+.register-layout.all-cols { grid-template-columns: 1fr; }
+.register-layout.all-cols .register-side { grid-template-columns: 2fr 1fr; align-items: start; }
+.register-layout:not(.all-cols) .col-extra { display: none !important; }
+.register-layout:not(.all-cols) .register-scroll table { min-width: 0; }
+.register-layout:not(.all-cols) #registerBody td:nth-child(2) { min-width: 0; }
+.register-side .site-map { height: 300px; }
+.register-side .card-header p { font-size: 12px; }
+.register-summary-card .card-body.stats-compact { margin: 0; padding: 14px; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stats-compact .stat-card { padding: 12px; gap: 10px; border-radius: 8px; }
+.stats-compact .stat-icon { width: 34px; height: 34px; font-size: 13px; flex: none; }
+.stats-compact .stat-card h2 { font-size: 17px; }
+.stats-compact .stat-card p { font-size: 12px; }
+.stats-compact .stat-card small { font-size: 11px; }
+#registerColsBtn { margin-left: auto; }
+@media (max-width: 1100px) {
+    .register-layout, .register-layout.all-cols .register-side { grid-template-columns: 1fr; }
+}
