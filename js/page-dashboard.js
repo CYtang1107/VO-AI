@@ -173,6 +173,18 @@ if (typeof document !== "undefined") {
         }
         if (costHost) {
             costHost.addEventListener("change", e => {
+                /* the EAC situation, and a fresh estimate to complete */
+                if (costEditable && e.target.id === "evmMethod") {
+                    updateProject(project.id, p => { p.eacMethod = e.target.value; });
+                    drawCost();
+                    return;
+                }
+                if (costEditable && e.target.id === "evmEtc") {
+                    const v = e.target.value;
+                    updateProject(project.id, p => { p.etcEstimate = v === "" ? null : Number(v); });
+                    drawCost();
+                    return;
+                }
                 if (!costEditable || (e.target.id !== "cpStart" && e.target.id !== "cpEnd")) return;
                 const start = document.getElementById("cpStart").value, end = document.getElementById("cpEnd").value;
                 if (start && end && end <= start) { toast(t("costplan.badProgramme"), "error"); return; }
