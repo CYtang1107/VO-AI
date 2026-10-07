@@ -46,6 +46,18 @@ Branch `claude/eager-ramanujan-6i2lox`.
   (`supabase/migrations/0004_guest_quota.sql`, applied): 20 a day per visitor (IP), 300 a day in total, Malaysia
   time. The sign-in page's 「评审一键体验」 button opens the demo project as the contractor QS. Sharing between
   people still needs team accounts.
+- **Workflow agents (7 Oct, later):** contract agent (`js/claimcheck.js`, claimable / needs information / not
+  claimable against PAM 2018 cl. 11.1, 2.2, 11.3, 11.5, 11.6, clause numbers checked against the imported text);
+  the design team issues the AI / EI (`js/instruction.js`, `vo.issuedInstruction`); cost planning built-up rate with
+  price list, regional reference prices and rent or buy (`js/buildup.js`); suppliers and plant hire near the site
+  from OpenStreetMap's Overpass API (`js/suppliers.js`); per-photo location check (`js/sitemap.js`); notifications
+  (`js/notify.js`); client cost overview and S-curve (`js/costplan.js`, `project.programme`,
+  `project.certificates`). The capture page's AI-drafted description was dropped.
+  `supabase/migrations/0005_issue_and_notify.sql` (applied): `issuedInstruction` is the design team's field;
+  `notify_log`. Edge Functions deployed: `notify` (emails whoever's turn it is, through Resend; off until the
+  `RESEND_API_KEY` and `NOTIFY_FROM` secrets are set, which needs a sending domain) and `read-bq` (BQ OCR,
+  Qwen-VL; checked live on the demo BQ page: 6 of 6 items exact, about 6 s). The live demo project has no
+  programme or certificates yet: the consultant enters them on the dashboard.
 - **Sign-up:** open. Email confirmation is off (no mail server; the built-in mailer only reaches the project's own
   team, 2 emails an hour), and the site URL is GitHub Pages. A new account sees nothing until a consultant adds it.
   Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,
