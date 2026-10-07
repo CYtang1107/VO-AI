@@ -174,3 +174,8 @@ test("the earned value table shows the baseline, the three variances and the two
     const folded = html.slice(html.indexOf('data-fold="evm-detail"'));
     ["PV", "EV", "AC", "SPI", "CPI"].forEach(k => assert.ok(folded.includes("<abbr>" + k + "</abbr>"), k + " one click away"));
 });
+
+test("the cost overview is for the contractor, the design team and the client; the design team and the client keep it", () => {
+    assert.deepStrictEqual(["contractor", "administrator", "consultant", "client"].map(c.costOverviewVisible), [true, true, false, true]);
+    assert.deepStrictEqual(["contractor", "administrator", "consultant", "client"].map(c.costOverviewEditable), [false, true, false, true]);
+});

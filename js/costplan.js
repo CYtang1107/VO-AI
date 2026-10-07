@@ -167,6 +167,11 @@ function earnedValue(project, todayIso) {
     };
 }
 
+/* Who sees the cost overview on the dashboard, and who keeps its
+   programme and interim certificates (the design team issues them). */
+function costOverviewVisible(role) { return role === "contractor" || role === "administrator" || role === "client"; }
+function costOverviewEditable(role) { return role === "administrator" || role === "client"; }
+
 /* ---------- render ---------- */
 
 function money(n) {
@@ -410,5 +415,5 @@ function mountCostChart(host, curve) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderSCurveSvg, niceStep };
+    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderSCurveSvg, niceStep };
 }
