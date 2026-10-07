@@ -1360,9 +1360,9 @@ var I18N_EN = {
     "nav.copilot": "Copilot",
     "crumb.copilot": "VO-AI / Copilot",
     "copilot.heading": "Project Copilot",
-    "copilot.placeholder": "Ask about this project, its contract, or past rates…",
+    "copilot.placeholder": "Ask about this project, its contract, past rates, or anything else…",
     "copilot.ask": "Ask",
-    "copilot.empty": "Hi, I'm the project Copilot. Ask me anything about this project, or tap a question below.",
+    "copilot.empty": "Hi, I'm the project Copilot. Ask me anything about this project (or a general question), or tap a question below.",
     "copilot.noteContract": "Quick questions answer at once; others go to the contract.",
     "copilot.unknown": "I can answer about status, your tasks, deadlines, claims, rates, cost and past rates.",
     "copilot.q.overview": "How is the project doing?",
@@ -1527,7 +1527,9 @@ var I18N_EN = {
     "vo.tab.activity": "Activity",
     "vo.tab.step": "This step",
     "clause.original": "Original wording",
-    "buildup.unitHr": "hr"
+    "buildup.unitHr": "hr",
+    "copilot.ai.generalTitle": "General answer",
+    "copilot.ai.generalSource": "General knowledge, not from this project's data. Check before relying on it."
 };
 
 var I18N_ZH = {
@@ -2846,9 +2848,9 @@ var I18N_ZH = {
     "nav.copilot": "项目助手",
     "crumb.copilot": "VO-AI / 项目助手",
     "copilot.heading": "项目助手 Copilot",
-    "copilot.placeholder": "询问本项目、合同条款或过往单价……",
+    "copilot.placeholder": "询问本项目、合同条款、过往单价或其他问题……",
     "copilot.ask": "提问",
-    "copilot.empty": "您好，我是项目 Copilot。可以问我任何关于本项目的问题，或点选下方的问题。",
+    "copilot.empty": "您好，我是项目 Copilot。可以问我任何关于本项目的问题（也可以问一般问题），或点选下方的问题。",
     "copilot.noteContract": "快捷问题即时作答；其他问题查询合同。",
     "copilot.unknown": "我可以回答项目状况、待办、期限、索赔、单价、成本及过往单价。",
     "copilot.q.overview": "项目目前情况如何？",
@@ -3013,7 +3015,9 @@ var I18N_ZH = {
     "vo.tab.activity": "动态",
     "vo.tab.step": "当前步骤",
     "clause.original": "英文原文",
-    "buildup.unitHr": "小时"
+    "buildup.unitHr": "小时",
+    "copilot.ai.generalTitle": "一般解答",
+    "copilot.ai.generalSource": "一般知识，并非来自本项目数据。使用前请核实。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

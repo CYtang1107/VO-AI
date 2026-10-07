@@ -43,3 +43,17 @@ test("the prompt carries the data and the clauses, and the rules in the asker's 
     assert.match(user, /「引用：PAM 2018 第 11\.6 条」/);
     assert.match(user, /QUESTION: 哪个变更单差额最大？/);
 });
+
+test("a general question may be answered from general knowledge, marked so, with no money amount of its own", async () => {
+    const r = await rules();
+    const data = { vos: [{ no: "VO-001", claimed: "RM 62,808.00" }] };
+    assert.deepStrictEqual(r.splitGeneral("[GENERAL] Tokyo is the capital of Japan."), { general: true, text: "Tokyo is the capital of Japan." });
+    assert.deepStrictEqual(r.splitGeneral("VO-001 is approved."), { general: false, text: "VO-001 is approved." });
+    let rev = r.reviewCopilotAnswer("[GENERAL] Japan's capital, Tokyo, has had about 14,000,000 people since 2020.", data, [], "what is the capital of japan");
+    assert.ok(rev.ok && rev.general, "plain numbers are general knowledge");
+    rev = r.reviewCopilotAnswer("[GENERAL] Marble usually costs RM 300.00 per m2.", data, [], "how much is marble");
+    assert.ok(!rev.ok && rev.problems.includes("amount-check"), "but no money amount that is not in the data");
+    rev = r.reviewCopilotAnswer("VO-001 has about 14,000 m2.", data, [], "how big is VO-001");
+    assert.ok(!rev.ok, "a project answer still takes every amount from the data");
+    assert.match(r.copilotSystemPrompt("consultant", "en"), /\[GENERAL\]/);
+});
