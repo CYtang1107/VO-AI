@@ -14,6 +14,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
     var { renderIssueForm, renderIssued, instructionProblem } = require("./instruction.js");
+    var { renderBuildUpCard, suggestBuildUp, buildUpRate, parsePriceList } = require("./buildup.js");
 }
 
 /* An <option> VALUE is always the raw English data value (evaluateStatus,
@@ -653,6 +654,7 @@ function translateHistoryAction(action) {
     if ((m = a.match(/^Instruction returned to contractor: (.+)$/))) return t("history.instructionReturnedWithNote", { note: m[1] });
     if (a === "Instruction returned to contractor") return t("history.instructionReturned");
     if ((m = a.match(/^Contract agent: (claimable|needsInfo|notClaimable)$/))) return t("history.claimCheck", { verdict: t("claim.verdict." + m[1]) });
+    if ((m = a.match(/^Built-up rate RM ([\d.]+) used for row (\d+)$/))) return t("history.buildUpUsed", { rate: m[1], row: m[2] });
     if (a === "Created from AI Analysis") return t("history.createdFromAnalysis");
     if (a === "Requested further information") return t("history.infoRequested");
     if ((m = a.match(/^Requested further information: (.+)$/))) {
@@ -847,6 +849,7 @@ if (typeof document !== "undefined") {
                 ensureContractReadings(project.id, v).then(changed => { if (changed) draw(); });
             }
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
+            drawBuildUp(v, fresh);
 
             document.getElementById("assistantPanel").innerHTML =
                 renderAssistantPanel({ vo: v, project: fresh, role: role, session: session,
@@ -858,6 +861,101 @@ if (typeof document !== "undefined") {
             document.getElementById("submitBtn").style.display =
                 (role === "contractor" && !v.submitted) ? "" : "none";
         }
+
+        /* Cost planning: the built-up rate (js/buildup.js). The contractor
+           builds up the rate they claim, the consultant QS the rate they
+           assess; the build-up is kept on the measurement row. */
+        const bu = { rowIndex: null, rent: {} };
+        function buEditable(v) { return canEdit("measurement", v, role) || canEdit("assessment", v, role); }
+        function drawBuildUp(v, fresh) {
+            const host = document.getElementById("buildUpPanel");
+            if (!host || typeof renderBuildUpCard !== "function") return;
+            const bq = fresh.bq || [];
+            const stars = new Set();
+            (v.measurement || []).forEach((r, k) => { if (checkRate(r, bq).state === "star") stars.add(k); });
+            if (bu.rowIndex === null || bu.rowIndex >= (v.measurement || []).length) {
+                bu.rowIndex = stars.size ? Math.min.apply(null, Array.from(stars)) : 0;
+            }
+            const useAs = canEdit("assessment", v, role) ? "assessed" : canEdit("measurement", v, role) ? "claimed" : null;
+            host.innerHTML = renderBuildUpCard(v, fresh, { rowIndex: bu.rowIndex, stars: stars, editable: buEditable(v),
+                useAs: useAs, rent: bu.rent, canEditPriceList: role === "contractor" || role === "consultant" });
+        }
+        /* the row's build-up as shown (the drafted one until first edited) */
+        function currentBuildUp(v) {
+            const row = v.measurement[bu.rowIndex];
+            return JSON.parse(JSON.stringify(row.buildUp || suggestBuildUp(row, getProject(project.id)) || { items: [], ohp: 15 }));
+        }
+        function saveBuildUp(change, logLine) {
+            const v = voNow();
+            if (!buEditable(v)) return;
+            const b = currentBuildUp(v);
+            change(b);
+            updateVO(project.id, voId, x => {
+                x.measurement[bu.rowIndex].buildUp = b;
+                if (logLine) logHistory(x, session, logLine);
+            });
+            draw();
+        }
+        const buPanel = document.getElementById("buildUpPanel");
+        buPanel.addEventListener("change", e => {
+            const el = e.target;
+            if (el.id === "buRow") { bu.rowIndex = Number(el.value); draw(); return; }
+            if (el.dataset.rent) {
+                const key = el.dataset.rent;
+                bu.rent[key] = bu.rent[key] || {};
+                bu.rent[key][el.dataset.k] = Number(el.value) || 0;
+                draw();
+                return;
+            }
+            if (!el.dataset.bu) return;
+            const k = el.dataset.bu, i = Number(el.dataset.i);
+            saveBuildUp(b => {
+                if (k === "ohp") { b.ohp = Number(el.value) || 0; return; }
+                const it = b.items[i];
+                if (!it) return;
+                if (k === "name") it.name = el.value;
+                else if (k === "waste") it.waste = (Number(el.value) || 0) / 100;
+                else it[k] = Number(el.value) || 0;
+                if (k === "price" || k === "name") it.source = "manual";
+            });
+        });
+        buPanel.addEventListener("click", e => {
+            const add = e.target.closest(".bu-add");
+            if (add) { saveBuildUp(b => b.items.push({ kind: add.dataset.kind, name: "", unit: add.dataset.kind === "material" ? "" : "hr", qty: 1, waste: 0, price: 0, source: "manual" })); return; }
+            const rem = e.target.closest(".bu-remove");
+            if (rem) { saveBuildUp(b => b.items.splice(Number(rem.dataset.i), 1)); return; }
+            if (e.target.id === "buUseRate") {
+                const v = voNow();
+                const b = currentBuildUp(v);
+                const rate = buildUpRate(b).rate;
+                const assessed = canEdit("assessment", v, role);
+                updateVO(project.id, voId, x => {
+                    const row = x.measurement[bu.rowIndex];
+                    row.buildUp = b;
+                    if (assessed) { row.assessedRate = rate; if (row.assessedQty === "" || row.assessedQty === null || row.assessedQty === undefined) row.assessedQty = row.qty; }
+                    else row.rate = rate;
+                    logHistory(x, session, "Built-up rate RM " + rate.toFixed(2) + " used for row " + (bu.rowIndex + 1));
+                });
+                toast(t("buildup.used", { rate: rm(rate), row: bu.rowIndex + 1 }));
+                draw();
+                return;
+            }
+            if (e.target.id === "buPriceListSave") {
+                const parsed = parsePriceList(document.getElementById("buPriceListInput").value);
+                if (!parsed.items.length) { toast(t("buildup.priceListNone"), "error"); return; }
+                updateProject(project.id, p => {
+                    const list = p.priceList || [];
+                    parsed.items.forEach(it => {
+                        const same = list.find(x => x.name.toLowerCase() === it.name.toLowerCase() && x.unit === it.unit);
+                        if (same) same.price = it.price; else list.push(it);
+                    });
+                    p.priceList = list;
+                });
+                toast(t("buildup.priceListSaved", { n: parsed.items.length }) + (parsed.bad.length ? " " + t("buildup.priceListBad", { lines: parsed.bad.join(", ") }) : ""),
+                      parsed.bad.length ? "warn" : undefined);
+                draw();
+            }
+        });
 
         /* Persist any panel field on change. */
         document.querySelectorAll(".role-panel").forEach(panel => {

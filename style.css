@@ -3400,3 +3400,28 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .notify-close { border: none; background: none; font-size: 20px; line-height: 1; cursor: pointer; color: var(--ink-2); }
 body.has-bottom-tabs .notify-popup { bottom: 84px; }
 @keyframes notify-in { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* cost planning: the built-up rate (js/buildup.js) */
+.bu-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 8px; }
+.bu-head select { padding: 8px; border-radius: 8px; border: 1px solid #dfe3e8; max-width: 100%; }
+.bu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bu-table th, .bu-table td { padding: 6px 8px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: middle; }
+.bu-table tr.bu-kind th { background: var(--paper-sunk); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.bu-table input { width: 90px; padding: 6px; border: 1px solid #dfe3e8; border-radius: 6px; font: inherit; }
+.bu-table input[data-bu="name"] { width: 220px; }
+.bu-table input:disabled { background: transparent; border-color: transparent; color: inherit; }
+.bu-table td.num { text-align: right; white-space: nowrap; }
+.bu-src { font-size: 11px; padding: 2px 7px; border-radius: 10px; background: var(--tag-bg); white-space: nowrap; }
+.bu-src-priceList { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.bu-src-reference { background: #fde7bf; color: #92400e; }
+.bu-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }
+.bu-totals > div { background: var(--paper-sunk); border-radius: 8px; padding: 10px; display: grid; gap: 4px; }
+.bu-totals small { font-size: 12px; color: var(--ink-2); }
+.bu-totals input { width: 56px; padding: 3px; border: 1px solid #dfe3e8; border-radius: 6px; }
+.bu-totals .bu-rate { background: var(--accent); color: #fff; }
+.bu-totals .bu-rate small { color: #dbe4ff; }
+.bu-rent-item { padding: 10px 0; border-bottom: 1px dashed var(--rule); }
+.bu-rent-inputs { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0; font-size: 12px; }
+.bu-rent-inputs input { width: 90px; padding: 5px; border: 1px solid #dfe3e8; border-radius: 6px; display: block; margin-top: 3px; }
+.bu-pl { font-size: 13px; margin: 6px 0; padding-left: 18px; }
+#buPriceListInput { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 8px; border: 1px solid #dfe3e8; font: inherit; margin-bottom: 8px; }
