@@ -33,7 +33,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { claimCheck } = require("./claimcheck.js");
     var { waitingFor, stepMessage } = require("./notify.js");
     var { deadlinesFor } = require("./deadlines.js");
-    var { costOverview, earnedValue } = require("./costplan.js");
+    var { costOverview, earnedValue, costOverviewVisible } = require("./costplan.js");
     var { suggestPastRate, pastRateSources } = require("./ratehistory.js");
     var { escapeHtml } = require("./ui.js");
 }
@@ -76,9 +76,12 @@ function answerFromData(intent, ctx) {
         });
         lines.push({ text: t("copilot.ov.vos", { n: vos.length, draft: stages.draft, submitted: stages.submitted,
             approved: stages.approved, certified: stages.certified, rejected: stages.rejected }) });
-        lines.push({ text: t("copilot.ov.cost", { sum: rm(o.contractSum), approved: rm(o.approved), pending: rm(o.pending), forecast: rm(o.forecast) }) });
-        const e = earnedValue(p, today);
-        if (e.spi !== null) lines.push({ text: t(e.spi >= 1 ? "copilot.ov.ahead" : "copilot.ov.behind", { spi: e.spi.toFixed(2), pct: e.pctComplete.toFixed(1) }) });
+        /* the cost overview is not the consultant QS's (js/costplan.js) */
+        if (costOverviewVisible(role)) {
+            lines.push({ text: t("copilot.ov.cost", { sum: rm(o.contractSum), approved: rm(o.approved), pending: rm(o.pending), forecast: rm(o.forecast) }) });
+            const e = earnedValue(p, today);
+            if (e.spi !== null) lines.push({ text: t(e.spi >= 1 ? "copilot.ov.ahead" : "copilot.ov.behind", { spi: e.spi.toFixed(2), pct: e.pctComplete.toFixed(1) }) });
+        }
         const w = waitingFor(p, role);
         lines.push({ text: t("copilot.ov.waiting", { n: w.length, role: t("role." + role + ".label") }) });
     } else if (intent === "waiting") {
@@ -110,6 +113,8 @@ function answerFromData(intent, ctx) {
             lines.push(voLine(v, t("copilot.rates", { no: v.no, diff: r.different, star: r.star })));
         });
         if (!lines.length) lines.push({ text: t("copilot.none.rates") });
+    } else if (intent === "cost" && !costOverviewVisible(role)) {
+        lines.push({ text: t("copilot.cost.notForRole") });
     } else if (intent === "cost") {
         const o = costOverview(p), e = earnedValue(p, today);
         lines.push({ text: t("copilot.cost.forecast", { forecast: rm(o.forecast), change: (o.change >= 0 ? "+" : "−") + rm(Math.abs(o.change)), pct: Math.abs(o.changePct).toFixed(1) }) });
@@ -182,25 +187,33 @@ function projectData(project, todayIso, role) {
         if (v.finalPrice !== null && v.finalPrice !== undefined && v.finalPrice !== "") out["final price approved by the client"] = rm(Number(v.finalPrice));
         return out;
     });
-    return {
+    const data = {
         "today": todayIso, "asked by": role,
         "project": { "name": project.name, "client": project.client || null, "contract no": project.contractNo || null,
                      "site": project.site && project.site.address || null, "programme": project.programme || null },
-        "cost": { "contract sum": rm(o.contractSum), "approved variations": rm(o.approved), "pending variations": rm(o.pending),
+        "variation orders": vos
+    };
+    /* the project's cost and earned value: not for the consultant QS */
+    if (costOverviewVisible(role)) {
+        Object.assign(data, {
+            "cost": { "contract sum": rm(o.contractSum), "approved variations": rm(o.approved), "pending variations": rm(o.pending),
                   "draft variations (not counted)": rm(o.draft), "cost baseline": rm(o.baseline), "forecast final cost": rm(o.forecast) },
-        "earned value": { "planned value (PV)": e.pv === null ? null : rm(e.pv), "earned value (EV)": rm(e.ev),
+            "earned value": { "planned value (PV)": e.pv === null ? null : rm(e.pv), "earned value (EV)": rm(e.ev),
                           "actual cost (AC)": e.ac === null ? null : rm(e.ac), "SPI": e.spi, "CPI": e.cpi,
                           "estimate at completion (EAC)": e.eac === null ? null : rm(e.eac),
                           "variance at completion (VAC)": e.vac === null ? null : rm(e.vac),
-                          "percent complete": Math.round(e.pctComplete * 10) / 10 },
-        "variation orders": vos
-    };
+                          "percent complete": Math.round(e.pctComplete * 10) / 10 }
+        });
+    }
+    return data;
 }
 
 /* ---------- render ---------- */
 
-function copilotQuestions() {
-    return ["overview", "waiting", "deadlines", "claims", "rates", "cost", "experience"].map(id => ({ id: id, text: t("copilot.q." + id) }));
+function copilotQuestions(role) {
+    return ["overview", "waiting", "deadlines", "claims", "rates", "cost", "experience"]
+        .filter(id => id !== "cost" || !role || costOverviewVisible(role))
+        .map(id => ({ id: id, text: t("copilot.q." + id) }));
 }
 
 function renderDataAnswer(a, question, opts) {
@@ -236,7 +249,7 @@ function renderAiAnswer(state, question) {
 /* history: [{question, data?} | {question, contract: state}] newest last */
 function renderCopilot(state, opts) {
     const o = opts || {};
-    return '<div class="copilot-suggestions">' + copilotQuestions().map(q =>
+    return '<div class="copilot-suggestions">' + copilotQuestions(o.role).map(q =>
             '<button type="button" class="assistant-suggestion-btn copilot-q-btn" data-intent="' + q.id + '" data-question="' + escapeHtml(q.text) + '">' + escapeHtml(q.text) + "</button>").join("") +
         "</div>" +
         '<div class="assistant-ask-row"><input type="text" id="copilotInput" maxlength="500" placeholder="' + escapeHtml(t("copilot.placeholder")) + '">' +

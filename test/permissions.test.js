@@ -18,15 +18,19 @@ test("a role can never edit another role's column", () => {
     assert.strictEqual(canEdit("evaluateStatus", submitted, "client"), false);
 });
 
-test("contractor edits its own columns until the consultant approves", () => {
+test("the contractor edits the description while describing, and the measurement once the design team approves", () => {
     assert.strictEqual(canEdit("description", draft, "contractor"), true);
-    assert.strictEqual(canEdit("measurement", submitted, "contractor"), true);
+    assert.strictEqual(canEdit("measurement", draft, "contractor"), false, "measured after approval");
+    const measuring = { submitted: false, instructionStatus: "Confirmed", evaluateStatus: "Draft" };
+    assert.strictEqual(canEdit("measurement", measuring, "contractor"), true);
+    assert.strictEqual(canEdit("description", measuring, "contractor"), false);
+    assert.strictEqual(canEdit("measurement", submitted, "contractor"), false, "with the consultant QS");
     assert.strictEqual(canEdit("description", approved, "contractor"), false);
 });
 
-test("a rejected VO reopens for the contractor", () => {
+test("a VO rejected by the consultant reopens its measurement for the contractor", () => {
     const rejected = { submitted: true, evaluateStatus: "Rejected", certifiedStatus: "Pending" };
-    assert.strictEqual(canEdit("description", rejected, "contractor"), true);
+    assert.strictEqual(canEdit("measurement", rejected, "contractor"), true);
 });
 
 test("consultant cannot assess until the contractor submits", () => {
@@ -57,9 +61,9 @@ test("nobody but the client may edit the client's info-request fields", () => {
     assert.strictEqual(canEdit("clientInfoRequestNote", approved, "consultant"), false);
 });
 
-test("lockReason explains the block and is empty when editable", () => {
+test("lockReason says whose turn it is, and is empty when editable", () => {
     assert.strictEqual(lockReason("description", draft, "contractor"), "");
-    assert.match(lockReason("evaluateStatus", draft, "consultant"), /submit/i);
-    assert.match(lockReason("finalPrice", submitted, "client"), /consultant/i);
+    assert.match(lockReason("evaluateStatus", draft, "consultant"), /contractor is describing/i);
+    assert.match(lockReason("finalPrice", submitted, "client"), /consultant QS/i);
     assert.match(lockReason("finalPrice", approved, "contractor"), /Client/);
 });

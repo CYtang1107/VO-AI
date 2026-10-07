@@ -78,13 +78,14 @@ test("the value question returns RM 62,808.00 claimed", () => {
 /* ---------- Intent 6: what can I edit here ---------- */
 
 test("the edit question differs by role", () => {
-    const contractorAnswer = answer("What can I edit here?", { vo: vo1, project: project, role: "contractor" });
-    const clientAnswer = answer("What can I edit here?", { vo: vo1, project: project, role: "client" });
+    const contractorAnswer = answer("What can I edit here?", { vo: vo3, project: project, role: "contractor" });
+    const clientAnswer = answer("What can I edit here?", { vo: vo3, project: project, role: "client" });
     assert.notStrictEqual(contractorAnswer.lines.join("\n"), clientAnswer.lines.join("\n"));
 });
 
 test("a role that may edit a field is told so, plainly, by the field's display name", () => {
-    const r = answer("edit", { vo: vo1, project: project, role: "client" });
+    const withClient = Object.assign({}, vo1, { certifiedStatus: "Pending" });   /* submitted to the client */
+    const r = answer("edit", { vo: withClient, project: project, role: "client" });
     assert.match(r.lines[0], /Final certified price/);
     assert.ok(!/finalPrice/.test(r.lines[0]), "no internal field names");
 });
@@ -100,7 +101,7 @@ test("the edit answer lists only the asking role's own fields", () => {
 test("a role whose fields are locked is told the one reason why", () => {
     const r = answer("edit", { vo: vo1, project: project, role: "contractor" });
     assert.match(r.lines[0], /cannot edit/);
-    assert.match(r.lines[1], /already assessed/);
+    assert.match(r.lines[1], /closed/);
     assert.strictEqual(r.lines.length, 2);
 });
 

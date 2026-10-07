@@ -27,12 +27,12 @@ var FIELD_OWNER = {
     dateIssued: "contractor",
     typeOfInstruction: "contractor",
     instructionNo: "contractor",
-    revisedDrawing: "contractor",
-    oldDrawing: "contractor",
     supportingDocs: "contractor",
     contractDocs: "contractor",
     measurement: "contractor",
     contractorRemark: "contractor",
+    /* the contractor's reply to the consultant's request for information */
+    infoResponse: "contractor",
 
     /* consultant's columns */
     dueDate: "consultant",
@@ -52,6 +52,10 @@ var FIELD_OWNER = {
     caCertifiedStatus: "administrator",
     caRemark: "administrator",
     issuedInstruction: "administrator",
+    /* the design team's documents for the instruction it approves */
+    oldDrawing: "administrator",
+    revisedDrawing: "administrator",
+    designDocs: "administrator",
 
     /* client's columns */
     certifiedStatus: "client",
@@ -61,13 +65,81 @@ var FIELD_OWNER = {
     clientInfoRequestNote: "client"
 };
 
-/* The four steps of a variation under the contract (PAM 2018 cl. 11,
-   PWD 203A cl. 24): the contractor submits; the contract administrator
-   confirms it rests on a valid instruction; the consultant QS values it;
-   the contract administrator certifies the value; the client approves.
-   A VO saved before the contract administrator role existed has neither
-   field: a submitted one counts as confirmed, an approved one as
-   certified, so nothing that already moved on is held back. */
+/* ---------- the workflow ----------
+   A VO moves through these stages, each worked by one role:
+     describe        contractor: describes the change; the contract agent
+                     (js/claimcheck.js) checks it is a variation
+     design          design team: adds the original and revised drawings and
+                     the supporting documents, then approves (issuing the
+                     AI / EI) or rejects
+     designRejected  contractor: revises the description and sends it again
+     measure         contractor: measures, checks the rates against the BQ,
+                     builds up new rates, then submits to the consultant QS
+     consultant      consultant QS: checks the VO (and its photos), assesses
+                     it, then submits it to the client, rejects it, or asks
+                     for further information
+     info            contractor: answers the consultant's request and sends it
+                     back
+     rejected        contractor: the consultant rejected it; correct and
+                     submit again
+     client          client: approves (certifies) or rejects
+     done / closed   approved by the client / rejected by the client
+   The stage is worked out from the VO's fields, never stored, so a VO
+   saved by an older version still lands in the right stage. */
+var VO_STAGES = ["describe", "design", "designRejected", "measure", "consultant", "info", "rejected", "client", "done", "closed"];
+
+/* The consultant's request for information, as a key: the contractor's
+   reply names the request it answers, so a new request needs a new reply. */
+function infoRequestKey(vo) {
+    return vo && vo.infoRequestedAt ? vo.infoRequestedAt + "|" + (vo.infoRequestNote || "") : null;
+}
+
+function infoAnswered(vo) {
+    const key = infoRequestKey(vo);
+    return !key || !!(vo.infoResponse && vo.infoResponse.forRequest === key);
+}
+
+function voStage(vo) {
+    if (!vo) return "describe";
+    if (vo.certifiedStatus === "Approved") return "done";
+    if (vo.certifiedStatus === "Rejected") return "closed";
+    if (vo.evaluateStatus === "Approved") return "client";
+    if (vo.evaluateStatus === "Rejected") return "rejected";
+    if (vo.submitted) {
+        /* submitted under the earlier workflow, before the design team had
+           confirmed the instruction */
+        if (vo.instructionStatus === "Pending") return "design";
+        if (vo.instructionStatus === "Returned") return "designRejected";
+        return infoAnswered(vo) ? "consultant" : "info";
+    }
+    if (vo.instructionStatus === "Confirmed") return "measure";
+    if (vo.sentToDesign) return "design";
+    if (vo.instructionStatus === "Returned") return "designRejected";
+    return "describe";
+}
+
+/* Which of a role's fields are open at which stage. */
+var STAGE_FIELDS = {
+    contractor: {
+        describe: ["description", "contractorRemark", "dateIssued", "typeOfInstruction", "instructionNo", "supportingDocs"],
+        designRejected: ["description", "contractorRemark", "dateIssued", "typeOfInstruction", "instructionNo", "supportingDocs"],
+        measure: ["measurement", "supportingDocs", "contractorRemark"],
+        rejected: ["measurement", "supportingDocs", "contractorRemark"],
+        info: ["infoResponse", "supportingDocs", "measurement"]
+    },
+    administrator: {
+        design: ["instructionStatus", "instructionNote", "issuedInstruction", "oldDrawing", "revisedDrawing", "designDocs"]
+    },
+    consultant: {
+        consultant: ["dueDate", "assessment", "assessmentNote", "timeImpact", "evaluateStatus", "consultantRemark", "infoRequestedAt", "infoRequestNote"]
+    },
+    client: {
+        client: ["certifiedStatus", "finalPrice", "clientRemark", "clientInfoRequestedAt", "clientInfoRequestNote"]
+    }
+};
+
+/* Kept for the report and older callers: has the design team confirmed
+   the instruction / (earlier workflow) certified the value? */
 function instructionConfirmed(vo) {
     if (!vo) return false;
     if (vo.instructionStatus === undefined || vo.instructionStatus === null) return vo.submitted === true;
@@ -80,30 +152,10 @@ function caCertified(vo) {
     return vo.caCertifiedStatus === "Certified";
 }
 
-var CA_INSTRUCTION_FIELDS = ["instructionStatus", "instructionNote", "issuedInstruction"];
-
 function canEdit(field, vo, role) {
     if (FIELD_OWNER[field] !== role) return false;
-
-    if (role === "contractor") {
-        return vo.evaluateStatus === "Draft" ||
-               vo.evaluateStatus === "Pending" ||
-               vo.evaluateStatus === "Rejected";
-    }
-    if (role === "administrator") {
-        /* confirms the instruction once submitted; certifies once the
-           consultant QS has approved the value */
-        return CA_INSTRUCTION_FIELDS.indexOf(field) !== -1
-            ? vo.submitted === true
-            : vo.evaluateStatus === "Approved";
-    }
-    if (role === "consultant") {
-        return vo.submitted === true && instructionConfirmed(vo);
-    }
-    if (role === "client") {
-        return vo.evaluateStatus === "Approved" && caCertified(vo);
-    }
-    return false;
+    const open = (STAGE_FIELDS[role] || {})[voStage(vo)] || [];
+    return open.indexOf(field) !== -1;
 }
 
 /* A draft VO (not yet submitted) raised by mistake can be deleted by the
@@ -111,7 +163,9 @@ function canEdit(field, vo, role) {
    can only be rejected. Same rule as delete_vo in
    supabase/migrations/0002_delete_vo.sql. */
 function canDeleteVO(vo, role) {
-    return !!vo && !vo.submitted && (role === "contractor" || role === "consultant");
+    const stage = voStage(vo);
+    return !!vo && !vo.submitted && (stage === "describe" || stage === "designRejected") &&
+        (role === "contractor" || role === "consultant");
 }
 
 function lockReason(field, vo, role) {
@@ -122,16 +176,8 @@ function lockReason(field, vo, role) {
     if (owner !== role) {
         return t("lock.notOwner", { role: t("role." + owner + ".label", {}) });
     }
-    if (role === "contractor") {
-        return t("lock.contractorLocked");
-    }
-    if (role === "consultant") {
-        return vo.submitted && !instructionConfirmed(vo) ? t("lock.consultantAwaitingCa") : t("lock.consultantLocked");
-    }
-    if (role === "administrator") {
-        return t("lock.administratorLocked");
-    }
-    return vo.evaluateStatus === "Approved" && !caCertified(vo) ? t("lock.clientAwaitingCa") : t("lock.clientLocked");
+    /* whose turn it is now */
+    return t("lock.stage." + voStage(vo));
 }
 
 /* Each column's display name (a js/i18n.js key), for anything that names
@@ -152,6 +198,7 @@ var FIELD_LABEL_KEY = {
     assessment: "vo.field.assessedMeasurement",
     instructionStatus: "vo.field.instructionStatus", instructionNote: "vo.field.instructionNote",
     caCertifiedStatus: "vo.field.caCertifiedStatus", caRemark: "vo.field.caRemark",
+    designDocs: "documents.field.designDocs", infoResponse: "vo.field.infoResponse",
     issuedInstruction: "instr.fieldLabel"
 };
 
@@ -162,5 +209,5 @@ function fieldLabel(name) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        canDeleteVO, instructionConfirmed, caCertified, FIELD_OWNER, ROLE_LABEL, canEdit, lockReason, FIELD_LABEL_KEY, fieldLabel };
+        VO_STAGES, voStage, infoRequestKey, infoAnswered, STAGE_FIELDS, canDeleteVO, instructionConfirmed, caCertified, FIELD_OWNER, ROLE_LABEL, canEdit, lockReason, FIELD_LABEL_KEY, fieldLabel };
 }

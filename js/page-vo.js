@@ -2,7 +2,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
-    var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER } = require("./permissions.js");
+    var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER, voStage, infoRequestKey } = require("./permissions.js");
     var { checkRate, analyse, matchBqItem, suggestBqForChange } = require("./analysis.js");
     var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill, fileLink, fold, seedText } = require("./ui.js");
@@ -484,6 +484,120 @@ function renderAssessmentPanel(vo, project, role) {
 }
 
 /* -----------------------------------------------------------
+   The workflow card: where this VO is, and what the signed-in role does
+   now, one step at a time (the stages are voStage, js/permissions.js).
+     contractor   ① describe → ② contract agent → send to the design team;
+                  after approval: measure, check rates, cost planning →
+                  submit to the consultant QS; answer a request for
+                  information and send it back
+     design team  add the drawings and documents → approve (issuing the
+                  AI / EI) or reject
+     consultant   check the VO and its photos → assess → submit to the
+                  client, reject, or ask for further information
+     client       approve or reject
+   `ui.step` is the contractor's step (1 or 2) while describing.
+----------------------------------------------------------- */
+
+var WF_STEPS = ["describe", "check", "design", "measure", "consultant", "client"];
+var WF_STEP_OF_STAGE = { describe: 0, designRejected: 0, design: 2, measure: 3, rejected: 3,
+                         consultant: 4, info: 4, client: 5, done: 6, closed: 6 };
+
+function renderStepper(stage, ui) {
+    let at = WF_STEP_OF_STAGE[stage];
+    if (at === 0 && ui && ui.step === 2) at = 1;
+    return '<ol class="wf-steps">' + WF_STEPS.map((s, i) =>
+        '<li class="wf-step' + (i < at ? " done" : i === at ? " now" : "") + '"><span class="wf-dot">' + (i < at ? "✓" : i + 1) + "</span>" +
+        '<span class="wf-label">' + escapeHtml(t("wf.step." + s)) + "</span></li>").join("") + "</ol>";
+}
+
+function wfButton(id, labelKey, kind, disabled) {
+    return '<button type="button" class="' + (kind || "primary") + '-button" id="' + id + '"' + (disabled ? " disabled" : "") + ">" +
+        escapeHtml(t(labelKey)) + "</button>";
+}
+
+function wfNote(text, kind) {
+    return '<div class="wf-note' + (kind ? " wf-note-" + kind : "") + '">' + escapeHtml(text) + "</div>";
+}
+
+function renderWorkflow(vo, project, role, ui) {
+    const stage = voStage(vo);
+    const head = renderStepper(stage, ui) +
+        '<p class="wf-now"><strong>' + escapeHtml(t("wf.nowLabel")) + "</strong> " + escapeHtml(t("lock.stage." + stage)) + "</p>";
+    let body = "";
+    const instr = vo.issuedInstruction ? t("instr.kind." + vo.issuedInstruction.kind) + " " + vo.issuedInstruction.no : "";
+
+    if (role === "contractor" && (stage === "describe" || stage === "designRejected")) {
+        if (stage === "designRejected") {
+            body += wfNote(t("wf.c.rejectedByDesign", { note: vo.instructionNote || t("wf.noNote") }), "warn");
+        }
+        if (!ui.step || ui.step === 1) {
+            body += "<h4>" + escapeHtml(t("wf.c.step1")) + "</h4>" +
+                field({ field: "description", label: t("vo.field.description"), type: "textarea", value: seedText(vo.description), vo: vo, role: role }) +
+                field({ field: "contractorRemark", label: t("vo.field.contractorRemark"), type: "textarea", value: seedText(vo.contractorRemark), vo: vo, role: role }) +
+                '<div class="wf-actions">' + wfButton("wfNext", "wf.next", "primary", !String(vo.description || "").trim()) + "</div>";
+        } else {
+            const check = claimCheck(vo, project, { stage: "describe" });
+            body += "<h4>" + escapeHtml(t("wf.c.step2")) + "</h4>" +
+                '<p class="rate-detail">' + escapeHtml(seedText(vo.description)) + "</p>" +
+                renderClaimCheck(check) +
+                '<div class="wf-actions">' + wfButton("wfBack", "wf.back", "secondary") +
+                wfButton("wfSend", "wf.c.send", "primary", check.verdict !== "claimable") + "</div>";
+        }
+    } else if (role === "contractor" && stage === "design") {
+        body += wfNote(t("wf.c.waitingDesign"));
+    } else if (role === "administrator" && stage === "design") {
+        const recorded = vo.claimCheck && vo.claimCheck.verdict ? t("claim.recorded", { verdict: t("claim.verdict." + vo.claimCheck.verdict), date: prettyDate(vo.claimCheck.at) }) : "";
+        body += "<h4>" + escapeHtml(t("wf.a.title")) + "</h4>" +
+            '<div class="wf-quote"><strong>' + escapeHtml(t("vo.field.description")) + "</strong><p>" + escapeHtml(seedText(vo.description) || "—") + "</p>" +
+            (vo.contractorRemark ? "<p class=\"rate-detail\">" + escapeHtml(seedText(vo.contractorRemark)) + "</p>" : "") +
+            (recorded ? '<p class="rate-detail">' + escapeHtml(recorded) + "</p>" : "") + "</div>" +
+            renderDocList(vo, "oldDrawing", t("documents.field.oldDrawing"), role) +
+            renderDocList(vo, "revisedDrawing", t("documents.field.revisedDrawing"), role) +
+            renderDocList(vo, "designDocs", t("documents.field.designDocs"), role) +
+            renderIssueForm(project, vo) +
+            '<div class="wf-reject"><input type="text" id="wfRejectNote" placeholder="' + escapeHtml(t("wf.a.rejectPh")) + '">' +
+            wfButton("wfReject", "wf.a.reject", "secondary danger") + "</div>";
+    } else if (role === "contractor" && (stage === "measure" || stage === "rejected")) {
+        if (stage === "rejected") body += wfNote(t("wf.c.rejectedByQs", { note: vo.consultantRemark || t("wf.noNote") }), "warn");
+        else body += wfNote(t("wf.c.approved", { instr: instr || "—" }), "ok");
+        const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty));
+        body += "<h4>" + escapeHtml(t("wf.c.measureTitle")) + "</h4>" +
+            '<ol class="wf-todo"><li>' + escapeHtml(t("wf.c.todo1")) + "</li><li>" + escapeHtml(t("wf.c.todo2")) + "</li><li>" +
+            escapeHtml(t("wf.c.todo3")) + "</li></ol>" +
+            renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
+            '<div class="wf-actions">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", !rows.length) +
+            (rows.length ? "" : '<span class="hint">' + escapeHtml(t("wf.c.needRow")) + "</span>") + "</div>";
+    } else if (role === "contractor" && stage === "info") {
+        body += wfNote(t("wf.c.infoAsked", { date: prettyDate(vo.infoRequestedAt), note: vo.infoRequestNote || t("wf.noNote") }), "warn") +
+            '<div class="field owned"><label>' + escapeHtml(t("vo.field.infoResponse")) + '</label><textarea id="wfInfoText"></textarea></div>' +
+            renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
+            '<div class="wf-actions">' + wfButton("wfSendBack", "wf.c.sendBack", "primary") + "</div>";
+    } else if (role === "consultant" && stage === "consultant") {
+        const answered = vo.infoResponse && vo.infoResponse.forRequest === infoRequestKey(vo);
+        body += "<h4>" + escapeHtml(t("wf.q.title")) + "</h4>" +
+            '<ol class="wf-todo"><li>' + escapeHtml(t("wf.q.todo1")) + "</li><li>" + escapeHtml(t("wf.q.todo2")) + "</li><li>" + escapeHtml(t("wf.q.todo3")) + "</li></ol>" +
+            (answered ? wfNote(t("wf.q.answered", { date: prettyDate(vo.infoResponse.at), text: vo.infoResponse.text || "—" }), "ok") : "") +
+            field({ field: "assessmentNote", label: t("vo.field.assessmentNote"), type: "textarea", value: seedText(vo.assessmentNote), vo: vo, role: role }) +
+            field({ field: "timeImpact", label: t("vo.field.timeImpact"), type: "number", value: vo.timeImpact, vo: vo, role: role }) +
+            field({ field: "consultantRemark", label: t("vo.field.consultantRemark"), type: "textarea", value: seedText(vo.consultantRemark), vo: vo, role: role }) +
+            '<div class="wf-actions">' + wfButton("wfSubmitClient", "wf.q.submitClient", "primary") + wfButton("wfQsReject", "wf.q.reject", "secondary danger") + "</div>" +
+            '<div class="wf-info"><label>' + escapeHtml(t("wf.q.infoLabel")) + '</label><input type="text" id="wfInfoNote" placeholder="' + escapeHtml(t("vo.infoRequest.placeholder")) + '">' +
+            wfButton("wfRequestInfo", "wf.q.requestInfo", "secondary") + "</div>";
+    } else if (role === "consultant" && stage === "info") {
+        body += wfNote(t("wf.q.waitingInfo", { date: prettyDate(vo.infoRequestedAt), note: vo.infoRequestNote || t("wf.noNote") }));
+    } else if (role === "client" && stage === "client") {
+        body += "<h4>" + escapeHtml(t("wf.k.title")) + "</h4>" +
+            wfNote(t("wf.k.summary", { amount: rm(assessedTotal(vo)), note: vo.consultantRemark || t("wf.noNote") }), "ok") +
+            field({ field: "finalPrice", label: t("vo.field.finalPrice"), type: "number", value: vo.finalPrice, vo: vo, role: role, hint: t("vo.field.finalPriceHint") }) +
+            field({ field: "clientRemark", label: t("vo.field.clientRemark"), type: "textarea", value: seedText(vo.clientRemark), vo: vo, role: role }) +
+            '<div class="wf-actions">' + wfButton("wfClientApprove", "wf.k.approve", "primary") + wfButton("wfClientReject", "wf.k.reject", "secondary danger") + "</div>";
+    } else if (vo.issuedInstruction && (stage === "done" || stage === "client" || stage === "consultant" || stage === "measure")) {
+        body += wfNote(t("wf.issuedLine", { instr: instr }));
+    }
+    return head + body;
+}
+
+/* -----------------------------------------------------------
    Assistant panel — a structured helper, not a chat bubble. Suggested
    questions are the primary interaction; typed input is matched against
    the same fixed set of intents by keyword. See js/assistant.js: this
@@ -655,6 +769,11 @@ function translateHistoryAction(action) {
     if (a === "Instruction returned to contractor") return t("history.instructionReturned");
     if ((m = a.match(/^Contract agent: (claimable|needsInfo|notClaimable)$/))) return t("history.claimCheck", { verdict: t("claim.verdict." + m[1]) });
     if ((m = a.match(/^Built-up rate RM ([\d.]+) used for row (\d+)$/))) return t("history.buildUpUsed", { rate: m[1], row: m[2] });
+    if (a === "Sent to design team") return t("history.sentToDesign");
+    if ((m = a.match(/^Design team approved — (.+)$/))) return t("history.designApproved", { no: m[1] });
+    if ((m = a.match(/^Design team rejected: (.+)$/))) return t("history.designRejected", { note: m[1] });
+    if (a === "Further information sent back") return t("history.infoSentBack");
+    if (a === "Submitted to client") return t("history.submittedClient");
     if (a === "Created from AI Analysis") return t("history.createdFromAnalysis");
     if (a === "Requested further information") return t("history.infoRequested");
     if ((m = a.match(/^Requested further information: (.+)$/))) {
@@ -712,7 +831,8 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory, translateHistoryAction,
-        renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel
+        renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel,
+        renderWorkflow, renderStepper
     };
 }
 
@@ -728,7 +848,10 @@ if (typeof document !== "undefined") {
            role's own panel should come first since that is the one they
            can edit — see .role-panels[data-active-role] in style.css. */
         const panelsSection = document.getElementById("rolePanelsSection");
-        if (panelsSection) panelsSection.dataset.activeRole = role;
+        /* the four roles' columns at the bottom are the full record,
+           read-only and folded away: each role works in the workflow card */
+        if (panelsSection) panelsSection.classList.add("record");
+        const view = "_view";
 
         /* Each role sees only its own panel by default, so the page is
            just the form they fill in. The other two roles' columns are
@@ -738,7 +861,7 @@ if (typeof document !== "undefined") {
             if (!panelsSection || !toggleOthers) return;
             panelsSection.classList.toggle("show-others", show);
             toggleOthers.setAttribute("aria-expanded", show ? "true" : "false");
-            toggleOthers.textContent = t(show ? "vo.panel.hideOthers" : "vo.panel.showOthers");
+            toggleOthers.textContent = t(show ? "vo.panel.hideRecord" : "vo.panel.showRecord");
         }
         if (toggleOthers) {
             setShowOthers(false);
@@ -777,48 +900,45 @@ if (typeof document !== "undefined") {
                     statusPill(v.instructionStatus || (v.submitted ? "Confirmed" : "Pending")) + "</span>" +
                 '<span class="status-pair"><span class="status-pair-label">' +
                     escapeHtml(t("vo.field.evaluateStatus")) + "</span>" + statusPill(v.evaluateStatus) + "</span>" +
-                '<span class="status-pair"><span class="status-pair-label">' +
-                    escapeHtml(t("vo.field.caCertifiedStatus")) + "</span>" +
-                    statusPill(v.caCertifiedStatus || (v.evaluateStatus === "Approved" ? "Certified" : "Pending")) + "</span>" +
+
                 '<span class="status-pair"><span class="status-pair-label">' +
                     escapeHtml(t("vo.field.certifiedStatus")) + "</span>" + statusPill(v.certifiedStatus) + "</span>";
 
             document.getElementById("contractorPanel").innerHTML =
-                panelLockNote(v, role, "contractor") +
-                field({ field: "description", label: t("vo.field.description"),
-                        type: "textarea", value: seedText(v.description), vo: v, role: role }) +
+                                field({ field: "description", label: t("vo.field.description"),
+                        type: "textarea", value: seedText(v.description), vo: v, role: view }) +
                 field({ field: "dateIssued", label: t("vo.field.dateIssued"), type: "date",
-                        value: v.dateIssued, vo: v, role: role }) +
+                        value: v.dateIssued, vo: v, role: view }) +
                 field({ field: "typeOfInstruction", label: t("vo.field.typeOfInstruction"),
                         type: "select",
                         options: ["Architect's Instruction (AI)", "Engineer's instruction (EI)"],
-                        value: v.typeOfInstruction, vo: v, role: role }) +
+                        value: v.typeOfInstruction, vo: v, role: view }) +
                 field({ field: "instructionNo", label: t("vo.field.instructionNo"), type: "text",
-                        value: v.instructionNo, vo: v, role: role }) +
+                        value: v.instructionNo, vo: v, role: view }) +
                 field({ field: "contractorRemark", label: t("vo.field.contractorRemark"),
-                        type: "textarea", value: seedText(v.contractorRemark), vo: v, role: role }) +
-                renderDocList(v, "revisedDrawing", t("documents.field.revisedDrawing"), role) +
-                renderDocList(v, "oldDrawing", t("documents.field.oldDrawing"), role) +
-                renderDocList(v, "supportingDocs", t("documents.field.supportingDocs"), role) +
-                renderDocList(v, "contractDocs", t("documents.field.contractDocs"), role,
-                              t("vo.docList.contractIntro"));
+                        type: "textarea", value: seedText(v.contractorRemark), vo: v, role: view }) +
+                field({ field: "infoResponse", label: t("vo.field.infoResponse"), type: "textarea",
+                        value: v.infoResponse ? v.infoResponse.text : "", vo: v, role: view }) +
+                renderDocList(v, "supportingDocs", t("wf.c.photosQuotes"), view);
 
-            document.getElementById("administratorPanel").innerHTML = renderAdministratorPanel(v, role, fresh);
+            document.getElementById("administratorPanel").innerHTML = renderAdministratorPanel(v, view, fresh) +
+                renderDocList(v, "oldDrawing", t("documents.field.oldDrawing"), view) +
+                renderDocList(v, "revisedDrawing", t("documents.field.revisedDrawing"), view) +
+                renderDocList(v, "designDocs", t("documents.field.designDocs"), view);
 
             document.getElementById("consultantPanel").innerHTML =
-                panelLockNote(v, role, "consultant") +
-                field({ field: "dueDate", label: t("vo.field.dueDate"), type: "date",
-                        value: v.dueDate, vo: v, role: role }) +
+                                field({ field: "dueDate", label: t("vo.field.dueDate"), type: "date",
+                        value: v.dueDate, vo: v, role: view }) +
                 field({ field: "assessmentNote", label: t("vo.field.assessmentNote"),
-                        type: "textarea", value: seedText(v.assessmentNote), vo: v, role: role }) +
+                        type: "textarea", value: seedText(v.assessmentNote), vo: v, role: view }) +
                 field({ field: "timeImpact", label: t("vo.field.timeImpact"), type: "number",
-                        value: v.timeImpact, vo: v, role: role }) +
+                        value: v.timeImpact, vo: v, role: view }) +
                 field({ field: "evaluateStatus", label: t("vo.field.evaluateStatus"), type: "select",
                         options: ["Pending", "Under Review", "Approved", "Rejected"],
-                        value: v.evaluateStatus, vo: v, role: role }) +
+                        value: v.evaluateStatus, vo: v, role: view }) +
                 field({ field: "consultantRemark", label: t("vo.field.consultantRemark"),
-                        type: "textarea", value: seedText(v.consultantRemark), vo: v, role: role }) +
-                renderInfoRequestControl(v, role, fresh);
+                        type: "textarea", value: seedText(v.consultantRemark), vo: v, role: view }) +
+                renderInfoRequestControl(v, view, fresh);
 
             document.getElementById("claimCheckPanel").innerHTML =
                 renderClaimCheck(claimCheck(v, fresh), { recorded: v.claimCheck && v.claimCheck.verdict
@@ -828,16 +948,15 @@ if (typeof document !== "undefined") {
                 renderDeadlinesPanel(v, today(), fresh);
 
             document.getElementById("clientPanel").innerHTML =
-                panelLockNote(v, role, "client") +
-                field({ field: "certifiedStatus", label: t("vo.field.certifiedStatus"), type: "select",
+                                field({ field: "certifiedStatus", label: t("vo.field.certifiedStatus"), type: "select",
                         options: ["Pending", "Approved", "Rejected"],
-                        value: v.certifiedStatus, vo: v, role: role }) +
+                        value: v.certifiedStatus, vo: v, role: view }) +
                 field({ field: "finalPrice", label: t("vo.field.finalPrice"),
-                        type: "number", value: v.finalPrice, vo: v, role: role,
+                        type: "number", value: v.finalPrice, vo: v, role: view,
                         hint: t("vo.field.finalPriceHint") }) +
                 field({ field: "clientRemark", label: t("vo.field.clientRemark"), type: "textarea",
-                        value: seedText(v.clientRemark), vo: v, role: role }) +
-                renderClientInfoRequestControl(v, role, today());
+                        value: seedText(v.clientRemark), vo: v, role: view }) +
+                renderClientInfoRequestControl(v, view, today());
 
             document.getElementById("measurementBody").innerHTML =
                 renderMeasurementRows(v, fresh, role, pastRateSources(loadDB(), project.id));
@@ -858,8 +977,32 @@ if (typeof document !== "undefined") {
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
             document.getElementById("deleteVoBtn").hidden = !canDeleteVO(v, role);
-            document.getElementById("submitBtn").style.display =
-                (role === "contractor" && !v.submitted) ? "" : "none";
+            drawWorkflow(v, fresh);
+        }
+
+        /* ---------- the workflow card (renderWorkflow) ---------- */
+        const wf = { step: 1 };
+        const wfHost = document.getElementById("workflowBody");
+        if (role === "consultant") {
+            const pc = document.querySelector(".photo-check-card"), wc = document.querySelector(".wf-card");
+            if (pc && wc) wc.after(pc);
+        }
+        /* which cards a stage shows: measuring and pricing only once the
+           design team has approved; the photo check is the consultant's */
+        const LATE = ["measure", "rejected", "consultant", "info", "client", "done", "closed"];
+        function show(el, on) { if (el) el.hidden = !on; }
+        function drawWorkflow(v, fresh) {
+            const stage = voStage(v);
+            if (wfHost) wfHost.innerHTML = renderWorkflow(v, fresh, role, wf);
+            const late = LATE.indexOf(stage) !== -1;
+            show(document.getElementById("measurementCard"), late);
+            show(document.getElementById("buildUpCard"), late);
+            show(document.getElementById("assessmentSection"), late);
+            show(document.querySelector(".claim-card"), late);
+            show(document.getElementById("deadlinesCard"), !!v.submitted);
+            const pc = document.querySelector(".photo-check-card");
+            if (pc && role !== "consultant") pc.hidden = true;
+            else if (pc && !pc.dataset.off) pc.hidden = !late;
         }
 
         /* Cost planning: the built-up rate (js/buildup.js). The contractor
@@ -968,7 +1111,7 @@ if (typeof document !== "undefined") {
         });
 
         /* Persist any panel field on change. */
-        document.querySelectorAll(".role-panel").forEach(panel => {
+        document.querySelectorAll(".role-panel, #workflowBody").forEach(panel => {
             panel.addEventListener("change", e => {
                 const versionPicker = e.target.closest(".doc-version-picker");
                 if (versionPicker) {
@@ -1201,25 +1344,6 @@ if (typeof document !== "undefined") {
             draw();
         });
 
-        /* the design team issues the AI / EI, which confirms the instruction */
-        document.getElementById("administratorPanel").addEventListener("click", e => {
-            if (e.target.id !== "issueInstrBtn") return;
-            const fresh = getProject(project.id);
-            const kind = document.getElementById("instrKind").value;
-            const no = document.getElementById("instrNo").value.trim().toUpperCase();
-            const note = document.getElementById("instrNote").value.trim();
-            const problem = instructionProblem(fresh, fresh.vos.find(x => x.id === voId), kind, no);
-            if (problem) { toast(problem, "error"); return; }
-            withStepNotice(() => updateVO(project.id, voId, v => {
-                v.issuedInstruction = { kind: kind, no: no, date: today(), by: session.name, note: note };
-                v.instructionStatus = "Confirmed";
-                if (note && !v.instructionNote) v.instructionNote = note;
-                logHistory(v, session, "Instruction issued — " + no);
-            }));
-            toast(t("instr.issuedToast", { no: no }));
-            draw();
-        });
-
         document.getElementById("consultantPanel").addEventListener("click", e => {
             if (e.target.id !== "recordInfoRequestBtn") return;
             const noteInput = document.getElementById("infoRequestNoteInput");
@@ -1248,24 +1372,83 @@ if (typeof document !== "undefined") {
             draw();
         });
 
-        document.getElementById("submitBtn").addEventListener("click", () => {
-            /* the contract agent (js/claimcheck.js) runs first; a VO it
-               finds not claimable, or short of information, is submitted
-               only when the contractor says so */
+        /* the workflow card's buttons: each moves the VO to its next stage,
+           logs it, and (with a team account) emails whoever's turn it is */
+        wfHost.addEventListener("click", e => {
+            const id = e.target.id;
+            if (!id || !/^wf|^issueInstrBtn$/.test(id)) return;
             const fresh = getProject(project.id);
-            const check = claimCheck(fresh.vos.find(x => x.id === voId), fresh);
-            const reasons = state => check.checks.filter(c => c.state === state).map(c => c.reason).join("\n");
-            if (check.verdict === "notClaimable" && !window.confirm(t("claim.confirmSubmit", { reason: reasons("fail") }))) return;
-            if (check.verdict === "needsInfo" && !window.confirm(t("claim.confirmNeedsInfo", { reason: reasons("missing") }))) return;
-            withStepNotice(() => updateVO(project.id, voId, v => {
-                v.submitted = true;
-                v.evaluateStatus = "Pending";
-                v.claimCheck = { verdict: check.verdict, at: today(), form: check.form };
-                logHistory(v, session, "Contract agent: " + check.verdict);
-                logHistory(v, session, "Submitted to contract administrator");
-            }));
-            toast(t("toast.submittedToCa"));
-            draw();
+            const cur = fresh.vos.find(x => x.id === voId);
+            const step = (change, log, note) => {
+                withStepNotice(() => updateVO(project.id, voId, v => { change(v); [].concat(log).forEach(l => logHistory(v, session, l)); }));
+                if (note) toast(note);
+                draw();
+            };
+            if (id === "wfNext") { wf.step = 2; draw(); return; }
+            if (id === "wfBack") { wf.step = 1; draw(); return; }
+            if (id === "wfSend") {
+                const check = claimCheck(cur, fresh, { stage: "describe" });
+                if (check.verdict !== "claimable") return;
+                step(v => { v.sentToDesign = true; v.claimCheck = { verdict: check.verdict, at: today(), form: check.form }; },
+                     ["Contract agent: " + check.verdict, "Sent to design team"], t("wf.toast.sent"));
+                wf.step = 1;
+                return;
+            }
+            if (id === "issueInstrBtn") {
+                /* the design team approves: issues the AI / EI */
+                const kind = document.getElementById("instrKind").value;
+                const no = document.getElementById("instrNo").value.trim().toUpperCase();
+                const note = document.getElementById("instrNote").value.trim();
+                const problem = instructionProblem(fresh, cur, kind, no);
+                if (problem) { toast(problem, "error"); return; }
+                step(v => {
+                    v.issuedInstruction = { kind: kind, no: no, date: today(), by: session.name, note: note };
+                    v.instructionStatus = "Confirmed";
+                    if (note) v.instructionNote = note;
+                }, "Design team approved — " + no, t("wf.toast.approved", { no: no }));
+                return;
+            }
+            if (id === "wfReject") {
+                const note = document.getElementById("wfRejectNote").value.trim();
+                if (!note) { toast(t("wf.a.rejectNeedsNote"), "error"); return; }
+                step(v => { v.instructionStatus = "Returned"; v.instructionNote = note; v.sentToDesign = false; },
+                     "Design team rejected: " + note, t("wf.toast.rejected"));
+                return;
+            }
+            if (id === "wfSubmitQs") {
+                step(v => { v.submitted = true; v.evaluateStatus = "Pending"; }, "Submitted to consultant", t("wf.toast.submittedQs"));
+                return;
+            }
+            if (id === "wfSendBack") {
+                const text = document.getElementById("wfInfoText").value.trim();
+                if (!text) { toast(t("wf.c.needText"), "error"); return; }
+                step(v => { v.infoResponse = { text: text, at: today(), by: session.name, forRequest: infoRequestKey(v) }; },
+                     "Further information sent back", t("wf.toast.sentBack"));
+                return;
+            }
+            if (id === "wfRequestInfo") {
+                const note = document.getElementById("wfInfoNote").value.trim();
+                if (!note) { toast(t("wf.q.needNote"), "error"); return; }
+                step(v => { v.infoRequestedAt = today(); v.infoRequestNote = note; },
+                     "Requested further information: " + note, t("toast.infoRequestRecorded"));
+                return;
+            }
+            if (id === "wfSubmitClient") {
+                step(v => { v.evaluateStatus = "Approved"; }, ["Assessment completed — Approved", "Submitted to client"], t("wf.toast.submittedClient"));
+                return;
+            }
+            if (id === "wfQsReject") {
+                if (!String(cur.consultantRemark || "").trim()) { toast(t("wf.q.rejectNeedsRemark"), "error"); return; }
+                step(v => { v.evaluateStatus = "Rejected"; }, "Assessment completed — Rejected", t("wf.toast.qsRejected"));
+                return;
+            }
+            if (id === "wfClientApprove" || id === "wfClientReject") {
+                const ok = id === "wfClientApprove";
+                step(v => {
+                    v.certifiedStatus = ok ? "Approved" : "Rejected";
+                    if (ok && (v.finalPrice === null || v.finalPrice === undefined || v.finalPrice === "")) v.finalPrice = assessedTotal(v);
+                }, "Certified — " + (ok ? "Approved" : "Rejected"), t(ok ? "wf.toast.clientApproved" : "wf.toast.clientRejected"));
+            }
         });
 
         document.getElementById("reportBtn").addEventListener("click", () => {
@@ -1357,7 +1540,7 @@ if (typeof document !== "undefined") {
             const host = document.getElementById("photoCheckBody");
             if (!host || typeof photoCheckAvailable !== "function") return;
             const card = host.closest(".photo-check-card");
-            if (!photoCheckAvailable(project.id)) { card.hidden = true; return; }
+            if (!photoCheckAvailable(project.id)) { card.hidden = true; card.dataset.off = "1"; return; }
             const v = getProject(project.id).vos.find(x => x.id === voId);
             const docs = photosToCheck(v), total = checkablePhotos(v).length;
             const key = photoCheckKey(v, docs);

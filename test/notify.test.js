@@ -14,26 +14,29 @@ const base = () => JSON.parse(JSON.stringify(project().vos[2]));   /* VO-003, a 
 function stages() {
     const s = [];
     const v = base();
-    s.push(["draft", JSON.parse(JSON.stringify(v))]);
-    Object.assign(v, { submitted: true, evaluateStatus: "Pending" });
-    v.history.push({ action: "Submitted to contract administrator" });
-    s.push(["issue", JSON.parse(JSON.stringify(v))]);
-    s.push(["returned", Object.assign(JSON.parse(JSON.stringify(v)), { submitted: false, instructionStatus: "Returned" })]);
+    const snap = (name, over) => s.push([name, Object.assign(JSON.parse(JSON.stringify(v)), over || {})]);
+    snap("draft");
+    v.sentToDesign = true; v.history.push({ action: "Sent to design team" });
+    snap("issue");
+    snap("returned", { sentToDesign: false, instructionStatus: "Returned" });
     v.instructionStatus = "Confirmed";
-    s.push(["value", JSON.parse(JSON.stringify(v))]);
-    s.push(["rejected", Object.assign(JSON.parse(JSON.stringify(v)), { evaluateStatus: "Rejected" })]);
+    snap("measure");
+    Object.assign(v, { submitted: true, evaluateStatus: "Pending" }); v.history.push({ action: "Submitted to consultant" });
+    snap("value");
+    snap("info", { infoRequestedAt: "2026-10-01", infoRequestNote: "photos" });
+    snap("value", { infoRequestedAt: "2026-10-01", infoRequestNote: "photos",
+                    infoResponse: { text: "sent", forRequest: "2026-10-01|photos" } });
+    snap("rejected", { evaluateStatus: "Rejected" });
     v.evaluateStatus = "Approved";
-    s.push(["certify", JSON.parse(JSON.stringify(v))]);
-    v.caCertifiedStatus = "Certified";
-    s.push(["approve", JSON.parse(JSON.stringify(v))]);
+    snap("approve");
     v.certifiedStatus = "Approved";
-    s.push(["done", JSON.parse(JSON.stringify(v))]);
+    snap("done");
     return s;
 }
 
 test("each stage of a VO waits on the right role", () => {
-    const want = { draft: null, issue: "administrator", returned: "contractor", value: "consultant",
-                   rejected: "contractor", certify: "administrator", approve: "client", done: null };
+    const want = { draft: null, issue: "administrator", returned: "contractor", measure: "contractor", value: "consultant",
+                   info: "contractor", rejected: "contractor", approve: "client", done: null };
     stages().forEach(([name, vo]) => {
         const st = nextStep(vo);
         assert.strictEqual(st ? st.role : null, want[name], name);
@@ -50,7 +53,7 @@ test("the server's copy of nextStep agrees with the browser's at every stage", a
 test("a VO submitted again after being returned notifies again (a new key)", () => {
     const v = stages()[1][1];
     const first = nextStep(v).key;
-    v.history.push({ action: "Submitted to contract administrator" });
+    v.history.push({ action: "Sent to design team" });
     assert.notStrictEqual(nextStep(v).key, first);
 });
 
@@ -59,7 +62,7 @@ test("the demo: VO-002 waits for the consultant QS, VO-001 is finished", () => {
     assert.deepStrictEqual(waitingFor(p, "consultant").map(x => x.vo.no), ["VO-002"]);
     assert.deepStrictEqual(waitingFor(p, "client").map(x => x.vo.no), []);
     const msg = stepMessage(p.vos[1], nextStep(p.vos[1]));
-    assert.match(msg, /VO-002: instruction EI-008 issued/);
+    assert.match(msg, /VO-002 was submitted by the contractor/);
 });
 
 test("what was seen is not shown again; the list links to each VO", () => {
@@ -75,9 +78,9 @@ test("the email names the VO, says what to do in both languages and links to it"
     const r = await server();
     const v = stages()[1][1];
     const mail = r.emailFor(r.nextStep(v), v, { id: "P", name: "ABC Residence <b>" }, "https://example.org/VO-AI/");
-    assert.match(mail.subject, /^VO-AI · VO-003 was submitted by the contractor — ABC Residence/);
-    assert.match(mail.html, /issue the AI \/ EI/);
-    assert.match(mail.html, /请发出 AI \/ EI/);
+    assert.match(mail.subject, /^VO-AI · VO-003 was sent by the contractor for approval — ABC Residence/);
+    assert.match(mail.html, /add the drawings and documents, then approve or reject it/);
+    assert.match(mail.html, /请补齐图纸与文件，然后批准或退回/);
     assert.match(mail.html, /https:\/\/example\.org\/VO-AI\/vo\.html\?id=VO-SEED-3/);
     assert.match(mail.html, /&lt;b&gt;/, "escaped");
 });

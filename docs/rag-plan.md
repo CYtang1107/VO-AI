@@ -66,6 +66,15 @@ Branch `claude/eager-ramanujan-6i2lox`.
   `ask-contract/rules.mjs`): every amount must be in the data, the question or a clause; a cited clause must be one
   given; one retry, then nothing. Same guest route and daily limit as 「问合同」. Checked live: "which VO has the
   largest difference" (EN and ZH), a VO summary, who certified VO-001, and a contract question with PAM citations.
+- **Step-by-step workflow (8 Oct):** contractor describes (description, remark) → contract agent checks it is a
+  variation (`claimCheck(..., {stage: "describe"})`) → sent to the design team, who add the original / revised
+  drawings and supporting documents and approve (issuing the AI / EI) or reject → contractor measures, checks rates,
+  costs it and submits → consultant QS checks (AI photo check moved here), assesses, submits to the client, rejects,
+  or asks for further information (the contractor answers, `vo.infoResponse`) → client approves. The design team's
+  later certify step is gone. Stages come from `voStage` (js/permissions.js), used by permissions, notifications
+  (browser and the `notify` function, redeployed) and the VO page's workflow card. Migration 0006 (applied):
+  drawings and `designDocs` are the design team's, `infoResponse` the contractor's. Contract documents are no longer
+  uploaded per VO.
 - **Sign-up:** open. Email confirmation is off (no mail server; the built-in mailer only reaches the project's own
   team, 2 emails an hour), and the site URL is GitHub Pages. A new account sees nothing until a consultant adds it.
   Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,

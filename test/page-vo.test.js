@@ -29,7 +29,7 @@ test("a contractor field on an approved VO is locked, its reason given once for 
                          value: "x", vo: vo1, role: "contractor" });
     assert.match(html, /class="field locked"/);
     assert.ok(!/lock-note/.test(html), "no per-field note");
-    assert.match(panelLockNote(vo1, "contractor", "contractor"), /already assessed/i);
+    assert.match(panelLockNote(vo1, "contractor", "contractor"), /Approved by the client: closed/);
     assert.strictEqual(panelLockNote(vo1, "contractor", "client"), "", "another role's panel gets no note");
     assert.strictEqual(panelLockNote(vo3, "contractor", "contractor"), "", "an editable panel gets no note");
 });
@@ -92,13 +92,13 @@ test("a row with a confirmed BQ item shows no suggestion block", () => {
 });
 
 test("the accept-match control appears only for a role that may edit the measurement", () => {
-    const vo = { evaluateStatus: "Draft", submitted: false, measurement: [
+    const vo = { evaluateStatus: "Draft", submitted: false, instructionStatus: "Confirmed", measurement: [
         { id: "MX", bqItemId: null, description: "Additional skirting to match floor finish",
           unit: "m", qty: 10, rate: 22, assessedQty: "", assessedRate: "" }
     ] };
     const contractorHtml = renderMeasurementRows(vo, project, "contractor");
     const consultantHtml = renderMeasurementRows(vo, project, "consultant");
-    /* On a Draft VO the contractor owns measurement; consultant does not. */
+    /* Approved by the design team: the contractor measures; the consultant does not yet. */
     assert.match(contractorHtml, /accept-match-btn/);
     assert.ok(!/accept-match-btn/.test(consultantHtml));
 });
@@ -124,8 +124,10 @@ test("a VO with no history renders an empty state", () => {
     assert.match(renderHistory({ history: [] }), /empty-state/);
 });
 
-test("a contractor on a Draft VO gets a file picker and remove controls", () => {
-    const html = renderDocList(vo3, "revisedDrawing", "Revised drawing", "contractor");
+test("a contractor on a Draft VO gets a file picker for site photos; the drawings are the design team's", () => {
+    assert.match(renderDocList(Object.assign({}, vo3, { sentToDesign: true }), "revisedDrawing", "Revised drawing", "administrator"), /class="field doc-field owned"/);
+    assert.match(renderDocList(vo3, "revisedDrawing", "Revised drawing", "contractor"), /class="field doc-field locked"/);
+    const html = renderDocList(vo3, "supportingDocs", "Site photos", "contractor");
     assert.match(html, /class="field doc-field owned"/);
     assert.match(html, /<input type="file" multiple/);
     assert.ok(!/lock-note/.test(html));
@@ -166,7 +168,7 @@ test("a document name containing markup is escaped", () => {
 /* ---------- client's request for further information ---------- */
 
 test("the client sees an editable request control on an approved VO", () => {
-    const html = renderClientInfoRequestControl(vo1, "client", "2026-08-01");
+    const html = renderClientInfoRequestControl(Object.assign({}, vo1, { certifiedStatus: "Pending" }), "client", "2026-08-01");
     assert.match(html, /class="field owned"/);
     assert.match(html, /recordClientInfoRequestBtn/);
 });
@@ -201,11 +203,10 @@ test("a client request never shows a due date, only elapsed time", () => {
     assert.ok(!/due/i.test(html));
 });
 
-test("the contract basis section lets the contractor upload and shows its intro", () => {
+test("contract documents are no longer uploaded per VO (the project's PAM is used); the intro still shows", () => {
     const html = renderDocList(vo3, "contractDocs", "Contract basis document", "contractor",
                                "Upload the contract");
-    assert.match(html, /doc-field owned/);
-    assert.match(html, /data-field="contractDocs"/);
+    assert.match(html, /doc-field locked/);
     assert.match(html, /class="hint doc-intro">Upload the contract/);
 });
 

@@ -24,8 +24,10 @@ test("a new VO takes the number after the highest, so a deletion never repeats o
 });
 
 test("each measurement row has a remove button for whoever may edit the measurement", () => {
-    const html = renderMeasurementRows(draft, project, "contractor");
-    assert.strictEqual((html.match(/class="row-delete-btn"/g) || []).length, draft.measurement.length);
-    assert.ok(!/row-delete-btn/.test(renderMeasurementRows(draft, project, "client")));
+    const measuring = Object.assign({}, draft, { instructionStatus: "Confirmed" });   /* approved by the design team */
+    const html = renderMeasurementRows(measuring, project, "contractor");
+    assert.strictEqual((html.match(/class="row-delete-btn"/g) || []).length, measuring.measurement.length);
+    assert.ok(!/row-delete-btn/.test(renderMeasurementRows(measuring, project, "client")));
+    assert.ok(!/row-delete-btn/.test(renderMeasurementRows(draft, project, "contractor")), "still being described: measured after approval");
     assert.ok(!/row-delete-btn/.test(renderMeasurementRows(submitted, project, "contractor")), "VO-001 is approved: its measurement is locked");
 });
