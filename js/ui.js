@@ -78,7 +78,10 @@ const STATUS_CLASS = {
     "Pending": "pending",
     "Under Review": "review",
     "Rejected": "rejected",
-    "Draft": "draft"
+    "Draft": "draft",
+    "Confirmed": "approved",
+    "Certified": "approved",
+    "Returned": "rejected"
 };
 
 /* The stored status value ("Approved", "Pending", ...) is app vocabulary,

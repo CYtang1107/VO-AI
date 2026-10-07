@@ -28,6 +28,13 @@ var ROLES = {
         icon: "▲",
         colour: "#f59e0b"
     },
+    administrator: {
+        id: "administrator",
+        label: "Contract Administrator",
+        blurb: "The Architect, Engineer or SO: confirm each VO's instruction, then certify the assessed value.",
+        icon: "◆",
+        colour: "#0e7490"
+    },
     consultant: {
         id: "consultant",
         label: "Consultant QS",
@@ -75,6 +82,12 @@ function newVO(seq) {
         consultantRemark: "",
         infoRequestedAt: null,
         infoRequestNote: "",
+
+        /* contract administrator's columns */
+        instructionStatus: "Pending",
+        instructionNote: "",
+        caCertifiedStatus: "Pending",
+        caRemark: "",
 
         /* client's columns */
         certifiedStatus: "Pending",
@@ -145,6 +158,13 @@ function upgradeDemo(db) {
             if (!have) { vo.supportingDocs.push(Object.assign({}, sd)); changed = true; }
             else if (!have.geo) { have.geo = sd.geo; have.size = sd.size; changed = true; }
         });
+    });
+    /* the contract administrator's steps on the demo VOs */
+    seed.vos.forEach(sv => {
+        const vo = (demo.vos || []).find(v => v.id === sv.id);
+        if (!vo || vo.instructionStatus !== undefined) return;
+        ["instructionStatus", "instructionNote", "caCertifiedStatus", "caRemark"].forEach(k => { vo[k] = sv[k]; });
+        changed = true;
     });
     if (changed) saveDB(db);
     return db;
@@ -626,6 +646,10 @@ function seedDB() {
                     consultantRemark: "Recommend approval at the assessed value.",
                     infoRequestedAt: null,
                     infoRequestNote: "",
+                    instructionStatus: "Confirmed",
+                    instructionNote: "AI-021 confirmed: the floor finish change is instructed under clause 11.1.",
+                    caCertifiedStatus: "Certified",
+                    caRemark: "Certified at the assessed value for Interim Certificate No. 4.",
                     certifiedStatus: "Approved",
                     finalPrice: 55856,
                     clientRemark: "Certified for payment in interim certificate no. 8.",
@@ -634,7 +658,9 @@ function seedDB() {
                     history: [
                         { at: "2026-07-14T09:12:00Z", by: "Ong Wei Han", role: "contractor", action: "VO created" },
                         { at: "2026-07-15T16:40:00Z", by: "Ong Wei Han", role: "contractor", action: "Submitted to consultant" },
+                        { at: "2026-07-16T10:15:00Z", by: "Lim Kok Wai", role: "administrator", action: "Instruction confirmed — AI-021" },
                         { at: "2026-07-22T11:05:00Z", by: "Serena Wong", role: "consultant", action: "Assessment completed — Approved" },
+                        { at: "2026-07-23T15:30:00Z", by: "Lim Kok Wai", role: "administrator", action: "Contract administrator certified the assessed value" },
                         { at: "2026-07-25T10:20:00Z", by: "Tan Zi Qian", role: "client", action: "Certified — Approved" }
                     ]
                 },
@@ -674,6 +700,10 @@ function seedDB() {
                     consultantRemark: "",
                     infoRequestedAt: null,
                     infoRequestNote: "",
+                    instructionStatus: "Confirmed",
+                    instructionNote: "EI-008 confirmed: additional drainage instructed on site.",
+                    caCertifiedStatus: "Pending",
+                    caRemark: "",
                     certifiedStatus: "Pending",
                     finalPrice: null,
                     clientRemark: "",
@@ -681,7 +711,8 @@ function seedDB() {
                     clientInfoRequestNote: "",
                     history: [
                         { at: "2026-07-15T08:30:00Z", by: "Ong Wei Han", role: "contractor", action: "VO created" },
-                        { at: "2026-07-16T14:02:00Z", by: "Ong Wei Han", role: "contractor", action: "Submitted to consultant" }
+                        { at: "2026-07-16T14:02:00Z", by: "Ong Wei Han", role: "contractor", action: "Submitted to consultant" },
+                        { at: "2026-07-17T09:40:00Z", by: "Lim Kok Wai", role: "administrator", action: "Instruction confirmed — EI-008" }
                     ]
                 },
                 {
@@ -709,6 +740,10 @@ function seedDB() {
                     consultantRemark: "",
                     infoRequestedAt: null,
                     infoRequestNote: "",
+                    instructionStatus: "Pending",
+                    instructionNote: "",
+                    caCertifiedStatus: "Pending",
+                    caRemark: "",
                     certifiedStatus: "Pending",
                     finalPrice: null,
                     clientRemark: "",

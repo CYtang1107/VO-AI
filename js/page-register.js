@@ -70,7 +70,12 @@ const COLUMNS = [
     { field: "certifiedStatus",   label: "CERTIFIED STATUS", labelKey: "register.col.certifiedStatus",
       render: v => statusPill(v.certifiedStatus) },
     { field: "finalPrice",        label: "FINAL PRICE",      labelKey: "register.col.finalPrice",
-      render: v => (v.finalPrice === null || v.finalPrice === "" ? "—" : rm(v.finalPrice)) }
+      render: v => (v.finalPrice === null || v.finalPrice === "" ? "—" : rm(v.finalPrice)) },
+    /* the contract administrator's two steps: instruction, certification */
+    { field: "caCertifiedStatus", label: "CONTRACT ADMINISTRATOR", labelKey: "register.col.administrator",
+      render: v => '<span class="ca-pills">' +
+          statusPill(v.instructionStatus || (v.submitted ? "Confirmed" : "Pending")) +
+          statusPill(v.caCertifiedStatus || (v.evaluateStatus === "Approved" ? "Certified" : "Pending")) + "</span>" }
 ];
 
 /* Every role sees every column — the template only restricts *editing*. */

@@ -1006,7 +1006,7 @@ table:has(#measurementBody) th:nth-child(6),
 
 .role-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 14px;
     margin-bottom: 25px;
 }
@@ -2220,19 +2220,21 @@ td.owned-col { background: #fffdf2; }
    original @media (max-width: 700px) block above) must win instead, so
    the three role panels stack rather than staying three-across. */
 @media (min-width: 701px) {
-    .role-panels { grid-template-columns: 1fr 1fr 1fr; }
+    .role-panels { grid-template-columns: 1fr 1fr; }
 }
 
 .role-panels[data-active-role="contractor"] [data-role="contractor"],
 .role-panels[data-active-role="consultant"] [data-role="consultant"],
-.role-panels[data-active-role="client"]     [data-role="client"] { order: -1; }
+.role-panels[data-active-role="client"]     [data-role="client"],
+.role-panels[data-active-role="administrator"] [data-role="administrator"] { order: -1; }
 
 /* Each role sees only its own panel until it asks for the others
    (#toggleOtherPanels, js/page-vo.js). */
 .role-panels[data-active-role] { grid-template-columns: 1fr; }
 .role-panels[data-active-role="contractor"]:not(.show-others) .role-panel:not([data-role="contractor"]),
 .role-panels[data-active-role="consultant"]:not(.show-others) .role-panel:not([data-role="consultant"]),
-.role-panels[data-active-role="client"]:not(.show-others)     .role-panel:not([data-role="client"]) {
+.role-panels[data-active-role="client"]:not(.show-others)     .role-panel:not([data-role="client"]),
+.role-panels[data-active-role="administrator"]:not(.show-others) .role-panel:not([data-role="administrator"]) {
     display: none;
 }
 
@@ -2243,14 +2245,16 @@ td.owned-col { background: #fffdf2; }
     .role-panels[data-active-role].show-others { grid-template-columns: 1fr 1fr; }
     .role-panels[data-active-role="contractor"] [data-role="contractor"],
     .role-panels[data-active-role="consultant"] [data-role="consultant"],
-    .role-panels[data-active-role="client"]     [data-role="client"] { grid-column: 1 / -1; }
+    .role-panels[data-active-role="client"]     [data-role="client"],
+    .role-panels[data-active-role="administrator"] [data-role="administrator"] { grid-column: 1 / -1; }
 
     /* The full-width form pairs short fields two to a row; long text,
        document lists and anything that is not a plain field take the
        whole row. */
     .role-panels[data-active-role="contractor"] [data-role="contractor"] > .card-body,
     .role-panels[data-active-role="consultant"] [data-role="consultant"] > .card-body,
-    .role-panels[data-active-role="client"]     [data-role="client"]     > .card-body {
+    .role-panels[data-active-role="client"]     [data-role="client"]     > .card-body,
+    .role-panels[data-active-role="administrator"] [data-role="administrator"] > .card-body {
         display: grid;
         grid-template-columns: 1fr 1fr;
         column-gap: 28px;
@@ -3312,3 +3316,10 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .row-delete-btn:hover { background: var(--verdict-diff); color: #fff; border-color: var(--verdict-diff); }
 .danger-button { color: var(--verdict-diff); border-color: color-mix(in srgb, var(--verdict-diff) 45%, transparent); }
 .danger-button:hover { background: var(--verdict-diff); color: #fff; }
+
+/* ---------- contract administrator panel ---------- */
+.ca-step { font-size: 13px; margin: 6px 0 6px; color: var(--ink); grid-column: 1 / -1; }
+.ca-step ~ .ca-step { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--rule); }
+.ca-ref { font-size: 12px; color: var(--ink-3); margin: 0 0 10px; grid-column: 1 / -1; }
+.ca-note { font-size: 12px; color: #b45309; margin: 0 0 10px; grid-column: 1 / -1; }
+.ca-pills { display: inline-flex; gap: 4px; flex-wrap: wrap; }

@@ -78,7 +78,7 @@ function renderMembersBlock(project, session) {
             ? '<div class="member-add">' +
                 '<input type="email" class="member-email" placeholder="' + escapeHtml(t("cloud.members.emailPlaceholder")) + '">' +
                 '<select class="member-role-select">' +
-                    ["contractor", "consultant", "client"].map(r =>
+                    ["contractor", "administrator", "consultant", "client"].map(r =>
                         '<option value="' + r + '">' + escapeHtml(t("role." + r + ".label", {})) + "</option>").join("") +
                 "</select>" +
                 '<button type="button" class="secondary-button member-add-btn">' + escapeHtml(t("cloud.members.add")) + "</button>" +

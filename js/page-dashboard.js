@@ -4,6 +4,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, voValue, projectStats, today } = require("./calc.js");
     var { statusPill, escapeHtml, seedText } = require("./ui.js");
     var { deadlineSummary } = require("./deadlines.js");
+    var { instructionConfirmed, caCertified } = require("./permissions.js");
     var { t } = require("./i18n.js");
 }
 
@@ -36,9 +37,21 @@ function actionItems(project, role) {
             }));
     }
 
+    if (role === "administrator") {
+        /* ① submitted, its instruction not yet confirmed; ② approved by
+           the consultant QS, not yet certified */
+        const toConfirm = vos
+            .filter(v => v.submitted && !instructionConfirmed(v))
+            .map(v => ({ vo: v, text: t("dashboard.action.awaitingConfirm") }));
+        const toCertify = vos
+            .filter(v => v.evaluateStatus === "Approved" && !caCertified(v))
+            .map(v => ({ vo: v, text: t("dashboard.action.awaitingCaCert") }));
+        return toConfirm.concat(toCertify);
+    }
+
     if (role === "consultant") {
         const awaitingAssessment = vos
-            .filter(v => v.submitted &&
+            .filter(v => v.submitted && instructionConfirmed(v) &&
                 (v.evaluateStatus === "Pending" || v.evaluateStatus === "Under Review"))
             .map(v => ({ vo: v, text: t("dashboard.action.awaitingAssessment") }));
 
@@ -59,7 +72,7 @@ function actionItems(project, role) {
     }
 
     return vos
-        .filter(v => v.evaluateStatus === "Approved" && v.certifiedStatus === "Pending")
+        .filter(v => v.evaluateStatus === "Approved" && caCertified(v) && v.certifiedStatus === "Pending")
         .map(v => ({ vo: v, text: t("dashboard.action.awaitingCert") }));
 }
 
