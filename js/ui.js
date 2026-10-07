@@ -261,11 +261,27 @@ function keepFolds(render) {
 /* The demo's English text in Chinese when the interface is in Chinese
    (js/store.js SEED_ZH). Text a user typed is returned unchanged. */
 function seedText(value) {
-    if (typeof getLang === "function" && getLang() === "zh" &&
-        typeof SEED_ZH !== "undefined" && Object.prototype.hasOwnProperty.call(SEED_ZH, value)) {
-        return SEED_ZH[value];
+    if (typeof getLang !== "function" || getLang() !== "zh" || typeof SEED_ZH === "undefined" || !value) return value;
+    if (Object.prototype.hasOwnProperty.call(SEED_ZH, value)) return SEED_ZH[value];
+    /* a sentence shown cut short ("…") */
+    const s = String(value);
+    if (s.endsWith("…")) {
+        const head = s.slice(0, -1);
+        const key = Object.keys(SEED_ZH).find(k => k.startsWith(head));
+        if (key) return SEED_ZH[key];
     }
     return value;
+}
+
+/* Under a translated contract wording: its English original, one click
+   away (the signed contract governs). Untranslated wording says it is
+   shown in English. Nothing in English. */
+function originalText(parts) {
+    if (typeof getLang !== "function" || getLang() !== "zh") return "";
+    const list = (parts || []).filter(Boolean);
+    if (!list.some(p => seedText(p) !== p)) return '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>";
+    return '<details class="orig-text"><summary>' + escapeHtml(t("clause.original")) + '</summary><p class="rate-detail">' +
+        list.map(escapeHtml).join("<br>") + "</p></details>";
 }
 
 /* ---------- browser-only below ---------- */
@@ -431,5 +447,5 @@ function mountChrome(active, title, crumb, opts) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds, seedText };
+    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds, seedText, originalText };
 }

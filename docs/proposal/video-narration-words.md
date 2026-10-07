@@ -98,7 +98,7 @@ the script never claims intelligence — it shows a rate being checked.
 
 **Subtitles.** Recommended by the submission rules. If you subtitle in Chinese, switch the
 app to 中文 for one shot around 1:34 so the bilingual interface is visible rather than
-merely claimed. On screen a variation order is 「工程变更令」 — use the same term in the
+merely claimed. On screen a variation order is 「变更单」 — use the same term in the
 subtitles.
 
 **Recording.** Record the screen silently first, then narrate over it. Clicking and talking

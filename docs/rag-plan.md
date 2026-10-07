@@ -291,9 +291,9 @@ Role framing (system prompt addition per role):
 - `store.js`: keep the same `loadDB`/`saveDB`/`updateVO` API so pages do not change. When
   signed in, read/write Supabase and cache locally.
 - Realtime (optional): subscribe to `vos` changes so another user's edit appears live.
-- VO page: the 「询问此工程变更令」 card gets a 「问合同」 tab that calls `Cloud.ask`. Answers
+- VO page: the 「询问此变更单」 card gets a 「问合同」 tab that calls `Cloud.ask`. Answers
   show 「引用」 chips. Without cloud, the tab is hidden and the existing helper stays.
-- Deck: the GreenGru-style 「工程变更令智能体知识库」 slide (sources → 预处理 → 条文切分 →
+- Deck: the GreenGru-style 「变更单智能体知识库」 slide (sources → 预处理 → 条文切分 →
   向量嵌入 → 向量数据库 → three agents), with the 「AI 不碰数字」 strip.
 
 ## Order of work

@@ -38,8 +38,8 @@ test("the prompt carries the data and the clauses, and the rules in the asker's 
     assert.match(sys, /业主/);
     assert.match(sys, /Never calculate/);
     assert.match(sys, /never write a word with an underscore/);
-    const user = r.copilotUserPrompt("哪个变更令差额最大？", data, [clause], "zh");
+    const user = r.copilotUserPrompt("哪个变更单差额最大？", data, [clause], "zh");
     assert.match(user, /PROJECT DATA/);
     assert.match(user, /「引用：PAM 2018 第 11\.6 条」/);
-    assert.match(user, /QUESTION: 哪个变更令差额最大？/);
+    assert.match(user, /QUESTION: 哪个变更单差额最大？/);
 });

@@ -4,7 +4,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
     var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER, voStage, infoRequestKey } = require("./permissions.js");
     var { checkRate, analyse, matchBqItem, suggestBqForChange } = require("./analysis.js");
-    var { escapeHtml, statusPill, fileLink, fold, seedText } = require("./ui.js");
+    var { escapeHtml, statusPill, fileLink, fold, seedText, originalText } = require("./ui.js");
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate, pastRateSources, pastRateWords, MATERIAL_WORDS } = require("./ratehistory.js");
@@ -173,7 +173,7 @@ function bqOptions(project, selectedId) {
     (project.bq || []).forEach(b => {
         opts.push('<option value="' + escapeHtml(b.id) + '"' +
             (b.id === selectedId ? " selected" : "") + ">" +
-            escapeHtml(b.code + " · " + b.description + " · " + rm(b.rate) + "/" + b.unit) +
+            escapeHtml(b.code + " · " + seedText(b.description) + " · " + rm(b.rate) + "/" + b.unit) +
             "</option>");
     });
     return opts.join("");
@@ -193,7 +193,7 @@ function renderPastRates(i, suggestion, canAdd) {
             '<span class="past-src">' + escapeHtml(t("vo.past.source", { project: m.project, year: m.year || "—" })) +
             ' <span class="past-basis">' + escapeHtml(t("vo.past.basis." + m.basis)) +
             (m.sample ? " · " + escapeHtml(t("vo.past.sample")) : "") + "</span></span>" +
-            '<span class="past-desc">' + escapeHtml(m.description) + "</span>" +
+            '<span class="past-desc">' + escapeHtml(seedText(m.description)) + "</span>" +
             "<strong>" + rm(m.rate) + "/" + escapeHtml(m.unit) + "</strong></li>"
     ).join("");
     return '<div class="past-rates">' +
@@ -347,7 +347,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
             ? '<div class="rate-suggestion">' +
                 '<span class="rate-flag auto-match">' + escapeHtml(t("vo.measurement.suggestedMatch")) + '</span> ' +
                 '<span class="item-code">' + escapeHtml(check.matchedItem.code) + "</span> · " +
-                escapeHtml(check.matchedItem.description) +
+                escapeHtml(seedText(check.matchedItem.description)) +
                 '<div class="rate-detail">' + escapeHtml(check.matchBasis) + "</div>" +
                 (conEdit
                     ? '<button type="button" class="accept-match-btn" data-row="' + i +
@@ -357,7 +357,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
             : "";
 
         return '<tr data-row="' + i + '">' +
-            '<td class="m-desc" data-label="' + lbl.description + '"><input data-col="description" value="' + escapeHtml(row.description) +
+            '<td class="m-desc" data-label="' + lbl.description + '"><input data-col="description" value="' + escapeHtml(seedText(row.description)) +
                 '"' + conDis + (conEdit ? ' class="owned"' : "") + ' style="width:220px"></td>' +
             '<td class="m-bq" data-label="' + lbl.bqItem + '"><select data-col="bqItemId"' + conDis + (conEdit ? ' class="owned"' : "") +
                 ">" + bqOptions(project, row.bqItemId) + "</select></td>" +
@@ -440,14 +440,14 @@ function renderAssessmentPanel(vo, project, role) {
        translated; the note itself is. */
     const clauseBlock = a.clause
         ? '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.governingClause")) + '</span>' +
-          '<span class="result-value">' + escapeHtml(a.clause.form + " " + a.clause.ref) +
+          '<span class="result-value">' + escapeHtml(t("claim.clauseRef", { form: a.clause.form, no: String(a.clause.ref).replace(/^Clause\s*/, "") })) +
           "</span></div>" +
-          fold("std-clause", escapeHtml(t("clause.showWording", { title: a.clause.title })),
-              '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
-              escapeHtml(a.clause.entitlement) + "</p>" +
+          fold("std-clause", escapeHtml(t("clause.showWording", { title: seedText(a.clause.title) })),
+              '<p class="rate-detail"><strong>' + escapeHtml(seedText(a.clause.title)) + "</strong><br>" +
+              escapeHtml(seedText(a.clause.entitlement)) + "</p>" +
               '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
-              escapeHtml(a.clause.evidence) + "</p>" +
-              '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>")
+              escapeHtml(seedText(a.clause.evidence)) + "</p>" +
+              originalText([a.clause.title, a.clause.entitlement, a.clause.evidence]))
         : '<p class="rate-detail">' + escapeHtml(t("vo.result.noClause")) + "</p>";
 
     /* This project's own contract leads when it has been read; the

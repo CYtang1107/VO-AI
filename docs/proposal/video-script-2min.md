@@ -119,7 +119,7 @@ short of time), and click Analyse.
 - The closing line is the differentiator. Say it plainly, without a flourish.
 - If you subtitle in Chinese, switch the app to 中文 for one shot around 1:40 so the
   bilingual interface is visible rather than merely claimed. In Chinese a variation order is
-  「工程变更令」 — use the same term in the subtitles as on screen.
+  「变更单」 — use the same term in the subtitles as on screen.
 
 ## Shot list (for editing)
 

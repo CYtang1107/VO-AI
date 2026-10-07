@@ -12,7 +12,7 @@ test("a question is matched to what the project's data can answer, in English or
         "How is the project doing?": "overview", "项目目前情况如何？": "overview",
         "What is waiting for me?": "waiting", "有什么在等我处理？": "waiting",
         "Any deadlines overdue?": "deadlines", "哪些期限快到期？": "deadlines",
-        "Which VOs may not be claimable?": "claims", "哪些变更令可能无法索赔？": "claims",
+        "Which VOs may not be claimable?": "claims", "哪些变更单可能无法索赔？": "claims",
         "Which rates differ from the BQ?": "rates", "哪些单价与合同清单不符？": "rates",
         "Will the project overrun?": "cost", "项目会超支吗？": "cost",
         "What did past projects pay for marble tiles?": "experience", "过去项目的大理石单价": "experience"

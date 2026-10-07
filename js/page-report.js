@@ -96,7 +96,7 @@ function fullMeasurementTable(vo, project) {
         const assessedRate = row.assessedRate === "" || row.assessedRate == null ? row.rate : row.assessedRate;
         return "<tr>" +
             "<td>" + (i + 1) + "</td>" +
-            "<td>" + escapeHtml(row.description || "—") + "</td>" +
+            "<td>" + escapeHtml(seedText(row.description) || "—") + "</td>" +
             "<td>" + escapeHtml(row.unit || "") + "</td>" +
             "<td>" + escapeHtml(row.qty) + "</td>" +
             "<td>" + rm(row.rate) + "</td>" +
@@ -124,7 +124,7 @@ function claimedMeasurementTable(vo) {
     const rows = (vo.measurement || []).map((row, i) =>
         "<tr>" +
             "<td>" + (i + 1) + "</td>" +
-            "<td>" + escapeHtml(row.description || "—") + "</td>" +
+            "<td>" + escapeHtml(seedText(row.description) || "—") + "</td>" +
             "<td>" + escapeHtml(row.unit || "") + "</td>" +
             "<td>" + escapeHtml(row.qty) + "</td>" +
             "<td>" + rm(row.rate) + "</td>" +
