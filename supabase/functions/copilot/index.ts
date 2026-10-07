@@ -1,0 +1,149 @@
+// VO-AI | copilot — the project Copilot's general AI mode: any question
+// about the project, answered from its data and its contract.
+//
+// POST { project_id, question, project_data }          a project member
+// POST { project_id, question, project_data, guest: true, role }
+//                                                      the demo, within the
+//                                                      guest limits (migration 0004)
+//   → { answer, citations: [...], model }
+//   → { answer: null, reason: "amount-check" | "format" | "guest-limit" }
+//
+// project_data is the project as the page holds it (js/copilot.js
+// projectData): the VOs, their status and the rule engine's figures. The
+// question also retrieves the nearest contract clauses (as 「问合同」 does);
+// none is needed for an answer. Qwen answers from those only; the answer is
+// checked (rules.mjs): every amount must be in the data, the question or a
+// clause, and a cited clause must be one given. One retry, then nothing.
+//
+// Secrets: DASHSCOPE_API_KEY. SUPABASE_URL, SUPABASE_ANON_KEY and
+// SUPABASE_SERVICE_ROLE_KEY are provided by Supabase (the service role only
+// for the guest route, as in ask-contract).
+
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import {
+    citationsFor, copilotCorrection, copilotSystemPrompt, copilotUserPrompt, groupChunks, questionLang,
+    reviewCopilotAnswer, validCopilotRequest,
+} from "./rules.mjs";
+
+const DASHSCOPE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
+const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
+const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
+const EMBED_MODEL = "text-embedding-v4";
+const CHAT_MODELS = (Deno.env.get("COPILOT_MODELS") || Deno.env.get("ASK_MODELS") || "qwen-plus-latest,qwen-flash")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+const MIN_SIMILARITY = 0.4;
+const TOP_K = 4;
+
+const CORS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function reply(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+}
+
+async function dashscope(path: string, body: unknown) {
+    const res = await fetch(DASHSCOPE + path, {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + Deno.env.get("DASHSCOPE_API_KEY"), "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const err = new Error("DashScope " + res.status + ": " + (json?.error?.message || res.statusText));
+        (err as Error & { status?: number }).status = res.status;
+        throw err;
+    }
+    return json;
+}
+
+type Message = { role: string; content: string };
+
+async function chat(messages: Message[]): Promise<{ text: string; model: string }> {
+    let last: Error | null = null;
+    for (const model of CHAT_MODELS) {
+        try {
+            const body: Record<string, unknown> = { model, messages, temperature: 0.1, max_tokens: 900 };
+            if (/^qwen3/.test(model)) body.enable_thinking = false;
+            const json = await dashscope("/chat/completions", body);
+            return { text: String(json.choices?.[0]?.message?.content || "").trim(), model };
+        } catch (e) {
+            last = e as Error;
+            const status = (e as Error & { status?: number }).status || 0;
+            if (![400, 401, 403, 404, 429].includes(status)) break;
+        }
+    }
+    throw last || new Error("No chat model configured");
+}
+
+Deno.serve(async (req) => {
+    if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+    if (req.method !== "POST") return reply({ error: "POST only" }, 405);
+    let body: Record<string, unknown>;
+    try { body = await req.json(); } catch { return reply({ error: "Body must be JSON." }, 400); }
+    const invalid = validCopilotRequest(body);
+    if (invalid) return reply({ error: invalid }, 400);
+    const projectId = body.project_id as string;
+    const question = (body.question as string).trim();
+    const projectData = body.project_data as Record<string, unknown>;
+
+    // deno-lint-ignore no-explicit-any
+    let db: any;
+    let role: string;
+    if (body.guest === true) {
+        if (projectId !== GUEST_PROJECT) return reply({ error: "Sign in first." }, 401);
+        db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+        const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || req.headers.get("x-real-ip") || "unknown";
+        const { data: allowed, error } = await db.rpc("guest_quota", { p_ip: ip, p_ip_limit: GUEST_PER_VISITOR, p_day_limit: GUEST_PER_DAY });
+        if (error) return reply({ error: error.message }, 500);
+        if (!allowed) return reply({ answer: null, reason: "guest-limit", citations: [] }, 429);
+        role = typeof body.role === "string" ? body.role : "consultant";
+    } else {
+        const auth = req.headers.get("Authorization");
+        if (!auth) return reply({ error: "Sign in first." }, 401);
+        db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+            global: { headers: { Authorization: auth } }, auth: { persistSession: false },
+        });
+        const { data: userData } = await db.auth.getUser();
+        if (!userData?.user) return reply({ error: "Sign in first." }, 401);
+        const { data: memberRole, error } = await db.rpc("member_role", { p_project: projectId });
+        if (error) return reply({ error: error.message }, 500);
+        if (!memberRole) return reply({ error: "You are not a member of this project." }, 403);
+        role = memberRole;
+    }
+
+    try {
+        /* the nearest clauses, if any are close enough: optional context */
+        let clauses: Record<string, unknown>[] = [];
+        try {
+            const emb = await dashscope("/embeddings", { model: EMBED_MODEL, input: [question], dimensions: 1024, encoding_format: "float" });
+            const { data: rows } = await db.rpc("match_chunks", {
+                p_project: projectId, q: "[" + emb.data[0].embedding.join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
+            });
+            clauses = groupChunks(rows || []);
+        } catch { clauses = []; }
+
+        const lang = questionLang(question);
+        const messages: Message[] = [
+            { role: "system", content: copilotSystemPrompt(role, lang) },
+            { role: "user", content: copilotUserPrompt(question, projectData, clauses, lang) },
+        ];
+        let result = await chat(messages);
+        let review = reviewCopilotAnswer(result.text, projectData, clauses, question);
+        if (!review.ok) {
+            messages.push({ role: "assistant", content: result.text });
+            messages.push({ role: "user", content: copilotCorrection(review) });
+            result = await chat(messages);
+            review = reviewCopilotAnswer(result.text, projectData, clauses, question);
+        }
+        if (!review.ok) {
+            return reply({ answer: null, reason: review.problems.includes("amount-check") ? "amount-check" : "format", citations: [] });
+        }
+        return reply({ answer: result.text, citations: citationsFor(review.cited, clauses), model: result.model });
+    } catch (e) {
+        return reply({ error: (e as Error).message || String(e) }, 502);
+    }
+});

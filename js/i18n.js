@@ -1504,7 +1504,15 @@ var I18N_EN = {
     "copilot.exp.source": "{project} ({year}): {desc}, {rate}/{unit}",
     "copilot.exp.intro": "This project's new items (no BQ item) against what past projects paid:",
     "copilot.exp.row": "{desc}: priced at {used}; past projects paid {rate}/{unit} (median of {n}; {low} to {high}).",
-    "copilot.exp.rowNone": "{desc}: no comparable item in past projects: needs a quotation or a built-up rate."
+    "copilot.exp.rowNone": "{desc}: no comparable item in past projects: needs a quotation or a built-up rate.",
+    "copilot.reask": "Not what you asked? Ask the AI instead →",
+    "copilot.noteAi": "The seven questions above are answered at once from the register. Anything else goes to the AI, which answers only from this project's data and its contract: every amount it gives is checked against the data.",
+    "copilot.ai.title": "AI answer",
+    "copilot.ai.thinking": "The AI is reading the project's data and contract… (about 10 seconds)",
+    "copilot.ai.source": "Answered by AI from this project's data and contract; every amount was checked against VO-AI's figures. Check before relying on it.",
+    "copilot.ai.refused.amount-check": "The AI's answer quoted an amount that is not in the project's data, so it is not shown. Ask in another way, or ask one of the questions above.",
+    "copilot.ai.refused.format": "The AI could not give a usable answer to that. Ask in another way.",
+    "copilot.ai.refused.guest-limit": "Today's limit for the demo has been reached: sign in with a team account, or try again tomorrow."
 };
 
 var I18N_ZH = {
@@ -2968,7 +2976,15 @@ var I18N_ZH = {
     "copilot.exp.source": "{project}（{year}）：{desc}，{rate}/{unit}",
     "copilot.exp.intro": "本项目的新单价项目与过往项目单价比较：",
     "copilot.exp.row": "{desc}：本项目单价 {used}；过往项目 {rate}/{unit}（{n} 笔中位数；{low} 至 {high}）。",
-    "copilot.exp.rowNone": "{desc}：过往项目没有可比项目，需报价或组价。"
+    "copilot.exp.rowNone": "{desc}：过往项目没有可比项目，需报价或组价。",
+    "copilot.reask": "答非所问？改问 AI →",
+    "copilot.noteAi": "上方七个问题即时由登记册作答。其他问题交给 AI，只依据本项目数据与合同作答：所给的每个金额都会与数据核对。",
+    "copilot.ai.title": "AI 回答",
+    "copilot.ai.thinking": "AI 正在阅读项目数据与合同……（约 10 秒）",
+    "copilot.ai.source": "由 AI 依据本项目数据与合同作答；所有金额已与 VO-AI 的数据核对。依据前请再核实。",
+    "copilot.ai.refused.amount-check": "AI 的回答出现项目数据中没有的金额，因此不予显示。请换个方式提问，或点选上方问题。",
+    "copilot.ai.refused.format": "AI 无法就此给出可用的回答，请换个方式提问。",
+    "copilot.ai.refused.guest-limit": "今日演示次数已用完：请以团队账号登录，或明天再试。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

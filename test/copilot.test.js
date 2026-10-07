@@ -20,6 +20,9 @@ test("a question is matched to what the project's data can answer, in English or
     Object.keys(cases).forEach(q => assert.strictEqual(cp.copilotIntent(q), cases[q], q));
     assert.strictEqual(cp.copilotIntent("What does clause 11.1 say about omissions?"), null, "a contract question");
     assert.strictEqual(cp.copilotIntent("  "), null);
+    assert.strictEqual(cp.copilotIntent("Summarise VO-003 for me."), null, "one VO: the AI");
+    assert.strictEqual(cp.copilotIntent("VO-001 的单价有问题吗？"), null);
+    assert.strictEqual(cp.copilotIntent("Which VO has the largest reduction from what was claimed?"), null, "\"claimed\" is not a claims question");
 });
 
 test("overview: VOs by stage, cost and what waits for this role", () => {
@@ -61,11 +64,30 @@ test("cost: forecast, certified, SPI and CPI from the cost overview", () => {
     assert.ok(a.lines.some(l => /CPI 0\.96/.test(l.text)));
 });
 
-test("a contract question is sent with the project's figures as the only amounts", () => {
-    const f = cp.projectFacts(db().projects[0], "2026-09-12");
-    assert.strictEqual(f.contract_sum, "RM 12,500,000.00");
-    assert.strictEqual(f.variation_orders.length, 3);
-    assert.strictEqual(f.variation_orders[0].vo, "VO-001");
+test("the AI mode gets the whole project: cost, earned value, and every VO with its figures", () => {
+    const d = cp.projectData(db().projects[0], "2026-09-12", "consultant");
+    assert.strictEqual(d.cost["contract sum"], "RM 12,500,000.00");
+    assert.strictEqual(d["variation orders"].length, 3);
+    const v1 = d["variation orders"][0];
+    assert.strictEqual(v1.VO, "VO-001");
+    assert.strictEqual(v1["final price approved by the client"], "RM 55,856.00");
+    assert.strictEqual(v1["contract agent verdict"], "claimable");
+    assert.ok(v1.measurement[0]["rate claimed"].startsWith("RM "));
+    assert.strictEqual(d["earned value"].CPI, 0.96);
+    assert.ok(!/_/.test(Object.keys(v1).join("")), "keys in plain words");
+    assert.ok(JSON.stringify(d).length < 60000, "within the server's limit");
+});
+
+test("an AI answer shows its text and the clauses it cites; a refused one says why", () => {
+    let html = cp.renderAiAnswer({ answer: "VO-002 is waiting for the consultant QS (RM 13,804.00).", citations: [] }, "q");
+    assert.match(html, /<span class="copilot-vo">VO-002<\/span>/);
+    assert.match(html, /every amount was checked/);
+    html = cp.renderAiAnswer({ answer: null, reason: "amount-check" }, "q");
+    assert.match(html, /not in the project&#39;s data/);
+    assert.match(cp.renderAiAnswer({ loading: true }, "q"), /about 10 seconds/);
+    const d = cp.answerFromData("waiting", ctx());
+    assert.match(cp.renderDataAnswer(d, "q", { ai: true }), /class="link-button copilot-reask"/);
+    assert.doesNotMatch(cp.renderDataAnswer(d, "q", {}), /copilot-reask/);
 });
 
 test("the page offers the seven questions and shows answers newest first", () => {

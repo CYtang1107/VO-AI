@@ -3500,3 +3500,5 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .copilot-lines { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.5; }
 .copilot-vo { font-weight: 700; font-family: ui-monospace, Menlo, Consolas, monospace; }
 .copilot-source { font-size: 12px; color: var(--ink-2); margin: 8px 0 0; }
+.copilot-reask { margin-top: 6px; font-size: 12px; }
+.copilot-ai { border-color: var(--accent); }
