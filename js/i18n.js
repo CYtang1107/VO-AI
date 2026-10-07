@@ -1396,7 +1396,16 @@ var I18N_EN = {
     "costplan.month.9": "Sep",
     "costplan.month.10": "Oct",
     "costplan.month.11": "Nov",
-    "costplan.month.12": "Dec"
+    "costplan.month.12": "Dec",
+    "bqimport.detect.header": "column {col}: headed \"{title}\" — read as {role}.",
+    "bqimport.role.rate": "Rate",
+    "bqimport.role.qty": "Qty",
+    "bqimport.role.amount": "Amount",
+    "bqimport.role.unit": "Unit",
+    "bqimport.role.description": "Description",
+    "bqimport.role.code": "Code",
+    "bqimport.detect.swapped": "columns {rate} and {qty}: Qty × Rate = Amount reads either way, so the one written with decimals (column {rate}) is read as Rate and column {qty} as Qty.",
+    "bqimport.detect.ambiguous": "columns {rate} and {qty} could each be the Rate (Qty × Rate = Amount reads either way, and neither has a title): check that column {rate} really holds the rates before confirming."
 };
 
 var I18N_ZH = {
@@ -2752,7 +2761,16 @@ var I18N_ZH = {
     "costplan.month.9": "9月",
     "costplan.month.10": "10月",
     "costplan.month.11": "11月",
-    "costplan.month.12": "12月"
+    "costplan.month.12": "12月",
+    "bqimport.detect.header": "第 {col} 栏：标题为「{title}」——判读为{role}。",
+    "bqimport.role.rate": "单价",
+    "bqimport.role.qty": "数量",
+    "bqimport.role.amount": "金额",
+    "bqimport.role.unit": "单位",
+    "bqimport.role.description": "说明",
+    "bqimport.role.code": "编号",
+    "bqimport.detect.swapped": "第 {rate} 与第 {qty} 栏：数量 × 单价 = 金额 两种读法都成立，因此以写有小数的第 {rate} 栏为单价，第 {qty} 栏为数量。",
+    "bqimport.detect.ambiguous": "第 {rate} 与第 {qty} 栏都可能是单价（数量 × 单价 = 金额 两种读法都成立，且没有栏位标题）：确认前请核对第 {rate} 栏确实是单价。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract
