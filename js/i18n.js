@@ -1445,7 +1445,8 @@ var I18N_EN = {
     "evm.etcEntered": "the new estimate entered",
     "evm.needEtc": "Enter the new estimate to complete the remaining work.",
     "evm.onBudget": "on budget",
-    "evm.onSchedule": "on schedule"
+    "evm.onSchedule": "on schedule",
+    "evm.advanced": "Advanced: how EAC is forecast — {method}"
 };
 
 var I18N_ZH = {
@@ -2850,7 +2851,8 @@ var I18N_ZH = {
     "evm.etcEntered": "输入的新估算",
     "evm.needEtc": "请输入剩余工程的新估算。",
     "evm.onBudget": "符合预算",
-    "evm.onSchedule": "符合进度"
+    "evm.onSchedule": "符合进度",
+    "evm.advanced": "进阶：完工估算 (EAC) 的依据 — {method}"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

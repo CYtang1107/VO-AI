@@ -145,3 +145,8 @@ test("a variance of exactly zero reads as on budget, not under budget", () => {
     assert.doesNotMatch(html, /expected to finish under budget/);
 });
 
+test("the EAC choice sits in a folded Advanced section that names the current choice", () => {
+    const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), { editable: true });
+    assert.match(html, /<details class="fold" data-fold="evm-advanced"><summary><span class="fold-summary">Advanced: how EAC is forecast — Cost performance so far continues \(BAC \/ CPI\)/);
+    assert.match(html, /data-fold="evm-advanced"[\s\S]*id="evmMethod"/);
+});

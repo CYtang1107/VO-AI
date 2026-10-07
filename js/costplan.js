@@ -275,13 +275,15 @@ function renderEarnedValue(e, opts) {
         row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc)) +
         row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : e.vac === 0 ? level("evm.onBudget") : verdict(e.vac > 0, "evm.underrun", "evm.overrun")) +
         "</tbody></table></div>" +
+        /* the EAC situation: an advanced choice, folded away (BAC / CPI by default) */
+        fold("evm-advanced", escapeHtml(t("evm.advanced", { method: t("evm.method." + e.method) })),
         '<div class="evm-method"><label for="evmMethod">' + escapeHtml(t("evm.methodLabel")) + "</label>" +
             '<select id="evmMethod"' + (editable ? "" : " disabled") + ">" + EAC_METHODS.map(m =>
                 '<option value="' + m + '"' + (m === e.method ? " selected" : "") + ">" + escapeHtml(t("evm.method." + m)) + "</option>").join("") + "</select>" +
             (e.method === "new" ? '<label for="evmEtc">' + escapeHtml(t("evm.etcLabel")) + '</label><input type="number" min="0" step="0.01" id="evmEtc" value="' +
                 (e.etc === null ? "" : e.etc) + '"' + (editable ? "" : " disabled") + ">" : "") +
         "</div>" +
-        '<p class="assistant-note">' + escapeHtml(t("evm.methodNote." + e.method)) + "</p>" +
+        '<p class="assistant-note">' + escapeHtml(t("evm.methodNote." + e.method)) + "</p>") +
         (e.missingAc && e.method !== "plan" ? '<p class="assistant-note">' + escapeHtml(t("evm.needAc")) + "</p>" : "") +
         (e.missingEtc ? '<p class="assistant-note">' + escapeHtml(t("evm.needEtc")) + "</p>" : "") +
         '<p class="assistant-note">' + escapeHtml(t("evm.note")) + "</p>";
