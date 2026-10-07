@@ -28,6 +28,13 @@ Branch `claude/eager-ramanujan-6i2lox`.
 - **Deleting a draft VO (7 Oct):** `supabase/migrations/0002_delete_vo.sql` (`delete_vo`), applied through the
   Management API like 0001. Only the project's contractor or consultant, only a VO not yet submitted; checked live
   (client refused, submitted VO refused, anonymous refused).
+- **Contract administrator role (7 Oct):** the Architect / Engineer / SO (`administrator`) confirms the instruction
+  behind a submitted VO, then certifies the value the consultant QS approved: contractor → administrator → QS →
+  administrator → client (PAM 2018 cl. 11). `supabase/migrations/0003_contract_administrator.sql` (applied) adds the
+  role, its column ownership, and lets the contractor's submission set evaluateStatus to Pending. It also fixes a bug
+  from 0001: `save_vo` is an upsert, so the insert check refused the client (and anyone who may not create a VO)
+  even when saving an existing VO; the client's certification never saved under a team account. Demo account
+  `administrator@vo-ai.demo` (Lim Kok Wai). The full five-step flow was checked on the live database.
 - **Sign-up:** open. Email confirmation is off (no mail server; the built-in mailer only reaches the project's own
   team, 2 emails an hour), and the site URL is GitHub Pages. A new account sees nothing until a consultant adds it.
   Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,

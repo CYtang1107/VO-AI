@@ -26,6 +26,34 @@ function optionDisplayText(value) {
     return value;
 }
 
+/* The contract administrator's panel (the Architect, Engineer or SO):
+   ① confirm the instruction the contractor's claim rests on, or return
+   it; ② once the consultant QS has approved the value, certify it.
+   Each step names what it is checking against. */
+function renderAdministratorPanel(vo, role) {
+    const ref = [optionDisplayText(vo.typeOfInstruction || ""), vo.instructionNo, vo.dateIssued ? prettyDate(vo.dateIssued) : ""]
+        .filter(Boolean).join(" · ");
+    const status = vo.instructionStatus || (vo.submitted ? "Confirmed" : "Pending");
+    const certStatus = vo.caCertifiedStatus || (vo.evaluateStatus === "Approved" ? "Certified" : "Pending");
+    return panelLockNote(vo, role, "administrator") +
+        '<h4 class="ca-step">' + escapeHtml(t("vo.ca.step1")) + "</h4>" +
+        '<p class="ca-ref">' + escapeHtml(t("vo.ca.instructionRef", { ref: ref || t("vo.ca.noRef") })) + "</p>" +
+        (vo.submitted || status !== "Returned" ? "" : '<p class="ca-note">' + escapeHtml(t("vo.ca.returnedWaiting")) + "</p>") +
+        field({ field: "instructionStatus", label: t("vo.field.instructionStatus"), type: "select",
+                options: ["Pending", "Confirmed", "Returned"], value: status, vo: vo, role: role,
+                hint: t("vo.field.instructionStatusHint") }) +
+        field({ field: "instructionNote", label: t("vo.field.instructionNote"), type: "textarea",
+                value: seedText(vo.instructionNote), vo: vo, role: role }) +
+        '<h4 class="ca-step">' + escapeHtml(t("vo.ca.step2")) + "</h4>" +
+        '<p class="ca-ref">' + escapeHtml(vo.evaluateStatus === "Approved"
+            ? t("vo.ca.assessedValue", { amount: rm(assessedTotal(vo)) })
+            : t("vo.ca.waitingForQs")) + "</p>" +
+        field({ field: "caCertifiedStatus", label: t("vo.field.caCertifiedStatus"), type: "select",
+                options: ["Pending", "Certified"], value: certStatus, vo: vo, role: role }) +
+        field({ field: "caRemark", label: t("vo.field.caRemark"), type: "textarea",
+                value: seedText(vo.caRemark), vo: vo, role: role });
+}
+
 /* Why the signed-in role's own panel is locked at this stage (e.g.
    "waiting for the consultant's approval"), said once at the top of
    that panel rather than under every field. Another role's panel gets
@@ -607,6 +635,12 @@ function translateHistoryAction(action) {
     let m;
     if (a === "VO created") return t("history.voCreated");
     if (a === "Submitted to consultant") return t("history.submitted");
+    if (a === "Submitted to contract administrator") return t("history.submittedToCa");
+    if (a === "Contract administrator certified the assessed value") return t("history.caCertified");
+    if ((m = a.match(/^Instruction confirmed — (.+)$/))) return t("history.instructionConfirmed", { ref: m[1] });
+    if (a === "Instruction confirmed") return t("history.instructionConfirmedNoRef");
+    if ((m = a.match(/^Instruction returned to contractor: (.+)$/))) return t("history.instructionReturnedWithNote", { note: m[1] });
+    if (a === "Instruction returned to contractor") return t("history.instructionReturned");
     if (a === "Created from AI Analysis") return t("history.createdFromAnalysis");
     if (a === "Requested further information") return t("history.infoRequested");
     if ((m = a.match(/^Requested further information: (.+)$/))) {
@@ -664,7 +698,7 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
         renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory, translateHistoryAction,
-        renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote
+        renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel
     };
 }
 
@@ -715,7 +749,13 @@ if (typeof document !== "undefined") {
                name each one. */
             document.getElementById("voStatus").innerHTML =
                 '<span class="status-pair"><span class="status-pair-label">' +
+                    escapeHtml(t("vo.field.instructionStatus")) + "</span>" +
+                    statusPill(v.instructionStatus || (v.submitted ? "Confirmed" : "Pending")) + "</span>" +
+                '<span class="status-pair"><span class="status-pair-label">' +
                     escapeHtml(t("vo.field.evaluateStatus")) + "</span>" + statusPill(v.evaluateStatus) + "</span>" +
+                '<span class="status-pair"><span class="status-pair-label">' +
+                    escapeHtml(t("vo.field.caCertifiedStatus")) + "</span>" +
+                    statusPill(v.caCertifiedStatus || (v.evaluateStatus === "Approved" ? "Certified" : "Pending")) + "</span>" +
                 '<span class="status-pair"><span class="status-pair-label">' +
                     escapeHtml(t("vo.field.certifiedStatus")) + "</span>" + statusPill(v.certifiedStatus) + "</span>";
 
@@ -738,6 +778,8 @@ if (typeof document !== "undefined") {
                 renderDocList(v, "supportingDocs", t("documents.field.supportingDocs"), role) +
                 renderDocList(v, "contractDocs", t("documents.field.contractDocs"), role,
                               t("vo.docList.contractIntro"));
+
+            document.getElementById("administratorPanel").innerHTML = renderAdministratorPanel(v, role);
 
             document.getElementById("consultantPanel").innerHTML =
                 panelLockNote(v, role, "consultant") +
@@ -848,13 +890,29 @@ if (typeof document !== "undefined") {
                 const el = e.target.closest("[data-field]");
                 if (!el || el.disabled) return;
                 const name = el.dataset.field;
+                let note = "";
                 updateVO(project.id, voId, v => {
                     v[name] = el.type === "number"
                         ? (el.value === "" ? (name === "finalPrice" ? null : 0) : Number(el.value))
                         : el.value;
-                    logHistory(v, session, "Updated " + name);
+                    /* the contract administrator's two steps say what they did */
+                    if (name === "instructionStatus" && el.value === "Confirmed") {
+                        logHistory(v, session, v.instructionNo ? "Instruction confirmed — " + v.instructionNo : "Instruction confirmed");
+                        note = t("toast.instructionConfirmed");
+                    } else if (name === "instructionStatus" && el.value === "Returned") {
+                        /* back to the contractor, who corrects it and submits again */
+                        v.submitted = false;
+                        logHistory(v, session, v.instructionNote ? "Instruction returned to contractor: " + v.instructionNote
+                                                                 : "Instruction returned to contractor");
+                        note = t("toast.instructionReturned");
+                    } else if (name === "caCertifiedStatus" && el.value === "Certified") {
+                        logHistory(v, session, "Contract administrator certified the assessed value");
+                        note = t("toast.caCertified");
+                    } else {
+                        logHistory(v, session, "Updated " + name);
+                    }
                 });
-                toast(t("toast.saved"));
+                toast(note || t("toast.saved"));
                 draw();
             });
 
@@ -1041,9 +1099,9 @@ if (typeof document !== "undefined") {
             updateVO(project.id, voId, v => {
                 v.submitted = true;
                 v.evaluateStatus = "Pending";
-                logHistory(v, session, "Submitted to consultant");
+                logHistory(v, session, "Submitted to contract administrator");
             });
-            toast(t("toast.submittedToConsultant"));
+            toast(t("toast.submittedToCa"));
             draw();
         });
 

@@ -14,6 +14,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 const ROLE_LABEL = {
     contractor: "Contractor QS",
     consultant: "Consultant QS",
+    administrator: "Contract Administrator",
     client: "Client / Developer"
 };
 
@@ -43,6 +44,14 @@ var FIELD_OWNER = {
     infoRequestedAt: "consultant",
     infoRequestNote: "consultant",
 
+    /* contract administrator's columns (the Architect, Engineer or SO
+       named in the contract): confirms the instruction behind a submitted
+       VO, then certifies the value the consultant QS approved */
+    instructionStatus: "administrator",
+    instructionNote: "administrator",
+    caCertifiedStatus: "administrator",
+    caRemark: "administrator",
+
     /* client's columns */
     certifiedStatus: "client",
     finalPrice: "client",
@@ -50,6 +59,27 @@ var FIELD_OWNER = {
     clientInfoRequestedAt: "client",
     clientInfoRequestNote: "client"
 };
+
+/* The four steps of a variation under the contract (PAM 2018 cl. 11,
+   PWD 203A cl. 24): the contractor submits; the contract administrator
+   confirms it rests on a valid instruction; the consultant QS values it;
+   the contract administrator certifies the value; the client approves.
+   A VO saved before the contract administrator role existed has neither
+   field: a submitted one counts as confirmed, an approved one as
+   certified, so nothing that already moved on is held back. */
+function instructionConfirmed(vo) {
+    if (!vo) return false;
+    if (vo.instructionStatus === undefined || vo.instructionStatus === null) return vo.submitted === true;
+    return vo.instructionStatus === "Confirmed";
+}
+
+function caCertified(vo) {
+    if (!vo) return false;
+    if (vo.caCertifiedStatus === undefined || vo.caCertifiedStatus === null) return vo.evaluateStatus === "Approved";
+    return vo.caCertifiedStatus === "Certified";
+}
+
+var CA_INSTRUCTION_FIELDS = ["instructionStatus", "instructionNote"];
 
 function canEdit(field, vo, role) {
     if (FIELD_OWNER[field] !== role) return false;
@@ -59,11 +89,18 @@ function canEdit(field, vo, role) {
                vo.evaluateStatus === "Pending" ||
                vo.evaluateStatus === "Rejected";
     }
+    if (role === "administrator") {
+        /* confirms the instruction once submitted; certifies once the
+           consultant QS has approved the value */
+        return CA_INSTRUCTION_FIELDS.indexOf(field) !== -1
+            ? vo.submitted === true
+            : vo.evaluateStatus === "Approved";
+    }
     if (role === "consultant") {
-        return vo.submitted === true;
+        return vo.submitted === true && instructionConfirmed(vo);
     }
     if (role === "client") {
-        return vo.evaluateStatus === "Approved";
+        return vo.evaluateStatus === "Approved" && caCertified(vo);
     }
     return false;
 }
@@ -88,9 +125,12 @@ function lockReason(field, vo, role) {
         return t("lock.contractorLocked");
     }
     if (role === "consultant") {
-        return t("lock.consultantLocked");
+        return vo.submitted && !instructionConfirmed(vo) ? t("lock.consultantAwaitingCa") : t("lock.consultantLocked");
     }
-    return t("lock.clientLocked");
+    if (role === "administrator") {
+        return t("lock.administratorLocked");
+    }
+    return vo.evaluateStatus === "Approved" && !caCertified(vo) ? t("lock.clientAwaitingCa") : t("lock.clientLocked");
 }
 
 /* Each column's display name (a js/i18n.js key), for anything that names
@@ -108,7 +148,9 @@ var FIELD_LABEL_KEY = {
     finalPrice: "vo.field.finalPrice", clientRemark: "vo.field.clientRemark",
     measurement: "vo.field.measurement", infoRequestedAt: "vo.field.infoRequestedAt",
     clientInfoRequestedAt: "vo.field.clientInfoRequestedAt",
-    assessment: "vo.field.assessedMeasurement"
+    assessment: "vo.field.assessedMeasurement",
+    instructionStatus: "vo.field.instructionStatus", instructionNote: "vo.field.instructionNote",
+    caCertifiedStatus: "vo.field.caCertifiedStatus", caRemark: "vo.field.caRemark"
 };
 
 function fieldLabel(name) {
@@ -118,5 +160,5 @@ function fieldLabel(name) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        canDeleteVO, FIELD_OWNER, ROLE_LABEL, canEdit, lockReason, FIELD_LABEL_KEY, fieldLabel };
+        canDeleteVO, instructionConfirmed, caCertified, FIELD_OWNER, ROLE_LABEL, canEdit, lockReason, FIELD_LABEL_KEY, fieldLabel };
 }

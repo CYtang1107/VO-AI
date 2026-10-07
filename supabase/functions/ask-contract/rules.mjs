@@ -22,6 +22,10 @@ export const ROLE_FRAMING = {
         zh: "你是咨询核价员：帮助咨询工料测量师依照合同条文评估这项变更。",
         en: "You are the consultant's assessment agent: help the consultant quantity surveyor assess this variation against the contract."
     },
+    administrator: {
+        zh: "你是合约管理人助理：帮助建筑师、工程师或 SO 依照合同条文确认这项变更是否有有效的指示，并决定是否核证评估金额。",
+        en: "You are the contract administrator's agent: help the Architect, Engineer or SO confirm, against the contract, that this variation rests on a valid instruction, and decide whether to certify the assessed value."
+    },
     client: {
         zh: "你是业主核证员：帮助业主依照合同条文判断这项变更是否可以核证。",
         en: "You are the client's certification agent: help the client decide, against the contract, whether this variation can be certified."

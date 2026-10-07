@@ -23,9 +23,9 @@ if (typeof globalThis.localStorage === "undefined" ||
     };
 }
 
-test("there are exactly three roles", () => {
+test("there are exactly four roles", () => {
     assert.deepStrictEqual(Object.keys(ROLES).sort(),
-        ["client", "consultant", "contractor"]);
+        ["administrator", "client", "consultant", "contractor"]);
     for (const r of Object.values(ROLES)) {
         assert.ok(r.id && r.label && r.blurb && r.icon && r.colour);
     }

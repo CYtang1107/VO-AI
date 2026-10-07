@@ -59,7 +59,7 @@ function askContractAvailable() {
 
 /* Three suggested questions per agent. */
 function contractQuestions(role) {
-    const r = ["contractor", "consultant", "client"].includes(role) ? role : "consultant";
+    const r = ["contractor", "administrator", "consultant", "client"].includes(role) ? role : "consultant";
     return [1, 2, 3].map(n => t("ask.q." + r + "." + n));
 }
 
@@ -105,7 +105,7 @@ function renderContractAnswer(state) {
 }
 
 function renderContractPane(role, state) {
-    const r = ["contractor", "consultant", "client"].includes(role) ? role : "consultant";
+    const r = ["contractor", "administrator", "consultant", "client"].includes(role) ? role : "consultant";
     return '' +
         '<p class="ask-agent">' + escapeHtml(t("ask.agent." + r)) + "</p>" +
         '<p class="assistant-note">' + escapeHtml(t("ask.note")) + "</p>" +
