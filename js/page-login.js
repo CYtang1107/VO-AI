@@ -173,15 +173,16 @@
 
     document.getElementById("signInBtn").addEventListener("click", () => { attemptSignIn(); });
 
-    /* 「评审一键体验」: straight into the demo project as the consultant QS
-       (the role that sees the most), no name or role to pick. A device
+    /* 「评审一键体验」: straight into the demo project as the contractor QS
+       (the party that raises the VO, where the workflow starts), no name or
+       role to pick. A device
        passcode, when set, still applies: then sign in as usual. */
     const judgeBtn = document.getElementById("judgeBtn");
     if (judgeBtn) judgeBtn.addEventListener("click", () => {
         if (hasPasscode()) { toast(t("login.judgePasscode"), "warn"); passcodeInput.focus(); return; }
         const db = loadDB();
         const demo = db.projects.find(p => p.id === "PRJ-CADANGAN");
-        setSession({ name: t("login.judgeName"), role: "consultant", projectId: demo ? demo.id : null });
+        setSession({ name: t("login.judgeName"), role: "contractor", projectId: demo ? demo.id : null });
         window.location.href = demo ? "dashboard.html" : "projects.html";
     });
 
