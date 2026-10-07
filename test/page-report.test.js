@@ -188,7 +188,7 @@ test("every role's report keeps the professional-review disclaimer and signature
         const html = renderReport(vo1, project, role);
         assert.match(html, /Professional Review Required/);
         assert.match(html, /Contractor QS/);
-        assert.match(html, /Contract Administrator \(Architect \/ Engineer \/ SO\)/);
+        assert.match(html, /Design Team \(Architect \/ Engineer \/ SO\)/);
         assert.match(html, /Consultant QS/);
         assert.match(html, /Client \/ Developer/);
     });
@@ -196,14 +196,14 @@ test("every role's report keeps the professional-review disclaimer and signature
 
 test("the report's status shows the contract administrator's two steps", () => {
     const html = renderReport(Object.assign({}, vo1, { instructionStatus: "Confirmed", caCertifiedStatus: "Pending" }), project, "consultant");
-    assert.match(html, /Instruction \(contract administrator\): <strong>Confirmed<\/strong>/);
-    assert.match(html, /Contract administrator's certification: <strong>Pending<\/strong>/);
+    assert.match(html, /Instruction \(design team\): <strong>Confirmed<\/strong>/);
+    assert.match(html, /Design team's certification: <strong>Pending<\/strong>/);
     /* a VO saved before the role existed: submitted reads as confirmed */
     const legacy = Object.assign({}, vo1, { submitted: true, evaluateStatus: "Approved" });
     delete legacy.instructionStatus; delete legacy.caCertifiedStatus;
     const old = renderReport(legacy, project, "client");
-    assert.match(old, /Instruction \(contract administrator\): <strong>Confirmed<\/strong>/);
-    assert.match(old, /Contract administrator's certification: <strong>Certified<\/strong>/);
+    assert.match(old, /Instruction \(design team\): <strong>Confirmed<\/strong>/);
+    assert.match(old, /Design team's certification: <strong>Certified<\/strong>/);
 });
 
 /* -----------------------------------------------------------

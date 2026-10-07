@@ -14,7 +14,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 const ROLE_LABEL = {
     contractor: "Contractor QS",
     consultant: "Consultant QS",
-    administrator: "Contract Administrator",
+    administrator: "Design Team",
     client: "Client / Developer"
 };
 

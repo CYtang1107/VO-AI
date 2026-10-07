@@ -30,7 +30,7 @@ var ROLES = {
     },
     administrator: {
         id: "administrator",
-        label: "Contract Administrator",
+        label: "Design Team",
         blurb: "The Architect, Engineer or SO: confirm each VO's instruction, then certify the assessed value.",
         icon: "◆",
         colour: "#0e7490"
