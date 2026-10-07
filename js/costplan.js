@@ -277,20 +277,28 @@ function renderEarnedValue(e, opts) {
     const level = key => '<span class="evm-flag evm-level">= ' + escapeHtml(t(key)) + "</span>";
     const row = (abbr, formula, value, flag) => "<tr><th>" + escapeHtml(t("evm.name." + abbr)) + ' <abbr>' + abbr + "</abbr></th>" +
         '<td class="evm-formula">' + escapeHtml(formula) + '</td><td class="num">' + value + "</td><td>" + (flag || "") + "</td></tr>";
+    const group = key => '<tr class="evm-group"><th colspan="4">' + escapeHtml(t("evm.group." + key)) + "</th></tr>";
+    const table = rows => '<div class="table-scroll"><table class="evm-table"><tbody>' + rows + "</tbody></table></div>";
+    /* shown: the baseline, the three variances and the two estimates;
+       the figures they come from (PV, EV, AC) and the indices (SPI, CPI)
+       are one click away */
     return '<h4 class="evm-title">' + escapeHtml(t("evm.title")) + "</h4>" +
-        '<div class="table-scroll"><table class="evm-table"><tbody>' +
-        row("BAC", t("evm.f.BAC"), rm(e.bac)) +
-        row("PV", t("evm.f.PV"), money(e.pv)) +
-        row("EV", t("evm.f.EV", { pct: e.pctComplete.toFixed(1) }), rm(e.ev)) +
-        row("AC", t("evm.f.AC"), money(e.ac)) +
-        row("SV", "EV − PV", money(e.sv), e.sv === null ? "" : e.sv === 0 ? level("evm.onSchedule") : verdict(e.sv > 0, "evm.ahead", "evm.behind")) +
-        row("SPI", "EV / PV", e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? "" : e.spi === 1 ? level("evm.onSchedule") : verdict(e.spi > 1, "evm.ahead", "evm.behind")) +
-        row("CV", "EV − AC", money(e.cv), e.cv === null ? "" : e.cv === 0 ? level("evm.onBudget") : verdict(e.cv > 0, "evm.under", "evm.over")) +
-        row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : e.cpi === 1 ? level("evm.onBudget") : verdict(e.cpi > 1, "evm.under", "evm.over")) +
-        row("EAC", f[0], money(e.eac)) +
-        row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc)) +
-        row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : e.vac === 0 ? level("evm.onBudget") : verdict(e.vac > 0, "evm.underrun", "evm.overrun")) +
-        "</tbody></table></div>" +
+        table(
+            group("baseline") +
+            row("BAC", t("evm.f.BAC"), rm(e.bac)) +
+            group("variance") +
+            row("CV", "EV − AC", money(e.cv), e.cv === null ? "" : e.cv === 0 ? level("evm.onBudget") : verdict(e.cv > 0, "evm.under", "evm.over")) +
+            row("SV", "EV − PV", money(e.sv), e.sv === null ? "" : e.sv === 0 ? level("evm.onSchedule") : verdict(e.sv > 0, "evm.ahead", "evm.behind")) +
+            row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : e.vac === 0 ? level("evm.onBudget") : verdict(e.vac > 0, "evm.underrun", "evm.overrun")) +
+            group("estimate") +
+            row("EAC", f[0], money(e.eac)) +
+            row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc))) +
+        fold("evm-detail", escapeHtml(t("evm.detail")), table(
+            row("PV", t("evm.f.PV"), money(e.pv)) +
+            row("EV", t("evm.f.EV", { pct: e.pctComplete.toFixed(1) }), rm(e.ev)) +
+            row("AC", t("evm.f.AC"), money(e.ac)) +
+            row("SPI", "EV / PV", e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? "" : e.spi === 1 ? level("evm.onSchedule") : verdict(e.spi > 1, "evm.ahead", "evm.behind")) +
+            row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : e.cpi === 1 ? level("evm.onBudget") : verdict(e.cpi > 1, "evm.under", "evm.over")))) +
         /* the EAC situation: an advanced choice, folded away (BAC / CPI by default) */
         fold("evm-advanced", escapeHtml(t("evm.advanced", { method: t("evm.method." + e.method) })),
         '<div class="evm-method"><label for="evmMethod">' + escapeHtml(t("evm.methodLabel")) + "</label>" +
