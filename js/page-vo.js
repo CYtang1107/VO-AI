@@ -751,6 +751,15 @@ if (typeof document !== "undefined") {
 
         function draw() { keepFolds(drawNow); }
 
+        /* A change that may move the VO to its next step: with a team
+           account, whoever's turn it now is gets an email (js/notify.js). */
+        function voNow() { return getProject(project.id).vos.find(x => x.id === voId); }
+        function withStepNotice(change) {
+            const before = JSON.parse(JSON.stringify(voNow()));
+            change();
+            if (typeof announceStep === "function") announceStep(project.id, before, voNow());
+        }
+
         function drawNow() {
             const fresh = getProject(project.id);
             const v = fresh.vos.find(x => x.id === voId);
@@ -908,7 +917,7 @@ if (typeof document !== "undefined") {
                 if (!el || el.disabled) return;
                 const name = el.dataset.field;
                 let note = "";
-                updateVO(project.id, voId, v => {
+                withStepNotice(() => updateVO(project.id, voId, v => {
                     v[name] = el.type === "number"
                         ? (el.value === "" ? (name === "finalPrice" ? null : 0) : Number(el.value))
                         : el.value;
@@ -928,7 +937,7 @@ if (typeof document !== "undefined") {
                     } else {
                         logHistory(v, session, "Updated " + name);
                     }
-                });
+                }));
                 toast(note || t("toast.saved"));
                 draw();
             });
@@ -1093,12 +1102,12 @@ if (typeof document !== "undefined") {
             const note = document.getElementById("instrNote").value.trim();
             const problem = instructionProblem(fresh, fresh.vos.find(x => x.id === voId), kind, no);
             if (problem) { toast(problem, "error"); return; }
-            updateVO(project.id, voId, v => {
+            withStepNotice(() => updateVO(project.id, voId, v => {
                 v.issuedInstruction = { kind: kind, no: no, date: today(), by: session.name, note: note };
                 v.instructionStatus = "Confirmed";
                 if (note && !v.instructionNote) v.instructionNote = note;
                 logHistory(v, session, "Instruction issued — " + no);
-            });
+            }));
             toast(t("instr.issuedToast", { no: no }));
             draw();
         });
@@ -1140,13 +1149,13 @@ if (typeof document !== "undefined") {
             const reasons = state => check.checks.filter(c => c.state === state).map(c => c.reason).join("\n");
             if (check.verdict === "notClaimable" && !window.confirm(t("claim.confirmSubmit", { reason: reasons("fail") }))) return;
             if (check.verdict === "needsInfo" && !window.confirm(t("claim.confirmNeedsInfo", { reason: reasons("missing") }))) return;
-            updateVO(project.id, voId, v => {
+            withStepNotice(() => updateVO(project.id, voId, v => {
                 v.submitted = true;
                 v.evaluateStatus = "Pending";
                 v.claimCheck = { verdict: check.verdict, at: today(), form: check.form };
                 logHistory(v, session, "Contract agent: " + check.verdict);
                 logHistory(v, session, "Submitted to contract administrator");
-            });
+            }));
             toast(t("toast.submittedToCa"));
             draw();
         });

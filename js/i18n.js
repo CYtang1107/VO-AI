@@ -1201,7 +1201,28 @@ var I18N_EN = {
     "instr.issuerEI": "Engineer",
     "instr.received": "Received by the Contractor",
     "history.instructionIssued": "Instruction issued — {no}",
-    "report.mode.instruction": "Instruction (AI / EI)"
+    "report.mode.instruction": "Instruction (AI / EI)",
+    "notify.title": "Waiting for you",
+    "notify.bellLabel": "{n} VO(s) waiting for you",
+    "notify.none": "Nothing is waiting for you.",
+    "notify.popupTitle": "{n} new for you",
+    "notify.close": "Close",
+    "notify.desktopOn": "Turn on desktop notifications",
+    "notify.footDemo": "Demo: switch role in the sidebar to see what reaches the next person.",
+    "notify.footCloud": "Changes by others arrive live; with email set up, each step is also emailed to whoever's turn it is.",
+    "notify.verdict": " (contract agent: {verdict})",
+    "notify.step.returned": "Returned",
+    "notify.step.rejected": "Rejected",
+    "notify.step.issue": "Issue instruction",
+    "notify.step.value": "Value it",
+    "notify.step.certify": "Certify",
+    "notify.step.approve": "Approve",
+    "notify.msg.returned": "{no} was returned by the design team: correct it and submit again.",
+    "notify.msg.rejected": "{no} was rejected by the consultant QS: see the remark, correct and resubmit.",
+    "notify.msg.issue": "{no} was submitted by the contractor{verdict}: issue the AI / EI, or return it.",
+    "notify.msg.value": "{no}: instruction {ref} issued. Measure and value it (cost planning).",
+    "notify.msg.certify": "{no} approved by the consultant QS at {amount}: certify it.",
+    "notify.msg.approve": "{no} certified by the design team at {amount}: approve it for payment."
 };
 
 var I18N_ZH = {
@@ -2362,7 +2383,28 @@ var I18N_ZH = {
     "instr.issuerEI": "工程师",
     "instr.received": "承包商签收",
     "history.instructionIssued": "已发出指示 — {no}",
-    "report.mode.instruction": "指示 (AI / EI)"
+    "report.mode.instruction": "指示 (AI / EI)",
+    "notify.title": "待您处理",
+    "notify.bellLabel": "{n} 份变更令待您处理",
+    "notify.none": "目前没有待您处理的变更令。",
+    "notify.popupTitle": "{n} 项新通知",
+    "notify.close": "关闭",
+    "notify.desktopOn": "开启桌面通知",
+    "notify.footDemo": "演示：在侧边栏切换角色，即可看到下一位收到的通知。",
+    "notify.footCloud": "其他人的更改会即时送达；设置电子邮件后，每一步也会发邮件给下一位处理人。",
+    "notify.verdict": "（合同智能体：{verdict}）",
+    "notify.step.returned": "被退回",
+    "notify.step.rejected": "被拒绝",
+    "notify.step.issue": "发出指示",
+    "notify.step.value": "估价",
+    "notify.step.certify": "核证",
+    "notify.step.approve": "批准",
+    "notify.msg.returned": "{no} 被设计团队退回：请修改后重新提交。",
+    "notify.msg.rejected": "{no} 被咨询工料测量师拒绝：请查看备注，修改后重新提交。",
+    "notify.msg.issue": "承包商已提交 {no}{verdict}：请发出 AI / EI，或退回。",
+    "notify.msg.value": "{no}：已发出指示 {ref}。请计量估价（成本规划）。",
+    "notify.msg.certify": "{no} 已由咨询工料测量师按 {amount} 批准：请核证。",
+    "notify.msg.approve": "{no} 已由设计团队按 {amount} 核证：请批准付款。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

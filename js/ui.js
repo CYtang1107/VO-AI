@@ -373,6 +373,9 @@ function mountChrome(active, title, crumb, opts) {
        the dynamic render functions above and in each page-*.js. */
     applyI18n(document);
 
+    /* what is waiting for this role (js/notify.js) */
+    if (typeof mountNotifications === "function") mountNotifications(ctx);
+
     return ctx;
 }
 
