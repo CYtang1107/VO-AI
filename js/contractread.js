@@ -20,7 +20,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { bqReadZipEntries, bqFindEntry, bqExtractEntryBytes } = require("./bqimport.js");
     var { t } = require("./i18n.js");
-    var { escapeHtml, fold } = require("./ui.js");
+    var { escapeHtml, fold, seedText, originalText } = require("./ui.js");
 }
 
 /* ---------------- 1. text out of the file ---------------- */
@@ -667,13 +667,16 @@ function renderContractBlock(c, opts) {
         return '<div class="contract-clause">' +
             '<div class="contract-clause-head"><span class="contract-topic">' + escapeHtml(labels.join(" · ")) + "</span>" +
             "<strong>" + escapeHtml(t("contract.clauseRef", { no: tp.clause.no })) +
-            (tp.clause.title ? " " + escapeHtml(tp.clause.title) : "") + "</strong></div>" +
-            "<blockquote>" + escapeHtml(clauseExcerpt(tp.clause, 360)) + "</blockquote></div>";
+            (tp.clause.title ? " " + escapeHtml(seedText(tp.clause.title)) : "") + "</strong></div>" +
+            /* in Chinese: the translated wording, the English one click away */
+            (seedText(tp.clause.text) !== tp.clause.text
+                ? "<blockquote>" + escapeHtml(seedText(tp.clause.text)) + "</blockquote>" + originalText([clauseExcerpt(tp.clause, 360)])
+                : "<blockquote>" + escapeHtml(clauseExcerpt(tp.clause, 360)) + "</blockquote>") + "</div>";
     }).join("");
     const periods = c.periods.length
         ? '<div class="contract-periods"><strong>' + escapeHtml(t("contract.periods")) + "</strong><ul>" +
             c.periods.map(p => "<li><b>" + escapeHtml(t("contract.days", { n: p.days })) + "</b> · " +
-                escapeHtml(t("contract.clauseRef", { no: p.clause })) + " — " + escapeHtml(p.sentence) + "</li>").join("") +
+                escapeHtml(t("contract.clauseRef", { no: p.clause })) + " — " + escapeHtml(seedText(p.sentence)) + "</li>").join("") +
           "</ul></div>"
         : "";
     const body = (topics || '<p class="rate-detail">' + escapeHtml(t("contract.noTopics")) + "</p>") +

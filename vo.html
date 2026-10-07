@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VO-AI | Variation Order</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="style.css?v=20261008o">
+    <link rel="stylesheet" href="style.css?v=20261009a">
 </head>
 <body>
 
@@ -25,41 +25,39 @@
         </div>
     </section>
 
-    <div class="card tone-blue wf-card" style="margin-bottom:20px">
+    <nav class="vo-tabs" id="voTabs" role="tablist" hidden></nav>
+    <div class="vo-panes" id="voPanes" data-fit data-fit-gap="24" data-fit-min="260">
+    <div class="card tone-blue wf-card" style="margin-bottom:20px" data-tab="step">
         <div class="card-header">
             <div>
                 <h3 data-i18n="wf.title">This variation, step by step</h3>
-                <p data-i18n="wf.sub">Where it is in the workflow, and what you do now</p>
             </div>
         </div>
         <div class="card-body" id="workflowBody"></div>
     </div>
 
-    <div class="card tone-amber" style="margin-bottom:20px" id="deadlinesCard">
+    <div class="card tone-amber" style="margin-bottom:20px" id="deadlinesCard" data-tab="contract">
         <div class="card-header">
             <div>
                 <h3 data-i18n="vo.deadlinesTitle">Contractual deadlines</h3>
-                <p data-i18n="vo.deadlinesSub">Evaluation, information request and response clocks for this VO</p>
             </div>
         </div>
         <div class="card-body" id="deadlinesPanel"></div>
     </div>
 
-    <div class="card tone-purple claim-card" style="margin-bottom:20px">
+    <div class="card tone-purple claim-card" style="margin-bottom:20px" data-tab="contract">
         <div class="card-header">
             <div>
                 <h3 data-i18n="claim.title">Contract agent: can this VO be claimed?</h3>
-                <p data-i18n="claim.sub">Checked against the contract's conditions for a variation, before it goes to the design team</p>
             </div>
         </div>
         <div class="card-body" id="claimCheckPanel"></div>
     </div>
 
-    <div class="card tone-blue" style="margin-bottom:20px" id="measurementCard">
+    <div class="card tone-blue" style="margin-bottom:20px" id="measurementCard" data-tab="measure">
         <div class="card-header">
             <div>
                 <h3 data-i18n="vo.measurementTitle">Measurement and rate cross-check</h3>
-                <p data-i18n="vo.measurementSub">Each rate is compared against the priced contract BQ</p>
             </div>
             <button class="secondary-button" id="addRowBtn" data-i18n="vo.addRow">+ Add row</button>
         </div>
@@ -77,72 +75,63 @@
         </div>
     </div>
 
-    <div class="card tone-green buildup-card" style="margin-bottom:20px" id="buildUpCard">
+    <div class="card tone-green buildup-card" style="margin-bottom:20px" id="buildUpCard" data-tab="measure">
         <div class="card-header">
             <div>
                 <h3 data-i18n="buildup.title">Cost planning: built-up rate</h3>
-                <p data-i18n="buildup.sub">Material + labour + plant + overhead and profit, for work with no comparable BQ item</p>
             </div>
         </div>
         <div class="card-body" id="buildUpPanel"></div>
     </div>
 
-    <section class="dashboard-grid" style="margin-bottom:20px" id="assessmentSection">
+    <section class="dashboard-grid" style="margin-bottom:20px" id="assessmentSection" data-tab="measure">
         <div class="card tone-purple">
-            <div class="card-header"><div><h3 data-i18n="vo.assessmentTitle">VO-AI assessment</h3>
-                <p data-i18n="vo.assessmentSub">Derived from the contract BQ and the measurement above</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.assessmentTitle">VO-AI assessment</h3></div></div>
             <div class="card-body" id="assessmentPanel"></div>
-        </div>
-        <div class="card tone-teal">
-            <div class="card-header"><div><h3 data-i18n="vo.activityTitle">Activity</h3><p data-i18n="vo.activitySub">Who changed what</p></div></div>
-            <div class="card-body" id="historyPanel"></div>
         </div>
     </section>
 
-    <div class="card tone-teal site-map-card" style="margin-bottom:20px">
+    <div class="card tone-teal site-map-card" style="margin-bottom:20px" data-tab="photos">
         <div class="card-header">
             <div>
                 <h3 data-i18n="map.voTitle">Where the photos were taken</h3>
-                <p data-i18n="map.voSub">This variation's site photos on the site map</p>
             </div>
         </div>
         <div class="card-body" id="voMapBody"></div>
     </div>
 
-    <div class="card tone-amber photo-check-card" style="margin-bottom:20px">
+    <div class="card tone-amber photo-check-card" style="margin-bottom:20px" data-tab="photos">
         <div class="card-header">
             <div>
                 <h3 data-i18n="photo.title">AI photo check</h3>
-                <p data-i18n="photo.sub">Does each site photo show what the description says?</p>
             </div>
         </div>
         <div class="card-body" id="photoCheckBody"></div>
     </div>
 
-    <section class="dashboard-grid role-panels" id="rolePanelsSection">
+    <section class="dashboard-grid role-panels" id="rolePanelsSection" hidden>
         <div class="card role-panel tone-amber" data-role="contractor">
-            <div class="card-header"><div><h3 data-i18n="vo.panel.contractor">▲ Contractor</h3>
-                <p data-i18n="vo.panel.contractorSub">Contractor QS columns</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.panel.contractor">▲ Contractor</h3></div></div>
             <div class="card-body" id="contractorPanel"></div>
         </div>
         <div class="card role-panel tone-teal" data-role="administrator">
-            <div class="card-header"><div><h3 data-i18n="vo.panel.administrator">◆ Design Team</h3>
-                <p data-i18n="vo.panel.administratorSub">Architect / Engineer / SO: confirms the instruction, certifies the value</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.panel.administrator">◆ Design Team</h3></div></div>
             <div class="card-body" id="administratorPanel"></div>
         </div>
         <div class="card role-panel tone-blue" data-role="consultant">
-            <div class="card-header"><div><h3 data-i18n="vo.panel.consultant">✦ Consultant</h3>
-                <p data-i18n="vo.panel.consultantSub">Consultant QS columns</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.panel.consultant">✦ Consultant</h3></div></div>
             <div class="card-body" id="consultantPanel"></div>
         </div>
         <div class="card role-panel tone-green" data-role="client">
-            <div class="card-header"><div><h3 data-i18n="vo.panel.client">◉ Client</h3>
-                <p data-i18n="vo.panel.clientSub">Client columns</p></div></div>
+            <div class="card-header"><div><h3 data-i18n="vo.panel.client">◉ Client</h3></div></div>
             <div class="card-body" id="clientPanel"></div>
         </div>
     </section>
-    <div class="role-panels-toggle">
-        <button type="button" class="secondary-button" id="toggleOtherPanels" aria-controls="rolePanelsSection" aria-expanded="false"></button>
+    <div class="card tone-teal" id="activityCard" data-tab="activity">
+        <div class="card-header"><div><h3 data-i18n="vo.activityTitle">Activity</h3></div></div>
+        <div class="card-body" id="historyPanel"></div>
+    </div>
+
     </div>
 
     <div class="disclaimer">
@@ -154,31 +143,31 @@
     </div>
 </main>
 
-<script src="js/i18n.js?v=20261008o"></script>
-<script src="js/calc.js?v=20261008o"></script>
-<script src="js/clauses.js?v=20261008o"></script>
-<script src="js/elements.js?v=20261008o"></script>
-<script src="js/analysis.js?v=20261008o"></script>
-<script src="js/permissions.js?v=20261008o"></script>
-<script src="js/deadlines.js?v=20261008o"></script>
-<script src="js/store.js?v=20261008o"></script>
-<script src="js/config.js?v=20261008o"></script>
-<script src="js/cloud.js?v=20261008o"></script>
-<script src="js/askcontract.js?v=20261008o"></script>
-<script src="js/photocheck.js?v=20261008o"></script>
-<script src="js/ratehistory.js?v=20261008o"></script>
-<script src="js/documents.js?v=20261008o"></script>
-<script src="js/ui.js?v=20261008o"></script>
-<script src="js/notify.js?v=20261008o"></script>
-<script src="js/bqimport.js?v=20261008o"></script>
-<script src="js/contractread.js?v=20261008o"></script>
-<script src="js/filestore.js?v=20261008o"></script>
-<script src="js/sitemap.js?v=20261008o"></script>
-<script src="js/claimcheck.js?v=20261008o"></script>
-<script src="js/instruction.js?v=20261008o"></script>
-<script src="js/suppliers.js?v=20261008o"></script>
-<script src="js/buildup.js?v=20261008o"></script>
-<script src="js/page-vo.js?v=20261008o"></script>
+<script src="js/i18n.js?v=20261009a"></script>
+<script src="js/calc.js?v=20261009a"></script>
+<script src="js/clauses.js?v=20261009a"></script>
+<script src="js/elements.js?v=20261009a"></script>
+<script src="js/analysis.js?v=20261009a"></script>
+<script src="js/permissions.js?v=20261009a"></script>
+<script src="js/deadlines.js?v=20261009a"></script>
+<script src="js/store.js?v=20261009a"></script>
+<script src="js/config.js?v=20261009a"></script>
+<script src="js/cloud.js?v=20261009a"></script>
+<script src="js/askcontract.js?v=20261009a"></script>
+<script src="js/photocheck.js?v=20261009a"></script>
+<script src="js/ratehistory.js?v=20261009a"></script>
+<script src="js/documents.js?v=20261009a"></script>
+<script src="js/ui.js?v=20261009a"></script>
+<script src="js/notify.js?v=20261009a"></script>
+<script src="js/bqimport.js?v=20261009a"></script>
+<script src="js/contractread.js?v=20261009a"></script>
+<script src="js/filestore.js?v=20261009a"></script>
+<script src="js/sitemap.js?v=20261009a"></script>
+<script src="js/claimcheck.js?v=20261009a"></script>
+<script src="js/instruction.js?v=20261009a"></script>
+<script src="js/suppliers.js?v=20261009a"></script>
+<script src="js/buildup.js?v=20261009a"></script>
+<script src="js/page-vo.js?v=20261009a"></script>
 
 </body>
 </html>

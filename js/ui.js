@@ -145,6 +145,8 @@ function renderSidebar(active, session, project) {
                 "<span>" + escapeHtml(t("role." + role.id + ".label", {})) + "</span></div>" +
             "</div>" +
             '<button class="signout-button" id="signOutBtn">' + escapeHtml(t("sidebar.signOut")) + '</button>' +
+            /* the professional-review note, here on a computer instead of under each page */
+            '<p class="side-disclaimer">' + escapeHtml(t("disclaimer.body")) + "</p>" +
         "</div>";
 }
 
@@ -214,6 +216,35 @@ function fold(key, summaryHtml, bodyHtml, extraClass) {
         '<div class="fold-body">' + bodyHtml + "</div></details>";
 }
 
+/* Long panels (a list, a report, a chat) take the rest of the screen and
+   scroll inside, so the page itself fits one screen on a computer.
+   data-fit="max" (the default) caps the height; data-fit="height" sets it;
+   data-fit-gap is the space left below (px), data-fit-min the least height. */
+function fitPanels() {
+    if (typeof document === "undefined") return;
+    const desktop = window.innerWidth > 1000 && window.innerHeight >= 480;
+    document.querySelectorAll("[data-fit]").forEach(el => {
+        const prop = el.dataset.fit === "height" ? "height" : "maxHeight";
+        if (!desktop || el.offsetParent === null) { el.style[prop] = ""; return; }
+        const gap = Number(el.dataset.fitGap || 24), min = Number(el.dataset.fitMin || 220);
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        el.style[prop] = Math.max(min, Math.floor(window.innerHeight - top - gap)) + "px";
+        if (prop === "maxHeight") el.style.overflow = "auto";
+    });
+}
+if (typeof window !== "undefined") {
+    let fitTimer = null;
+    const later = () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitPanels, 60); };
+    window.addEventListener("resize", later);
+    window.addEventListener("load", later);
+    document.addEventListener("toggle", later, true);
+    /* content drawn later (a report, a list after a filter) is fitted too */
+    if (typeof MutationObserver !== "undefined") {
+        document.addEventListener("DOMContentLoaded", () =>
+            new MutationObserver(later).observe(document.body, { childList: true, subtree: true }));
+    }
+}
+
 /* Runs `render` (which replaces innerHTML) and reopens every fold that
    was open before, so an edit elsewhere never snaps a detail shut. */
 function keepFolds(render) {
@@ -230,11 +261,27 @@ function keepFolds(render) {
 /* The demo's English text in Chinese when the interface is in Chinese
    (js/store.js SEED_ZH). Text a user typed is returned unchanged. */
 function seedText(value) {
-    if (typeof getLang === "function" && getLang() === "zh" &&
-        typeof SEED_ZH !== "undefined" && Object.prototype.hasOwnProperty.call(SEED_ZH, value)) {
-        return SEED_ZH[value];
+    if (typeof getLang !== "function" || getLang() !== "zh" || typeof SEED_ZH === "undefined" || !value) return value;
+    if (Object.prototype.hasOwnProperty.call(SEED_ZH, value)) return SEED_ZH[value];
+    /* a sentence shown cut short ("…") */
+    const s = String(value);
+    if (s.endsWith("…")) {
+        const head = s.slice(0, -1);
+        const key = Object.keys(SEED_ZH).find(k => k.startsWith(head));
+        if (key) return SEED_ZH[key];
     }
     return value;
+}
+
+/* Under a translated contract wording: its English original, one click
+   away (the signed contract governs). Untranslated wording says it is
+   shown in English. Nothing in English. */
+function originalText(parts) {
+    if (typeof getLang !== "function" || getLang() !== "zh") return "";
+    const list = (parts || []).filter(Boolean);
+    if (!list.some(p => seedText(p) !== p)) return '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>";
+    return '<details class="orig-text"><summary>' + escapeHtml(t("clause.original")) + '</summary><p class="rate-detail">' +
+        list.map(escapeHtml).join("<br>") + "</p></details>";
 }
 
 /* ---------- browser-only below ---------- */
@@ -303,6 +350,24 @@ function toast(message, kind) {
 
 /* Fills <aside class="sidebar"> and <header class="topbar">, wires sign-out.
    Returns {session, project} or null when the guard has redirected. */
+/* On a computer the page's own heading repeated the top bar's title, and
+   pushed the page down: its buttons move into the top bar and the heading
+   goes. The VO page's title and status replace the top bar's title. */
+function mergeWelcome(header) {
+    const welcome = document.querySelector(".main > .welcome");
+    if (!welcome || !header || window.innerWidth <= 1000) return;
+    const top = header.querySelector(".top-actions");
+    const actions = welcome.querySelector(".page-actions, .projects-toolbar");
+    if (actions && top) { actions.classList.add("in-topbar"); top.insertBefore(actions, top.firstChild); }
+    const h1 = header.querySelector(".topbar-left h1");
+    const voTitle = welcome.querySelector("#voTitle");
+    if (voTitle && h1) {
+        voTitle.classList.add("topbar-title");
+        h1.replaceWith(voTitle.parentNode);
+    }
+    welcome.classList.add("welcome-merged");
+}
+
 function mountChrome(active, title, crumb, opts) {
     const needProject = !(opts && opts.projectOptional);
     const ctx = needProject ? requireProject()
@@ -313,6 +378,8 @@ function mountChrome(active, title, crumb, opts) {
     const header = document.querySelector("header.topbar");
     if (aside) aside.innerHTML = renderSidebar(active, ctx.session, ctx.project);
     if (header) header.innerHTML = renderTopbar(title, crumb, ctx.session);
+
+    mergeWelcome(header);
 
     const btn = document.getElementById("signOutBtn");
     if (btn) btn.addEventListener("click", async () => {
@@ -380,5 +447,5 @@ function mountChrome(active, title, crumb, opts) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds, seedText };
+    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds, seedText, originalText };
 }

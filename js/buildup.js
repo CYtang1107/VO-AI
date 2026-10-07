@@ -27,8 +27,13 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t } = require("./i18n.js");
     var { rm } = require("./calc.js");
-    var { escapeHtml, fold } = require("./ui.js");
+    var { escapeHtml, fold, seedText } = require("./ui.js");
     var { renderSuppliers } = require("./suppliers.js");
+}
+
+/* a labour or plant hour, in the interface's language (m, m2, no stay) */
+function unitLabel(unit) {
+    return unit === "hr" ? t("buildup.unitHr") : String(unit || "");
 }
 
 /* Regions and their price level against the Klang Valley. */
@@ -225,7 +230,7 @@ function renderBuildUpCard(vo, project, opts) {
         return '<tr class="bu-kind"><th colspan="7">' + escapeHtml(t("buildup.kind." + kind)) + "</th></tr>" +
             list.map(x => "<tr>" +
                 '<td><input type="text" data-bu="name" data-i="' + x.j + '" value="' + escapeHtml(x.it.name) + '"' + dis + "></td>" +
-                "<td>" + num("qty", x.j, x.it.qty, "0.01") + ' <span class="rate-detail">' + escapeHtml(x.it.unit || "") + "</span></td>" +
+                "<td>" + num("qty", x.j, x.it.qty, "0.01") + ' <span class="rate-detail">' + escapeHtml(unitLabel(x.it.unit)) + "</span></td>" +
                 "<td>" + (kind === "material" ? num("waste", x.j, pct(x.it.waste), "1") + " %" : "") + "</td>" +
                 "<td>" + num("price", x.j, x.it.price, "0.01") + "</td>" +
                 '<td><span class="bu-src bu-src-' + escapeHtml(x.it.source || "manual") + '">' + escapeHtml(t("buildup.src." + (x.it.source || "manual"))) + "</span></td>" +
@@ -240,14 +245,14 @@ function renderBuildUpCard(vo, project, opts) {
     const pl = (project && project.priceList) || [];
     const priceBlock = fold("bu-pricelist", escapeHtml(t("buildup.priceListTitle", { n: pl.length })),
         '<p class="assistant-note">' + escapeHtml(t("buildup.priceListNote")) + "</p>" +
-        (pl.length ? '<ul class="bu-pl">' + pl.map(p => "<li>" + escapeHtml(p.name) + " — " + rm(p.price) + "/" + escapeHtml(p.unit || "") + "</li>").join("") + "</ul>" : "") +
+        (pl.length ? '<ul class="bu-pl">' + pl.map(p => "<li>" + escapeHtml(p.name) + " — " + rm(p.price) + "/" + escapeHtml(unitLabel(p.unit)) + "</li>").join("") + "</ul>" : "") +
         (o.canEditPriceList ? '<textarea id="buPriceListInput" rows="4" placeholder="' + escapeHtml(t("buildup.priceListPh")) + '"></textarea>' +
             '<button type="button" class="secondary-button" id="buPriceListSave">' + escapeHtml(t("buildup.priceListSave")) + "</button>" : ""));
 
     return '<div class="bu-head">' +
             '<label>' + escapeHtml(t("buildup.row")) + ' <select id="buRow">' + rows.map((x, k) =>
                 '<option value="' + k + '"' + (k === i ? " selected" : "") + ">" + (o.stars && o.stars.has(k) ? "★ " : "") +
-                escapeHtml((k + 1) + ". " + (x.description || t("buildup.untitledRow")) + (x.unit ? " (" + x.unit + ")" : "")) + "</option>").join("") +
+                escapeHtml((k + 1) + ". " + (seedText(x.description) || t("buildup.untitledRow")) + (x.unit ? " (" + x.unit + ")" : "")) + "</option>").join("") +
             "</select></label>" +
             '<span class="rate-detail">' + escapeHtml(t("buildup.region." + region.from, { region: t("buildup.regionName." + region.id), f: region.factor.toFixed(2) })) + "</span>" +
         "</div>" +

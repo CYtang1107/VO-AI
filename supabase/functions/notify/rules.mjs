@@ -64,7 +64,7 @@ export function emailFor(step, vo, project, appUrl) {
         subject: "VO-AI · " + vo.no + " " + en.split(":")[0] + " — " + (project.name || project.id),
         html: "<p><strong>" + esc(vo.no) + "</strong> " + esc(en) + ".<br>" + esc(vo.no) + " " + esc(zh) + "。</p>" +
             "<p>" + esc(project.name || "") + "<br><em>" + esc(desc) + "</em></p>" +
-            '<p><a href="' + esc(link) + '">Open ' + esc(vo.no) + " in VO-AI / 打开变更令 →</a></p>" +
+            '<p><a href="' + esc(link) + '">Open ' + esc(vo.no) + " in VO-AI / 打开变更单 →</a></p>" +
             '<p style="color:#64748b;font-size:12px">You get this because you are on the project as the next person to act. ' +
             "您收到此邮件，是因为您是此项目中下一位处理人。</p>",
     };

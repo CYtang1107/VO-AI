@@ -110,7 +110,7 @@ test("analysis states: none, unread, read — and when read, findings cite this 
     const html = renderContractBlock(c);
     assert.ok(html.includes("Valuation of Variations"));
     assert.ok(html.includes("<blockquote>"));
-    assert.ok(html.includes("not legal advice"));
+    assert.ok(/not legal advice/i.test(html));
 });
 
 test("a contract that yields no clauses is said so, and the standard form is used", () => {

@@ -566,6 +566,16 @@ if (typeof document !== "undefined") {
                 ? t("projects.waitForInvite", { email: session.email || "" })
                 : t("projects.consultantOnly")) + '</div>';
         } else {
+            /* with projects already, the form waits behind "+ New project" */
+            const newBtn = document.getElementById("newProjectBtn");
+            if (newBtn && loadDB().projects.length > 0) {
+                createBox.hidden = true;
+                newBtn.hidden = false;
+                newBtn.addEventListener("click", () => {
+                    createBox.hidden = !createBox.hidden;
+                    if (!createBox.hidden) createBox.scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+            }
             document.getElementById("createBtn").addEventListener("click", async () => {
                 const name = document.getElementById("pName").value.trim();
                 if (!name) { toast(t("toast.giveProjectName"), "warn"); return; }

@@ -15,7 +15,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t } = require("./i18n.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, seedText } = require("./ui.js");
 }
 
 var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
@@ -137,7 +137,7 @@ var SITE_RADIUS_M = 500;
 function mapSummary(site, pins) {
     if (!site && pins.length === 0) return t("map.none");
     const parts = [];
-    if (site) parts.push(t("map.siteAt", { address: site.address || (site.lat.toFixed(5) + ", " + site.lng.toFixed(5)) }));
+    if (site) parts.push(t("map.siteAt", { address: seedText(site.address) || (site.lat.toFixed(5) + ", " + site.lng.toFixed(5)) }));
     if (pins.length) {
         parts.push(t("map.photoCount", { n: pins.length }));
         if (site) {
@@ -306,7 +306,7 @@ async function drawSiteMap(host, project, opts) {
     });
     const siteIcon = L.divIcon({ className: "site-pin", html: "<span>⌂</span>", iconSize: [30, 30], iconAnchor: [15, 15] });
     let siteMarker = site ? L.marker([site.lat, site.lng], { icon: siteIcon, title: t("map.site") })
-        .bindPopup("<strong>" + escapeHtml(t("map.site")) + "</strong><br>" + escapeHtml(site.address || "")).addTo(map) : null;
+        .bindPopup("<strong>" + escapeHtml(t("map.site")) + "</strong><br>" + escapeHtml(seedText(site.address) || "")).addTo(map) : null;
 
     function popupHtml(p, i, inner) {
         return '<div class="site-photo-pop"><strong>' + escapeHtml(p.voNo || "") + "</strong> " + escapeHtml(p.name) +

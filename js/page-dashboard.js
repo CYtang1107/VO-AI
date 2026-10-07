@@ -88,8 +88,6 @@ if (typeof document !== "undefined") {
 
         document.getElementById("greeting").textContent =
             t("dashboard.greeting", { name: session.name });
-        document.getElementById("greetingSub").innerHTML =
-            t("dashboard.greetingSub", { name: "<strong>" + escapeHtml(project.name) + "</strong>" });
 
         document.getElementById("recentBody").innerHTML = renderRecentRows(project.vos);
 
@@ -114,6 +112,9 @@ if (typeof document !== "undefined") {
            keep the programme and the certificates. */
         const costCard = document.querySelector(".cost-plan-card");
         if (costCard && !costOverviewVisible(session.role)) costCard.remove();
+        /* with the cost overview, the VO register has the list: the
+           dashboard keeps to the curve, the map and what needs you */
+        if (costCard && costOverviewVisible(session.role)) document.body.classList.add("dash-has-cost");
         const costHost = document.getElementById("costPlanBody");
         const costEditable = costOverviewEditable(session.role);
         /* the S-curve zoomed to date, or the whole programme: this viewer's choice */
@@ -125,7 +126,8 @@ if (typeof document !== "undefined") {
         function chartHeight() {
             if (window.innerWidth <= 760) return null; /* a phone: the chart's own height */
             const top = costHost.getBoundingClientRect().top + window.scrollY;
-            return window.innerHeight - top - 120;
+            /* room under it for the status line, the five figures and the fold */
+            return window.innerHeight - top - 262;
         }
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;

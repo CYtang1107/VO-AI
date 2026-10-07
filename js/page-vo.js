@@ -4,7 +4,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
     var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER, voStage, infoRequestKey } = require("./permissions.js");
     var { checkRate, analyse, matchBqItem, suggestBqForChange } = require("./analysis.js");
-    var { escapeHtml, statusPill, fileLink, fold, seedText } = require("./ui.js");
+    var { escapeHtml, statusPill, fileLink, fold, seedText, originalText } = require("./ui.js");
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate, pastRateSources, pastRateWords, MATERIAL_WORDS } = require("./ratehistory.js");
@@ -173,7 +173,7 @@ function bqOptions(project, selectedId) {
     (project.bq || []).forEach(b => {
         opts.push('<option value="' + escapeHtml(b.id) + '"' +
             (b.id === selectedId ? " selected" : "") + ">" +
-            escapeHtml(b.code + " · " + b.description + " · " + rm(b.rate) + "/" + b.unit) +
+            escapeHtml(b.code + " · " + seedText(b.description) + " · " + rm(b.rate) + "/" + b.unit) +
             "</option>");
     });
     return opts.join("");
@@ -193,7 +193,7 @@ function renderPastRates(i, suggestion, canAdd) {
             '<span class="past-src">' + escapeHtml(t("vo.past.source", { project: m.project, year: m.year || "—" })) +
             ' <span class="past-basis">' + escapeHtml(t("vo.past.basis." + m.basis)) +
             (m.sample ? " · " + escapeHtml(t("vo.past.sample")) : "") + "</span></span>" +
-            '<span class="past-desc">' + escapeHtml(m.description) + "</span>" +
+            '<span class="past-desc">' + escapeHtml(seedText(m.description)) + "</span>" +
             "<strong>" + rm(m.rate) + "/" + escapeHtml(m.unit) + "</strong></li>"
     ).join("");
     return '<div class="past-rates">' +
@@ -347,7 +347,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
             ? '<div class="rate-suggestion">' +
                 '<span class="rate-flag auto-match">' + escapeHtml(t("vo.measurement.suggestedMatch")) + '</span> ' +
                 '<span class="item-code">' + escapeHtml(check.matchedItem.code) + "</span> · " +
-                escapeHtml(check.matchedItem.description) +
+                escapeHtml(seedText(check.matchedItem.description)) +
                 '<div class="rate-detail">' + escapeHtml(check.matchBasis) + "</div>" +
                 (conEdit
                     ? '<button type="button" class="accept-match-btn" data-row="' + i +
@@ -357,7 +357,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
             : "";
 
         return '<tr data-row="' + i + '">' +
-            '<td class="m-desc" data-label="' + lbl.description + '"><input data-col="description" value="' + escapeHtml(row.description) +
+            '<td class="m-desc" data-label="' + lbl.description + '"><input data-col="description" value="' + escapeHtml(seedText(row.description)) +
                 '"' + conDis + (conEdit ? ' class="owned"' : "") + ' style="width:220px"></td>' +
             '<td class="m-bq" data-label="' + lbl.bqItem + '"><select data-col="bqItemId"' + conDis + (conEdit ? ' class="owned"' : "") +
                 ">" + bqOptions(project, row.bqItemId) + "</select></td>" +
@@ -440,14 +440,14 @@ function renderAssessmentPanel(vo, project, role) {
        translated; the note itself is. */
     const clauseBlock = a.clause
         ? '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.governingClause")) + '</span>' +
-          '<span class="result-value">' + escapeHtml(a.clause.form + " " + a.clause.ref) +
+          '<span class="result-value">' + escapeHtml(t("claim.clauseRef", { form: a.clause.form, no: String(a.clause.ref).replace(/^Clause\s*/, "") })) +
           "</span></div>" +
-          fold("std-clause", escapeHtml(t("clause.showWording", { title: a.clause.title })),
-              '<p class="rate-detail"><strong>' + escapeHtml(a.clause.title) + "</strong><br>" +
-              escapeHtml(a.clause.entitlement) + "</p>" +
+          fold("std-clause", escapeHtml(t("clause.showWording", { title: seedText(a.clause.title) })),
+              '<p class="rate-detail"><strong>' + escapeHtml(seedText(a.clause.title)) + "</strong><br>" +
+              escapeHtml(seedText(a.clause.entitlement)) + "</p>" +
               '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
-              escapeHtml(a.clause.evidence) + "</p>" +
-              '<p class="rate-detail clause-note">' + escapeHtml(t("clause.note")) + "</p>")
+              escapeHtml(seedText(a.clause.evidence)) + "</p>" +
+              originalText([a.clause.title, a.clause.entitlement, a.clause.evidence]))
         : '<p class="rate-detail">' + escapeHtml(t("vo.result.noClause")) + "</p>";
 
     /* This project's own contract leads when it has been read; the
@@ -790,26 +790,11 @@ if (typeof document !== "undefined") {
            role's own panel should come first since that is the one they
            can edit — see .role-panels[data-active-role] in style.css. */
         const panelsSection = document.getElementById("rolePanelsSection");
-        /* the four roles' columns at the bottom are the full record,
-           read-only and folded away: each role works in the workflow card */
+        /* the four roles' columns (the old full record) are not shown:
+           each role works in the step card; the VO report has every field */
         if (panelsSection) panelsSection.classList.add("record");
         const view = "_view";
 
-        /* Each role sees only its own panel by default, so the page is
-           just the form they fill in. The other two roles' columns are
-           one click away, read-only, for checking what they entered. */
-        const toggleOthers = document.getElementById("toggleOtherPanels");
-        function setShowOthers(show) {
-            if (!panelsSection || !toggleOthers) return;
-            panelsSection.classList.toggle("show-others", show);
-            toggleOthers.setAttribute("aria-expanded", show ? "true" : "false");
-            toggleOthers.textContent = t(show ? "vo.panel.hideRecord" : "vo.panel.showRecord");
-        }
-        if (toggleOthers) {
-            setShowOthers(false);
-            toggleOthers.addEventListener("click", () =>
-                setShowOthers(!panelsSection.classList.contains("show-others")));
-        }
 
         const voId = new URLSearchParams(location.search).get("id");
         const vo = (project.vos || []).find(v => v.id === voId);
@@ -925,6 +910,37 @@ if (typeof document !== "undefined") {
             const pc = document.querySelector(".photo-check-card"), wc = document.querySelector(".wf-card");
             if (pc && wc) wc.after(pc);
         }
+
+        /* On a computer the page's cards are tabs, so it fits one screen:
+           this step, measurement, contract, photos, record, activity. A tab
+           shows when one of its cards has something at this stage; a new
+           stage opens on "this step". The open tab scrolls inside. */
+        const VO_TABS = ["step", "measure", "contract", "photos", "activity"];
+        const tabsHost = document.getElementById("voTabs");
+        const vt = { tab: null, stage: null };
+        function tabCards(id) { return Array.from(document.querySelectorAll('[data-tab="' + id + '"]')); }
+        function tabHas(id) {
+            return tabCards(id).some(el => !el.hidden);
+        }
+        function drawTabs(stage) {
+            if (!tabsHost) return;
+            const avail = VO_TABS.filter(tabHas);
+            if (vt.stage !== stage || avail.indexOf(vt.tab) === -1) {
+                vt.stage = stage;
+                vt.tab = avail[0];
+            }
+            tabsHost.hidden = avail.length === 0;
+            tabsHost.innerHTML = avail.map(id => '<button type="button" role="tab" class="vo-tab' + (id === vt.tab ? " on" : "") +
+                '" data-vo-tab="' + id + '" aria-selected="' + (id === vt.tab) + '">' + escapeHtml(t("vo.tab." + id)) + "</button>").join("");
+            document.body.classList.add("vo-tabbed");
+            VO_TABS.forEach(id => tabCards(id).forEach(el => el.classList.toggle("tab-on", id === vt.tab)));
+        }
+        if (tabsHost) tabsHost.addEventListener("click", e => {
+            const b = e.target.closest(".vo-tab");
+            if (!b) return;
+            vt.tab = b.dataset.voTab;
+            drawTabs(vt.stage);
+        });
         /* which cards a stage shows: measuring and pricing only once the
            design team has approved; the photo check is the consultant's */
         const LATE = ["measure", "rejected", "consultant", "info", "client", "done", "closed"];
@@ -941,6 +957,7 @@ if (typeof document !== "undefined") {
             const pc = document.querySelector(".photo-check-card");
             if (pc && role !== "consultant") pc.hidden = true;
             else if (pc && !pc.dataset.off) pc.hidden = !late;
+            drawTabs(stage);
         }
 
         /* Cost planning: the built-up rate (js/buildup.js). The contractor

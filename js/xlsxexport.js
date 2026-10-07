@@ -331,7 +331,7 @@ function measurementSheet(project, todayIso) {
             claimedSum += qty * rate;
             assessedSum += assessedAmount;
             rows.push({
-                cells: [vo.no, row.description || "", item, row.unit || "", qty, rate,
+                cells: [vo.no, seedText(row.description) || "", item, row.unit || "", qty, rate,
                         { f: "E" + r + "*F" + r, v: qty * rate },
                         check.contractRate !== undefined ? check.contractRate : null,
                         t("rate." + check.state + ".label"),

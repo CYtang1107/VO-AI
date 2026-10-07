@@ -35,7 +35,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { deadlinesFor } = require("./deadlines.js");
     var { costOverview, earnedValue, costOverviewVisible } = require("./costplan.js");
     var { suggestPastRate, pastRateSources } = require("./ratehistory.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, seedText } = require("./ui.js");
 }
 
 var COPILOT_INTENTS = [
@@ -129,7 +129,7 @@ function answerFromData(intent, ctx) {
         const asked = suggestPastRate({ description: q, unit: unit.replace("²", "2").replace("³", "3") }, sources);
         if (asked) {
             lines.push({ text: t("copilot.exp.asked", { rate: rm(asked.rate), low: rm(asked.low), high: rm(asked.high), n: asked.count }) });
-            asked.matches.forEach(m => lines.push({ text: t("copilot.exp.source", { project: m.project, year: m.year || "—", desc: m.description, rate: rm(m.rate), unit: m.unit }) }));
+            asked.matches.forEach(m => lines.push({ text: t("copilot.exp.source", { project: m.project, year: m.year || "—", desc: seedText(m.description), rate: rm(m.rate), unit: m.unit }) }));
         } else {
             /* nothing named in the question: the project's own star rates against experience */
             vos.forEach(v => (v.measurement || []).forEach(row => {
@@ -137,8 +137,8 @@ function answerFromData(intent, ctx) {
                 const s = suggestPastRate(row, sources);
                 const used = Number(row.assessedRate) || Number(row.rate) || 0;
                 lines.push(voLine(v, s
-                    ? t("copilot.exp.row", { no: v.no, desc: row.description, used: rm(used), rate: rm(s.rate), low: rm(s.low), high: rm(s.high), n: s.count, unit: row.unit || "" })
-                    : t("copilot.exp.rowNone", { no: v.no, desc: row.description })));
+                    ? t("copilot.exp.row", { no: v.no, desc: seedText(row.description), used: rm(used), rate: rm(s.rate), low: rm(s.low), high: rm(s.high), n: s.count, unit: row.unit || "" })
+                    : t("copilot.exp.rowNone", { no: v.no, desc: seedText(row.description) })));
             }));
             if (!lines.length) lines.push({ text: t("copilot.none.experience") });
             else lines.unshift({ text: t("copilot.exp.intro") });
@@ -270,7 +270,7 @@ function renderThread(state, opts) {
 
 function renderCopilot(state, opts) {
     const o = opts || {};
-    return '<div class="chat">' +
+    return '<div class="chat" data-fit="height" data-fit-gap="24" data-fit-min="340">' +
         '<div class="chat-thread" id="copilotThread" role="log" aria-live="polite">' + renderThread(state, o) + "</div>" +
         '<div class="chat-dock">' +
             '<div class="copilot-suggestions">' + copilotQuestions(o.role).map(q =>
@@ -278,7 +278,6 @@ function renderCopilot(state, opts) {
             "</div>" +
             '<div class="chat-compose"><input type="text" id="copilotInput" maxlength="500" autocomplete="off" placeholder="' + escapeHtml(t("copilot.placeholder")) + '">' +
             '<button type="button" class="primary-button" id="copilotAskBtn">' + escapeHtml(t("copilot.ask")) + "</button></div>" +
-            '<p class="copilot-source">' + escapeHtml(t(o.ai ? "copilot.noteAi" : "copilot.noteOffline")) + "</p>" +
         "</div></div>";
 }
 

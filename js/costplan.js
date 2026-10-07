@@ -322,7 +322,9 @@ function renderEarnedValue(e, opts) {
 }
 
 function tile(label, value, sub, cls) {
-    return '<div class="cp-tile' + (cls ? " " + cls : "") + '"><small>' + escapeHtml(label) + "</small><strong>" + value + "</strong>" +
+    /* the currency smaller, so five figures fit one row */
+    const v = String(value).replace(/^(RM)\s*/, '<span class="cur">$1</span>');
+    return '<div class="cp-tile' + (cls ? " " + cls : "") + '"><small>' + escapeHtml(label) + "</small><strong>" + v + "</strong>" +
         (sub ? "<span>" + escapeHtml(sub) + "</span>" : "") + "</div>";
 }
 
@@ -351,7 +353,9 @@ function renderCostOverview(project, todayIso, opts) {
         const status = curve.behind === null ? "" :
             '<p class="cp-status">' + escapeHtml(t(curve.todayX < 0 ? "costplan.notStarted" : curve.behind > 0 ? "costplan.behind" : "costplan.ahead", {
                 amount: rm(Math.abs(curve.behind)), actual: curve.progressPct.toFixed(1), planned: (curve.plannedPct || 0).toFixed(1) })) + "</p>";
-        chart = status +
+        /* the curve and its controls in one block, so a page can set
+           something beside it (the dashboard: the site map) */
+        chart = '<div class="cp-chart">' + status +
             '<div class="cp-bar"><div class="cp-legend">' +
                 '<span><i class="k k-planned"></i>' + escapeHtml(t("costplan.series.planned")) + "</span>" +
                 '<span><i class="k k-forecast"></i>' + escapeHtml(t("costplan.series.forecast")) + "</span>" +
@@ -360,8 +364,7 @@ function renderCostOverview(project, todayIso, opts) {
             '<div class="sc-range" role="group" aria-label="' + escapeHtml(t("costplan.rangeLabel")) + '">' +
                 ["toDate", "all"].map(r => '<button type="button" class="sc-range-btn' + (range === r ? " on" : "") + '" data-range="' + r + '" aria-pressed="' +
                     (range === r) + '">' + escapeHtml(t("costplan.range." + r)) + "</button>").join("") + "</div></div>" +
-            '<div class="sc-wrap">' + renderSCurveSvg(viewCurve(curve, range), opts && opts.width, opts && opts.height) + '<div class="sc-tip" hidden></div></div>' +
-            '<p class="assistant-note">' + escapeHtml(t("costplan.curveNote")) + "</p>" +
+            '<div class="sc-wrap">' + renderSCurveSvg(viewCurve(curve, range), opts && opts.width, opts && opts.height) + '<div class="sc-tip" hidden></div></div></div>' +
             tiles +
             MORE_START +
             fold("cp-table", escapeHtml(t("costplan.tableTitle")),
