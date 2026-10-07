@@ -340,7 +340,8 @@ function renderCostOverview(project, todayIso, opts) {
     (o.nDraft ? '<p class="assistant-note">' + escapeHtml(t("costplan.drafts", { n: o.nDraft, amount: rm(o.draft) })) + "</p>" : "");
 
     let chart;
-    if (!curve) chart = '<p class="assistant-note">' + escapeHtml(t("costplan.noProgramme")) + "</p>";
+    /* the figures sit under the S-curve */
+    if (!curve) chart = '<p class="assistant-note">' + escapeHtml(t("costplan.noProgramme")) + "</p>" + tiles;
     else {
         const status = curve.behind === null ? "" :
             '<p class="cp-status">' + escapeHtml(t(curve.todayX < 0 ? "costplan.notStarted" : curve.behind > 0 ? "costplan.behind" : "costplan.ahead", {
@@ -356,6 +357,7 @@ function renderCostOverview(project, todayIso, opts) {
                     (range === r) + '">' + escapeHtml(t("costplan.range." + r)) + "</button>").join("") + "</div>" +
             '<div class="sc-wrap">' + renderSCurveSvg(viewCurve(curve, range), opts && opts.width) + '<div class="sc-tip" hidden></div></div>' +
             '<p class="assistant-note">' + escapeHtml(t("costplan.curveNote")) + "</p>" +
+            tiles +
             fold("cp-table", escapeHtml(t("costplan.tableTitle")),
                 '<div class="table-scroll"><table class="cp-table"><thead><tr><th>' + escapeHtml(t("costplan.col.month")) + "</th><th>" +
                 escapeHtml(t("costplan.series.planned")) + "</th><th>" + escapeHtml(t("costplan.series.forecast")) + "</th><th>" +
@@ -379,7 +381,7 @@ function renderCostOverview(project, todayIso, opts) {
             '<input type="number" min="0" step="0.01" id="cpCertActual" placeholder="' + escapeHtml(t("costplan.certActual")) + '">' +
             '<button type="button" class="secondary-button" id="cpCertAdd">' + escapeHtml(t("costplan.certAdd")) + "</button></div>" : "") +
         '<p class="assistant-note">' + escapeHtml(t(editable ? "costplan.inputsNote" : "costplan.inputsReadOnly")) + "</p>");
-    return tiles + chart + inputs;
+    return chart + inputs;
 }
 
 /* The crosshair: snaps to the nearest month, lists all three series. */
