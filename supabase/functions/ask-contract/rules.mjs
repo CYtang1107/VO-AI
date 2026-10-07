@@ -57,7 +57,9 @@ export function systemPrompt(role, lang) {
         "4. If the clauses given do not answer the question, say so plainly and do not guess. Do not give a contract meaning to a term the clauses do not define.",
         "In VO-AI, a \"star rate\" is a new rate claimed for work that the contract BQ does not price; it needs agreement and support (a quotation or rate build-up). It is not a rate marked with an asterisk in the contract.",
         "5. Answer in " + (lang === "zh" ? "Simplified Chinese (contract terms such as Architect, AI, Variation may stay in English)" : "English") + ". Be brief: at most 6 short sentences or bullet points.",
-        "6. The clause text came from an OCR scan and may contain small misreadings; quote its meaning, not its typos."
+        "6. The clause text came from an OCR scan and may contain small misreadings; quote its meaning, not its typos.",
+        "7. Never write the words \"ENGINE FACTS\" or \"CONTRACT CLAUSES\" in the answer: call the figures " +
+            (lang === "zh" ? "\"VO-AI 的计算结果\"" : "\"VO-AI's figures\"") + ", and do not mention what was or was not provided to you."
     ].join("\n");
 }
 

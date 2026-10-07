@@ -351,8 +351,11 @@ var Cloud = (function () {
         var c = await client();
         var res = await c.functions.invoke(name, { body: body });
         if (res.error) {
-            var detail = "";
-            try { detail = (await res.error.context.json()).error || ""; } catch (e) { /* not json */ }
+            var detail = "", payload = null;
+            try { payload = await res.error.context.json(); detail = payload.error || ""; } catch (e) { /* not json */ }
+            /* an answer the function chose not to give (e.g. the guest
+               limit) comes back as data with its reason */
+            if (payload && payload.reason) return payload;
             throw new Error(detail || res.error.message);
         }
         return res.data;
