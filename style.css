@@ -3329,3 +3329,30 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .judge-btn { width: 100%; margin: 0 0 6px; background: var(--accent); border-color: var(--accent); }
 .judge-hint { margin: 0 0 14px; font-size: 12px; color: var(--ink-3); text-align: center; }
 .ask-guest-note { color: #b45309; }
+
+/* =========================
+   AI photo check (js/photocheck.js)
+========================= */
+.photo-check-actions { margin: 4px 0 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.photo-check-summary { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 10px; }
+.photo-check-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px; margin-bottom: 8px;
+    border: 1px solid var(--rule); border-left: 4px solid var(--rule-strong); border-radius: 8px;
+}
+.photo-check-row.match    { border-left-color: var(--verdict-same); }
+.photo-check-row.mismatch { border-left-color: var(--verdict-diff); }
+.photo-check-thumb { width: 96px; height: 72px; object-fit: cover; border-radius: 6px; flex: none; background: var(--paper-sunk); }
+.photo-check-body { min-width: 0; flex: 1; }
+.photo-check-body p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.photo-check-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.photo-check-name { font-size: 12px; color: var(--ink-3); overflow-wrap: anywhere; }
+.photo-verdict { display: inline-block; padding: 1px 9px; border-radius: 12px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.photo-verdict.match    { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.photo-verdict.mismatch { background: var(--verdict-diff-bg); color: var(--verdict-diff); }
+.photo-verdict.unclear  { background: var(--tag-bg); color: var(--tag-ink); }
+.photo-draft { margin-top: 8px; }
+.photo-draft .assistant-note { margin: 6px 0 0; }
+@media (max-width: 560px) {
+    .photo-check-thumb { width: 72px; height: 56px; }
+}
