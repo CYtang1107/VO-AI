@@ -70,11 +70,11 @@ test("the sidebar places Documents right after VO Register", () => {
     assert.match(html, /VO Register<\/a><a[^>]*class="nav-item[^"]*"[^>]*>[\s\S]{0,20}Documents/);
 });
 
-test("the AI Analysis page is gone: the Copilot follows Dashboard, then VO Register", () => {
+test("the AI Analysis page is gone: the Copilot is last in the menu", () => {
     const html = renderSidebar("dashboard", { name: "serena.wong", role: "consultant" },
         { name: "ABC Residence" });
     assert.doesNotMatch(html, /AI Analysis|analysis\.html/);
-    assert.match(html, /Dashboard<\/a><a[^>]*class="nav-item[^"]*"[^>]*>[\s\S]{0,20}Copilot<\/a><a[^>]*>[\s\S]{0,20}VO Register/);
+    assert.match(html, /VO Reports<\/a><a[^>]*class="nav-item[^"]*"[^>]*>[\s\S]{0,20}Copilot<\/a><\/nav>/);
 });
 
 test("the sidebar names the current project, per the template rule", () => {
