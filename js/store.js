@@ -565,6 +565,9 @@ var DEMO_FILES = {
    English priced BQ. */
 var SEED_ZH = {
     "Change of living area floor finish from ceramic tile to marble tile": "客厅地面饰面由瓷砖改为大理石",
+    "AI-021 confirmed: the floor finish change is instructed under clause 11.1.": "已确认 AI-021：地面饰面变更依第 11.1 条发出指示。",
+    "Certified at the assessed value for Interim Certificate No. 4.": "按评估金额核证，纳入第 4 期中期付款证书。",
+    "EI-008 confirmed: additional drainage instructed on site.": "已确认 EI-008：现场指示加建排水工程。",
     "Additional external drainage works to rear boundary": "后方边界加建室外排水工程",
     "Revision to master bedroom ceiling design": "修改主人房天花设计",
     "Marble supplied by nominated supplier. Lead time 4 weeks.": "大理石由指定供应商供货，交货期 4 周。",

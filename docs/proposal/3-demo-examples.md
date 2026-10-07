@@ -93,8 +93,9 @@ The demonstration follows the worked example from Section 1.2: **a client instru
 living-area floor finish from ceramic tile to marble tile.** It is carried through all four
 roles, exactly as it would proceed on a project.
 
-> **Note for the team:** the screenshots below are in `docs/screenshots/`, captured at 1440px
-> width from the current version with the seeded demonstration data (retake them with
+> **Note for the team:** the screenshots below are in `docs/screenshots/` (a `-zh` set for the
+> Chinese proposal), captured at 1440px width from the current version with the seeded
+> demonstration data (retake them with
 > `tools/make-screenshots.js`). Each is also described, so the text stands on its own.
 
 ---
@@ -145,6 +146,10 @@ submits, which starts the consultant's 30-day evaluation period.
 
 ### Step 3a — The contract administrator confirms the instruction
 
+**[Screenshot 3b: the contract administrator's panel — instruction confirmation and certification]**
+
+![Screenshot 3b](../screenshots/03b-administrator-panel.jpg)
+
 The submission goes first to the Contract Administrator — the Architect, Engineer or SO. They
 check that a valid written instruction (here AI-021) orders the change, and either confirm it or
 return it to the contractor with a note. Until the instruction is confirmed, the consultant's
@@ -184,6 +189,10 @@ Finishes — and the governing clause, PAM 2018 Clause 11.1, with the entitlemen
 evidence required. The findings state which rows need correction and why. Asked in 「问合同」
 how varied work is valued, the agent answers from PAM 2018 Clause 11.6 and cites it.
 
+**[Screenshot 9: 「问合同」 answering from PAM 2018 Clause 11.1, the cited clause opened beneath]**
+
+![Screenshot 9](../screenshots/09-ask-contract.jpg)
+
 The consultant applies the contract rate to the skirting, agrees a star rate of RM 248.00/m² for
 the marble against the supplier quotation — which opens from the variation's supporting
 documents and shows the build-up, RM 190.00 supply plus RM 58.00 laying — and records a time
@@ -215,6 +224,8 @@ client certifies at the assessed value.
 **[Screenshot 7: the printed report showing the section order and the rate verdicts]**
 
 ![Screenshot 7](../screenshots/07-vo-report.jpg)
+
+![Screenshot 7b — status and the four signature blocks](../screenshots/07b-report-signatures.jpg)
 
 The system assembles a draft report in the order a submission requires: instruction,
 classification and affected elements, contractual basis (with the contract relied on), revised
