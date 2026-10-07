@@ -1429,9 +1429,24 @@ var I18N_EN = {
     "evm.underrun": "expected to finish under budget",
     "evm.overrun": "expected to overrun",
     "evm.needAc": "Enter the actual cost with every certificate to work out CV, CPI, EAC, ETC and VAC.",
-    "evm.note": "EAC assumes the cost performance so far continues (BAC / CPI). An index below 1, or a negative variance, is bad.",
+    "evm.note": "An index below 1, or a negative variance, is bad.",
     "costplan.actualLine": "(actual cost {amount})",
-    "costplan.certActual": "Actual cost (RM, optional)"
+    "costplan.certActual": "Actual cost (RM, optional)",
+    "evm.methodLabel": "Forecast EAC as",
+    "evm.method.cpi": "Cost performance so far continues (BAC / CPI)",
+    "evm.method.plan": "Work going as planned (EAC = BAC)",
+    "evm.method.atypical": "Past variances won't recur (AC + (BAC − EV))",
+    "evm.method.new": "A new estimate for the remaining work (AC + ETC)",
+    "evm.methodNote.cpi": "The overspend or saving so far is expected to continue at the same rate on the remaining work.",
+    "evm.methodNote.plan": "No variances: the original budget is still valid, and the rest of the work costs what the baseline says.",
+    "evm.methodNote.atypical": "What has happened so far was a one-off: the remaining work costs what the baseline says. (Also written AC + (BAC − EV) / CPI, but that equals BAC / CPI, since AC = EV / CPI.)",
+    "evm.methodNote.new": "The remaining work has been re-estimated (bottom-up): EAC is what has been spent plus that estimate.",
+    "evm.etcLabel": "Estimate to complete (RM)",
+    "evm.etcEntered": "the new estimate entered",
+    "evm.needEtc": "Enter the new estimate to complete the remaining work.",
+    "evm.onBudget": "on budget",
+    "evm.onSchedule": "on schedule",
+    "evm.advanced": "Advanced: how EAC is forecast — {method}"
 };
 
 var I18N_ZH = {
@@ -2820,9 +2835,24 @@ var I18N_ZH = {
     "evm.underrun": "预计低于预算完工",
     "evm.overrun": "预计超支",
     "evm.needAc": "请为每期证书输入实际成本，才能计算 CV、CPI、EAC、ETC 与 VAC。",
-    "evm.note": "EAC 假设目前的成本绩效持续（BAC / CPI）。指数小于 1 或偏差为负，即表示情况不佳。",
+    "evm.note": "指数小于 1 或偏差为负，即表示情况不佳。",
     "costplan.actualLine": "（实际成本 {amount}）",
-    "costplan.certActual": "实际成本 (RM，可选)"
+    "costplan.certActual": "实际成本 (RM，可选)",
+    "evm.methodLabel": "完工估算 (EAC) 依据",
+    "evm.method.cpi": "目前的成本绩效持续（BAC / CPI）",
+    "evm.method.plan": "工程按计划进行（EAC = BAC）",
+    "evm.method.atypical": "过去的偏差不会再发生（AC + (BAC − EV)）",
+    "evm.method.new": "剩余工程重新估算（AC + ETC）",
+    "evm.methodNote.cpi": "预计剩余工程会以相同比例持续目前的超支或节省。",
+    "evm.methodNote.plan": "没有偏差：原预算仍然有效，剩余工程按基准成本完成。",
+    "evm.methodNote.atypical": "目前的偏差属于偶发：剩余工程按基准成本完成。（亦有写作 AC + (BAC − EV) / CPI，但因 AC = EV / CPI，该式等于 BAC / CPI。）",
+    "evm.methodNote.new": "剩余工程已重新估算（自下而上）：EAC 为已支出加上该估算。",
+    "evm.etcLabel": "完工尚需估算 (RM)",
+    "evm.etcEntered": "输入的新估算",
+    "evm.needEtc": "请输入剩余工程的新估算。",
+    "evm.onBudget": "符合预算",
+    "evm.onSchedule": "符合进度",
+    "evm.advanced": "进阶：完工估算 (EAC) 的依据 — {method}"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

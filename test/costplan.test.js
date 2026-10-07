@@ -106,3 +106,47 @@ test("without an actual cost on every certificate, only the schedule figures are
     assert.match(c.renderEarnedValue(e), /Enter the actual cost with every certificate/);
 });
 
+
+test("the EAC situation: as planned, CPI continues, past variances won't recur, or a new estimate", () => {
+    const base = project();   /* BAC 12,555,856; EV 3,100,000; AC 3,230,000 */
+    const at = m => c.earnedValue(Object.assign(project(), m), "2026-09-12");
+    let e = at({});
+    assert.strictEqual(e.method, "cpi", "the default");
+    assert.strictEqual(e.eac, Math.round(12555856 / (3100000 / 3230000)));
+    assert.strictEqual(e.etc, Math.round((12555856 - 3100000) / (3100000 / 3230000)));
+    e = at({ eacMethod: "plan" });
+    assert.deepStrictEqual([e.eac, e.etc, e.vac], [12555856, 12555856 - 3100000, 0]);
+    e = at({ eacMethod: "atypical" });
+    assert.deepStrictEqual([e.eac, e.etc, e.vac], [3230000 + 12555856 - 3100000, 12555856 - 3100000, -130000]);
+    e = at({ eacMethod: "new" });
+    assert.deepStrictEqual([e.eac, e.etc, e.missingEtc], [null, null, true]);
+    e = at({ eacMethod: "new", etcEstimate: 9000000 });
+    assert.deepStrictEqual([e.eac, e.etc, e.vac], [12230000, 9000000, 12555856 - 12230000]);
+    assert.strictEqual(at({ eacMethod: "nonsense" }).method, "cpi");
+    assert.ok(base);
+});
+
+test("the EAC choice is shown with its formula; only those who keep the figures can change it", () => {
+    const p = Object.assign(project(), { eacMethod: "atypical" });
+    let html = c.renderEarnedValue(c.earnedValue(p, "2026-09-12"), { editable: true });
+    assert.match(html, /<td class="evm-formula">AC \+ \(BAC − EV\)<\/td>/);
+    assert.match(html, /<option value="atypical" selected>/);
+    assert.match(html, /equals BAC \/ CPI, since AC = EV \/ CPI/);
+    assert.doesNotMatch(html, /id="evmMethod" disabled/);
+    html = c.renderEarnedValue(c.earnedValue(Object.assign(project(), { eacMethod: "new" }), "2026-09-12"), { editable: false });
+    assert.match(html, /id="evmMethod" disabled/);
+    assert.match(html, /id="evmEtc"/);
+    assert.match(html, /Enter the new estimate to complete/);
+});
+
+test("a variance of exactly zero reads as on budget, not under budget", () => {
+    const html = c.renderEarnedValue(c.earnedValue(Object.assign(project(), { eacMethod: "plan" }), "2026-09-12"), {});
+    assert.match(html, /<abbr>VAC<\/abbr>[\s\S]*?RM 0\.00[\s\S]*?= on budget/);
+    assert.doesNotMatch(html, /expected to finish under budget/);
+});
+
+test("the EAC choice sits in a folded Advanced section that names the current choice", () => {
+    const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), { editable: true });
+    assert.match(html, /<details class="fold" data-fold="evm-advanced"><summary><span class="fold-summary">Advanced: how EAC is forecast — Cost performance so far continues \(BAC \/ CPI\)/);
+    assert.match(html, /data-fold="evm-advanced"[\s\S]*id="evmMethod"/);
+});

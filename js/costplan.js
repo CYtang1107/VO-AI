@@ -126,9 +126,16 @@ function sCurve(project, todayIso) {
           recorded cost); known only when every certificate has one
      SV = EV − PV, SPI = EV / PV        (schedule: always available)
      CV = EV − AC, CPI = EV / AC        (cost: needs AC)
-     EAC = BAC / CPI  (cost performance so far continues)
-     ETC = EAC − AC,  VAC = BAC − EAC
+     EAC and ETC by the situation chosen (project.eacMethod, EAC_METHODS):
+       "plan"     work going as planned:        EAC = BAC,             ETC = BAC − EV
+       "cpi"      cost performance continues:   EAC = BAC / CPI,       ETC = (BAC − EV) / CPI
+       "atypical" past variances won't recur:   EAC = AC + (BAC − EV), ETC = BAC − EV
+       "new"      a fresh estimate of the rest: EAC = AC + ETC,        ETC = project.etcEstimate
+     VAC = BAC − EAC
+   ("atypical" is the standard formula for that situation. Written as
+   AC + (BAC − EV) / CPI it would equal BAC / CPI, since AC = EV / CPI.)
    Nulls where a figure cannot be worked out, never a guess. */
+var EAC_METHODS = ["cpi", "plan", "atypical", "new"];
 function earnedValue(project, todayIso) {
     const o = costOverview(project);
     const curve = sCurve(project, todayIso);
@@ -143,12 +150,20 @@ function earnedValue(project, todayIso) {
     const spi = pv ? r2(ev / pv) : null;
     const cv = ac === null ? null : ev - ac;
     const cpi = ac ? r2(ev / ac) : null;
-    const eac = cpi ? Math.round(bac / (ev / ac)) : null;
+    const method = EAC_METHODS.indexOf(project && project.eacMethod) >= 0 ? project.eacMethod : "cpi";
+    const etcIn = project && project.etcEstimate !== undefined && project.etcEstimate !== null && project.etcEstimate !== ""
+        ? Number(project.etcEstimate) : null;
+    let eac = null, etc = null;
+    if (method === "plan") { eac = bac; etc = bac - ev; }
+    else if (method === "cpi" && ac) { eac = Math.round(bac / (ev / ac)); etc = Math.round((bac - ev) / (ev / ac)); }
+    else if (method === "atypical" && ac !== null) { etc = bac - ev; eac = ac + etc; }
+    else if (method === "new" && ac !== null && etcIn !== null && etcIn >= 0) { etc = Math.round(etcIn); eac = ac + etc; }
     return {
         bac: bac, pv: pv, ev: ev, ac: ac, pctComplete: bac ? ev / bac * 100 : 0,
         sv: sv, spi: spi, cv: cv, cpi: cpi,
-        eac: eac, etc: eac === null ? null : eac - ac, vac: eac === null ? null : bac - eac,
-        missingAc: certs.length > 0 && !haveAc
+        method: method, eac: eac, etc: etc, vac: eac === null ? null : bac - eac,
+        missingAc: certs.length > 0 && !haveAc,
+        missingEtc: method === "new" && etcIn === null
     };
 }
 
@@ -230,10 +245,20 @@ function niceStep(raw) {
 
 /* The earned value table: each figure, its formula, its value and what
    it means (an index below 1 or a negative variance is bad). */
-function renderEarnedValue(e) {
+var EAC_FORMULA = {
+    plan: ["BAC", "BAC − EV"], cpi: ["BAC / CPI", "(BAC − EV) / CPI"],
+    atypical: ["AC + (BAC − EV)", "BAC − EV"], new: ["AC + ETC", "evm.etcEntered"]
+};
+
+/* opts: { editable } — whether the EAC situation (and a fresh ETC) can be changed */
+function renderEarnedValue(e, opts) {
+    const editable = opts && opts.editable;
+    const f = EAC_FORMULA[e.method];
     const money = v => v === null ? "—" : (v < 0 ? "−" : "") + rm(Math.abs(v));
     const verdict = (good, keyGood, keyBad) => good === null ? "" :
         '<span class="evm-flag ' + (good ? "evm-good" : "evm-bad") + '">' + (good ? "✓ " : "! ") + escapeHtml(t(good ? keyGood : keyBad)) + "</span>";
+    /* exactly on plan: neither good nor bad */
+    const level = key => '<span class="evm-flag evm-level">= ' + escapeHtml(t(key)) + "</span>";
     const row = (abbr, formula, value, flag) => "<tr><th>" + escapeHtml(t("evm.name." + abbr)) + ' <abbr>' + abbr + "</abbr></th>" +
         '<td class="evm-formula">' + escapeHtml(formula) + '</td><td class="num">' + value + "</td><td>" + (flag || "") + "</td></tr>";
     return '<h4 class="evm-title">' + escapeHtml(t("evm.title")) + "</h4>" +
@@ -242,15 +267,25 @@ function renderEarnedValue(e) {
         row("PV", t("evm.f.PV"), money(e.pv)) +
         row("EV", t("evm.f.EV", { pct: e.pctComplete.toFixed(1) }), rm(e.ev)) +
         row("AC", t("evm.f.AC"), money(e.ac)) +
-        row("SV", "EV − PV", money(e.sv), e.sv === null ? "" : verdict(e.sv >= 0, "evm.ahead", "evm.behind")) +
-        row("SPI", "EV / PV", e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? "" : verdict(e.spi >= 1, "evm.ahead", "evm.behind")) +
-        row("CV", "EV − AC", money(e.cv), e.cv === null ? "" : verdict(e.cv >= 0, "evm.under", "evm.over")) +
-        row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : verdict(e.cpi >= 1, "evm.under", "evm.over")) +
-        row("EAC", "BAC / CPI", money(e.eac)) +
-        row("ETC", "EAC − AC", money(e.etc)) +
-        row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : verdict(e.vac >= 0, "evm.underrun", "evm.overrun")) +
+        row("SV", "EV − PV", money(e.sv), e.sv === null ? "" : e.sv === 0 ? level("evm.onSchedule") : verdict(e.sv > 0, "evm.ahead", "evm.behind")) +
+        row("SPI", "EV / PV", e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? "" : e.spi === 1 ? level("evm.onSchedule") : verdict(e.spi > 1, "evm.ahead", "evm.behind")) +
+        row("CV", "EV − AC", money(e.cv), e.cv === null ? "" : e.cv === 0 ? level("evm.onBudget") : verdict(e.cv > 0, "evm.under", "evm.over")) +
+        row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : e.cpi === 1 ? level("evm.onBudget") : verdict(e.cpi > 1, "evm.under", "evm.over")) +
+        row("EAC", f[0], money(e.eac)) +
+        row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc)) +
+        row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : e.vac === 0 ? level("evm.onBudget") : verdict(e.vac > 0, "evm.underrun", "evm.overrun")) +
         "</tbody></table></div>" +
-        (e.missingAc ? '<p class="assistant-note">' + escapeHtml(t("evm.needAc")) + "</p>" : "") +
+        /* the EAC situation: an advanced choice, folded away (BAC / CPI by default) */
+        fold("evm-advanced", escapeHtml(t("evm.advanced", { method: t("evm.method." + e.method) })),
+        '<div class="evm-method"><label for="evmMethod">' + escapeHtml(t("evm.methodLabel")) + "</label>" +
+            '<select id="evmMethod"' + (editable ? "" : " disabled") + ">" + EAC_METHODS.map(m =>
+                '<option value="' + m + '"' + (m === e.method ? " selected" : "") + ">" + escapeHtml(t("evm.method." + m)) + "</option>").join("") + "</select>" +
+            (e.method === "new" ? '<label for="evmEtc">' + escapeHtml(t("evm.etcLabel")) + '</label><input type="number" min="0" step="0.01" id="evmEtc" value="' +
+                (e.etc === null ? "" : e.etc) + '"' + (editable ? "" : " disabled") + ">" : "") +
+        "</div>" +
+        '<p class="assistant-note">' + escapeHtml(t("evm.methodNote." + e.method)) + "</p>") +
+        (e.missingAc && e.method !== "plan" ? '<p class="assistant-note">' + escapeHtml(t("evm.needAc")) + "</p>" : "") +
+        (e.missingEtc ? '<p class="assistant-note">' + escapeHtml(t("evm.needEtc")) + "</p>" : "") +
         '<p class="assistant-note">' + escapeHtml(t("evm.note")) + "</p>";
 }
 
@@ -295,7 +330,7 @@ function renderCostOverview(project, todayIso, opts) {
                     "</td><td>" + (p.actual === null ? "—" : rm(p.actual)) + "</td></tr>").join("") + "</tbody></table></div>");
     }
 
-    if (curve) chart += renderEarnedValue(earnedValue(project, todayIso));
+    if (curve) chart += renderEarnedValue(earnedValue(project, todayIso), { editable: editable });
 
     const prog = project.programme || {};
     const certs = (project.certificates || []).slice().sort((a, b) => a.date < b.date ? -1 : 1);
@@ -346,5 +381,5 @@ function mountCostChart(host, curve) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderSCurveSvg, niceStep };
+    module.exports = { EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderSCurveSvg, niceStep };
 }
