@@ -1446,7 +1446,10 @@ var I18N_EN = {
     "evm.needEtc": "Enter the new estimate to complete the remaining work.",
     "evm.onBudget": "on budget",
     "evm.onSchedule": "on schedule",
-    "evm.advanced": "Advanced: how EAC is forecast — {method}"
+    "evm.advanced": "Advanced: how EAC is forecast — {method}",
+    "costplan.rangeLabel": "Months shown",
+    "costplan.range.toDate": "To date",
+    "costplan.range.all": "Whole programme"
 };
 
 var I18N_ZH = {
@@ -2852,7 +2855,10 @@ var I18N_ZH = {
     "evm.needEtc": "请输入剩余工程的新估算。",
     "evm.onBudget": "符合预算",
     "evm.onSchedule": "符合进度",
-    "evm.advanced": "进阶：完工估算 (EAC) 的依据 — {method}"
+    "evm.advanced": "进阶：完工估算 (EAC) 的依据 — {method}",
+    "costplan.rangeLabel": "显示的月份",
+    "costplan.range.toDate": "至今",
+    "costplan.range.all": "整个工期"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

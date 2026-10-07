@@ -165,11 +165,14 @@ if (typeof document !== "undefined") {
            interim certificates. */
         const costHost = document.getElementById("costPlanBody");
         const costEditable = session.role === "consultant" || session.role === "client";
+        /* the S-curve zoomed to date, or the whole programme: this viewer's choice */
+        let costRange = "toDate";
+        try { if (localStorage.getItem("voai.scRange.v1") === "all") costRange = "all"; } catch (e) { /* default */ }
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;
             const p = getProject(project.id) || project;
-            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth }); });
-            mountCostChart(costHost, sCurve(p, today()));
+            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, range: costRange }); });
+            mountCostChart(costHost, viewCurve(sCurve(p, today()), costRange));
         }
         if (costHost) {
             costHost.addEventListener("change", e => {
@@ -192,6 +195,13 @@ if (typeof document !== "undefined") {
                 drawCost();
             });
             costHost.addEventListener("click", e => {
+                const rangeBtn = e.target.closest(".sc-range-btn");
+                if (rangeBtn) {
+                    costRange = rangeBtn.dataset.range;
+                    try { localStorage.setItem("voai.scRange.v1", costRange); } catch (err) { /* not kept */ }
+                    drawCost();
+                    return;
+                }
                 if (!costEditable) return;
                 if (e.target.id === "cpCertAdd") {
                     const date = document.getElementById("cpCertDate").value;

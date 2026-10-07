@@ -3486,3 +3486,7 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .evm-method { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0 4px; font-size: 13px; }
 .evm-method select, .evm-method input { padding: 7px; border: 1px solid #dfe3e8; border-radius: 6px; font: inherit; max-width: 100%; }
 .evm-level { background: var(--tag-bg); color: var(--ink-2); }
+.sc-range { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; margin: 4px 0 6px; }
+.sc-range-btn { border: none; background: var(--paper); padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer; color: var(--ink-2); }
+.sc-range-btn + .sc-range-btn { border-left: 1px solid var(--rule); }
+.sc-range-btn.on { background: var(--accent); color: #fff; }
