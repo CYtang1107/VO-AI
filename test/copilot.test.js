@@ -26,10 +26,10 @@ test("a question is matched to what the project's data can answer, in English or
 });
 
 test("overview: VOs by stage, cost and what waits for this role", () => {
-    const a = cp.answerFromData("overview", ctx());
+    const a = cp.answerFromData("overview", ctx({ role: "client" }));
     assert.match(a.lines[0].text, /3 VO\(s\): 1 draft, 1 in progress, 0 valued, 1 certified/);
     assert.match(a.lines[1].text, /Contract sum RM 12,500,000\.00/);
-    assert.ok(a.lines.some(l => /1 VO\(s\) are waiting for the Consultant QS/.test(l.text)));
+    assert.ok(a.lines.some(l => /VO\(s\) are waiting for the Client/.test(l.text)));
 });
 
 test("waiting: the consultant QS has VO-002 to value, linked to it", () => {
@@ -58,14 +58,14 @@ test("experience: a named item finds past projects' rates; otherwise the project
 });
 
 test("cost: forecast, certified, SPI and CPI from the cost overview", () => {
-    const a = cp.answerFromData("cost", ctx());
+    const a = cp.answerFromData("cost", ctx({ role: "client" }));
     assert.match(a.lines[0].text, /Forecast final cost RM 12,569,660\.00/);
     assert.ok(a.lines.some(l => /SPI 0\.\d\d/.test(l.text)));
     assert.ok(a.lines.some(l => /CPI 0\.96/.test(l.text)));
 });
 
 test("the AI mode gets the whole project: cost, earned value, and every VO with its figures", () => {
-    const d = cp.projectData(db().projects[0], "2026-09-12", "consultant");
+    const d = cp.projectData(db().projects[0], "2026-09-12", "client");
     assert.strictEqual(d.cost["contract sum"], "RM 12,500,000.00");
     assert.strictEqual(d["variation orders"].length, 3);
     const v1 = d["variation orders"][0];
@@ -98,3 +98,18 @@ test("the page offers the seven questions and shows answers newest first", () =>
     assert.match(html, /href="vo\.html\?id=VO-SEED-2"/);
     assert.match(cp.renderCopilot({ history: [{ question: "what is clause 2.2?" }] }, {}), /need a team account/);
 });
+
+test("the consultant QS gets no cost question, no cost in the overview, and no cost data for the AI", () => {
+    const qs = r => cp.copilotQuestions(r).map(q => q.id);
+    assert.ok(!qs("consultant").includes("cost"));
+    ["contractor", "administrator", "client"].forEach(r => assert.ok(qs(r).includes("cost"), r));
+    assert.match(cp.answerFromData("cost", ctx()).lines[0].text, /not shown to the consultant QS/);
+    const ov = cp.answerFromData("overview", ctx());
+    assert.ok(!ov.lines.some(l => /Contract sum|SPI/.test(l.text)));
+    const d = cp.projectData(db().projects[0], "2026-09-12", "consultant");
+    assert.strictEqual(d.cost, undefined);
+    assert.strictEqual(d["earned value"], undefined);
+    assert.strictEqual(d["variation orders"].length, 3, "the VOs are still there");
+    assert.doesNotMatch(cp.renderCopilot({ history: [] }, { role: "consultant" }), /data-intent="cost"/);
+});
+

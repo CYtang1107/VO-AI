@@ -1516,7 +1516,8 @@ var I18N_EN = {
     "evm.group.baseline": "Cost baseline",
     "evm.group.variance": "Variance",
     "evm.group.estimate": "Estimation",
-    "evm.detail": "Show the figures behind these (PV, EV, AC, SPI, CPI)"
+    "evm.detail": "Show the figures behind these (PV, EV, AC, SPI, CPI)",
+    "copilot.cost.notForRole": "The project's cost overview is kept by the contractor, the design team and the client; it is not shown to the consultant QS. Ask about a VO's valuation instead."
 };
 
 var I18N_ZH = {
@@ -2992,7 +2993,8 @@ var I18N_ZH = {
     "evm.group.baseline": "成本基准",
     "evm.group.variance": "偏差",
     "evm.group.estimate": "估算",
-    "evm.detail": "显示计算依据（PV、EV、AC、SPI、CPI）"
+    "evm.detail": "显示计算依据（PV、EV、AC、SPI、CPI）",
+    "copilot.cost.notForRole": "项目成本总览供承包商、设计团队与业主查看，不向咨询工料测量师显示。可改问个别变更令的估价。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

@@ -10,7 +10,7 @@ if (typeof document !== "undefined") {
         /* the general AI mode: a team account, or the demo's guest allowance */
         const ai = typeof askContractAvailable === "function" && askContractAvailable(project.id);
 
-        function draw() { host.innerHTML = renderCopilot(state, { ai: ai }); }
+        function draw() { host.innerHTML = renderCopilot(state, { ai: ai, role: session.role }); }
 
         async function askAi(q) {
             if (state.busy) return;
