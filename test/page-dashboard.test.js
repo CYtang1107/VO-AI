@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
-const { actionItems, renderStatCards, renderRecentRows } = require("../js/page-dashboard.js");
+const { actionItems, renderRecentRows } = require("../js/page-dashboard.js");
+const { renderStatCards } = require("../js/page-register.js");
 const { seedDB } = require("../js/store.js");
 const { projectStats } = require("../js/calc.js");
 
@@ -25,7 +26,7 @@ test("the client only sees VOs that are approved and not yet certified", () => {
         "VO-001 is already certified");
 });
 
-test("stat cards show the four headline numbers", () => {
+test("stat cards (now on the VO register) show the four headline numbers", () => {
     const html = renderStatCards(projectStats(project), "consultant");
     assert.match(html, /Total VOs/);
     assert.match(html, /Pending/);

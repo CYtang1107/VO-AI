@@ -76,28 +76,6 @@ function actionItems(project, role) {
         .map(v => ({ vo: v, text: t("dashboard.action.awaitingCert") }));
 }
 
-function renderStatCards(stats, role) {
-    const cards = [
-        { icon: "▧", cls: "blue",   label: t("dashboard.stat.total"),     value: stats.total,
-          note: t("dashboard.stat.totalNote", { n: stats.draft }) },
-        { icon: "◷", cls: "orange", label: t("dashboard.stat.pending"), value: stats.pending,
-          note: stats.pending > 0 ? t("dashboard.stat.pendingNoteWarn") : t("dashboard.stat.pendingNoteOk"), warn: stats.pending > 0 },
-        { icon: "✓", cls: "green",  label: t("dashboard.stat.approved"),       value: stats.approved,
-          note: t("dashboard.stat.approvedNote", { n: stats.certified }) },
-        { icon: "RM", cls: "purple", label: t("dashboard.stat.value"), value: rm(stats.value),
-          note: t("dashboard.stat.valueNote", { n: stats.timeImpact }) }
-    ];
-
-    return cards.map(c =>
-        '<div class="stat-card">' +
-            '<div class="stat-icon ' + c.cls + '">' + c.icon + "</div>" +
-            "<div><p>" + c.label + "</p><h2>" + c.value + "</h2>" +
-            '<small' + (c.warn ? ' class="warning"' : "") + ">" + escapeHtml(c.note) +
-            "</small></div>" +
-        "</div>"
-    ).join("");
-}
-
 function renderRecentRows(vos) {
     const sorted = (vos || []).slice().sort((a, b) =>
         String(b.dateIssued || "").localeCompare(String(a.dateIssued || "")));
@@ -118,7 +96,7 @@ function renderRecentRows(vos) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { actionItems, renderStatCards, renderRecentRows, deadlinePositionText };
+    module.exports = { actionItems, renderRecentRows, deadlinePositionText };
 }
 
 /* ---------- browser wiring ---------- */
@@ -135,14 +113,12 @@ if (typeof document !== "undefined") {
         const crumbEl = document.querySelector(".breadcrumb");
         if (crumbEl) crumbEl.textContent = t("crumb.project", { name: project.name });
 
-        const stats = projectStats(project);
 
         document.getElementById("greeting").textContent =
             t("dashboard.greeting", { name: session.name });
         document.getElementById("greetingSub").innerHTML =
             t("dashboard.greetingSub", { name: "<strong>" + escapeHtml(project.name) + "</strong>" });
 
-        document.getElementById("statCards").innerHTML = renderStatCards(stats, session.role);
         document.getElementById("recentBody").innerHTML = renderRecentRows(project.vos);
 
         const deadlineText = deadlinePositionText(project, session.role, today());
