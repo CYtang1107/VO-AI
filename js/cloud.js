@@ -333,6 +333,20 @@ var Cloud = (function () {
 
     /* ---------- ask the contract (Edge Function ask-contract) ---------- */
 
+    /* Deletes a draft VO on the server (delete_vo checks the rule), then
+       from the last-synced snapshot, so the next save does not bring it
+       back. Resolves "ok" or "not-found". */
+    async function deleteVO(projectId, voId) {
+        var c = await client();
+        var result = check(await c.rpc("delete_vo", { p_project: projectId, p_id: voId }));
+        var snapshot = readJson(SNAPSHOT_KEY);
+        if (snapshot && snapshot.vos) {
+            delete snapshot.vos[projectId + "/" + voId];
+            writeJson(SNAPSHOT_KEY, snapshot);
+        }
+        return result;
+    }
+
     async function invoke(name, body) {
         var c = await client();
         var res = await c.functions.invoke(name, { body: body });
@@ -478,7 +492,7 @@ var Cloud = (function () {
         pull: pull, push: push, schedulePush: schedulePush, flush: flush,
         uploadFile: uploadFile, downloadFile: downloadFile,
         addMember: addMember, removeMember: removeMember,
-        ask: ask, invoke: invoke, knowledgeRows: knowledgeRows, knowledgeText: knowledgeText, notify: notify
+        ask: ask, invoke: invoke, deleteVO: deleteVO, knowledgeRows: knowledgeRows, knowledgeText: knowledgeText, notify: notify
     };
 })();
 
