@@ -112,6 +112,16 @@ if (typeof document !== "undefined") {
            keep the programme and the certificates. */
         const costCard = document.querySelector(".cost-plan-card");
         if (costCard && !costOverviewVisible(session.role)) costCard.remove();
+        /* with the cost overview, the site map sits beside the S-curve */
+        if (costCard && costOverviewVisible(session.role)) {
+            const aside = document.getElementById("costMapAside");
+            const mapCard = document.querySelector(".site-map-card");
+            if (aside && mapCard) {
+                aside.appendChild(document.getElementById("siteMapBody"));
+                aside.hidden = false;
+                mapCard.remove();
+            }
+        }
         const costHost = document.getElementById("costPlanBody");
         const costEditable = costOverviewEditable(session.role);
         /* the S-curve zoomed to date, or the whole programme: this viewer's choice */
@@ -120,15 +130,24 @@ if (typeof document !== "undefined") {
         /* the S-curve's height: what is left of the screen under the card's
            first lines, so the whole curve shows when the page opens (the
            chart keeps its own limits on a very short or very tall screen) */
+        /* the S-curve's width: the card's, less the site map beside it */
+        const costCardBody = document.getElementById("costPlanCard");
+        const costMap = document.getElementById("costMapAside");
+        function chartWidth() {
+            if (!costCardBody) return costHost.clientWidth;
+            const cs = getComputedStyle(costCardBody);
+            const w = costCardBody.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            return costMap && !costMap.hidden && getComputedStyle(costMap).gridColumnStart === "2" ? w - costMap.offsetWidth - 20 : w;
+        }
         function chartHeight() {
             if (window.innerWidth <= 760) return null; /* a phone: the chart's own height */
-            const top = costHost.getBoundingClientRect().top + window.scrollY;
+            const top = (costCardBody || costHost).getBoundingClientRect().top + window.scrollY;
             return window.innerHeight - top - 120;
         }
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;
             const p = getProject(project.id) || project;
-            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, height: chartHeight(), range: costRange }); });
+            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: chartWidth(), height: chartHeight(), range: costRange }); });
             mountCostChart(costHost, viewCurve(sCurve(p, today()), costRange));
         }
         if (costHost) {
@@ -182,12 +201,12 @@ if (typeof document !== "undefined") {
             });
             drawCost();
             /* redrawn at the new width when the window is resized */
-            let costWidth = costHost.clientWidth, costTall = window.innerHeight, costTimer = null;
+            let costWidth = costCardBody ? costCardBody.clientWidth : costHost.clientWidth, costTall = window.innerHeight, costTimer = null;
             window.addEventListener("resize", () => {
                 clearTimeout(costTimer);
                 costTimer = setTimeout(() => {
-                    if (Math.abs(costHost.clientWidth - costWidth) > 40 || Math.abs(window.innerHeight - costTall) > 60) {
-                        costWidth = costHost.clientWidth; costTall = window.innerHeight; drawCost();
+                    if (Math.abs((costCardBody || costHost).clientWidth - costWidth) > 40 || Math.abs(window.innerHeight - costTall) > 60) {
+                        costWidth = (costCardBody || costHost).clientWidth; costTall = window.innerHeight; drawCost();
                     }
                 }, 200);
             });
