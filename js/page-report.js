@@ -198,6 +198,12 @@ function renderReport(vo, project, role) {
        consultant's internal recommendation to the client. */
     const showRecommendation = role !== "contractor" && Boolean(vo.consultantRemark);
 
+    /* the contract administrator's two steps; a VO saved before that role
+       existed reads as the page shows it (js/page-vo.js) */
+    const instructionStatus = vo.instructionStatus || (vo.submitted ? "Confirmed" : "Pending");
+    const caStatus = vo.caCertifiedStatus || (vo.evaluateStatus === "Approved" ? "Certified" : "Pending");
+    const statusHtml = value => "<strong>" + escapeHtml(t("status." + value, {})) + "</strong>";
+
     return '' +
     '<div class="report-sheet">' +
 
@@ -255,8 +261,10 @@ function renderReport(vo, project, role) {
         "<div><h3>" + escapeHtml(t("report.section.timeImpact")) + "</h3>" +
         "<p>" + t("report.timeImpactLine", { n: Number(vo.timeImpact) || 0 }) + "</p></div>" +
         "<div><h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
-        "<p>" + t("report.evaluationLine", { status: "<strong>" + escapeHtml(t("status." + vo.evaluateStatus, {})) + "</strong>" }) + "<br>" +
-        t("report.certificationLine", { status: "<strong>" + escapeHtml(t("status." + vo.certifiedStatus, {})) + "</strong>" }) + "</p></div>" +
+        "<p>" + t("report.instructionLine", { status: statusHtml(instructionStatus) }) + "<br>" +
+        t("report.evaluationLine", { status: statusHtml(vo.evaluateStatus) }) + "<br>" +
+        t("report.caCertificationLine", { status: statusHtml(caStatus) }) + "<br>" +
+        t("report.certificationLine", { status: statusHtml(vo.certifiedStatus) }) + "</p></div>" +
       "</div>" +
       (vo.assessmentNote ? '<p class="rate-detail"><strong>' + t("report.assessmentNoteLabel") + '</strong> ' +
         escapeHtml(seedText(vo.assessmentNote)) + "</p>" : "") +
@@ -265,6 +273,7 @@ function renderReport(vo, project, role) {
 
       '<div class="signatures">' +
         "<div><span></span><small>" + escapeHtml(t("report.sig.contractor")) + "</small></div>" +
+        "<div><span></span><small>" + escapeHtml(t("report.sig.administrator")) + "</small></div>" +
         "<div><span></span><small>" + escapeHtml(t("report.sig.consultant")) + "</small></div>" +
         "<div><span></span><small>" + escapeHtml(t("report.sig.client")) + "</small></div>" +
       "</div>" +
