@@ -3626,10 +3626,15 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     /* the register: the counts in one compact row under the map, the list scrolls */
     .register-layout { margin-bottom: 0; }
     .register-side { gap: 14px; }
-    .register-side .site-map { height: max(200px, calc(100vh - 330px)); }
-    .register-summary-card .card-body.stats-compact { grid-template-columns: 1fr 1fr 1fr 1.7fr; padding: 10px; gap: 8px; }
-    .stats-compact .stat-icon, .stats-compact .stat-card small { display: none; }
-    .stats-compact .stat-card { padding: 8px 10px; }
+    .register-side .site-map { height: max(180px, calc(100vh - 385px)); }
+    .register-summary-card .card-body.stats-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 10px; gap: 8px; }
+    .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: 1 / -1; }
+    .stats-compact .stat-card p { white-space: nowrap; }
+    .stats-compact .stat-card small { display: none; }
+    .stats-compact .stat-icon { width: 18px; height: 18px; font-size: 9px; border-radius: 4px; }
+    .stats-compact .stat-card { padding: 8px 10px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; row-gap: 2px; }
+    .stats-compact .stat-card > div:not(.stat-icon) { display: contents; }
+    .stats-compact .stat-card h2 { grid-column: 1 / -1; }
     .stats-compact .stat-card h2 { font-size: 15px; white-space: nowrap; margin: 0; }
     .stats-compact .stat-card p { font-size: 11px; margin: 0 0 2px; }
     .register-main .legend-bar { margin-bottom: 8px; padding: 6px 12px; }
@@ -3694,3 +3699,13 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .capture-form .field { margin-bottom: 10px; }
 }
 #rolePanelsSection[hidden] { display: none !important; }
+
+/* the register's counts keep their colours in the compact row */
+.stats-compact .stat-card:has(.stat-icon.blue)   { background: #eef3ff; border-color: #cfdcff; }
+.stats-compact .stat-card:has(.stat-icon.orange) { background: #fff5e6; border-color: #f6d9a8; }
+.stats-compact .stat-card:has(.stat-icon.green)  { background: var(--verdict-same-bg); border-color: #bfe3cc; }
+.stats-compact .stat-card:has(.stat-icon.purple) { background: var(--verdict-star-bg); border-color: #dccbf5; }
+.stats-compact .stat-card:has(.stat-icon.blue) h2   { color: var(--accent); }
+.stats-compact .stat-card:has(.stat-icon.orange) h2 { color: #b45309; }
+.stats-compact .stat-card:has(.stat-icon.green) h2  { color: var(--verdict-same); }
+.stats-compact .stat-card:has(.stat-icon.purple) h2 { color: var(--verdict-star); }

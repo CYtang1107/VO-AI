@@ -194,16 +194,15 @@ test("every role's report keeps the professional-review disclaimer and signature
     });
 });
 
-test("the report's status shows the contract administrator's two steps", () => {
+test("the report's status shows the design team's instruction, and no certification step (the workflow has none)", () => {
     const html = renderReport(Object.assign({}, vo1, { instructionStatus: "Confirmed", caCertifiedStatus: "Pending" }), project, "consultant");
     assert.match(html, /Instruction \(design team\): <strong>Confirmed<\/strong>/);
-    assert.match(html, /Design team's certification: <strong>Pending<\/strong>/);
+    assert.doesNotMatch(html, /Design team's certification/);
     /* a VO saved before the role existed: submitted reads as confirmed */
     const legacy = Object.assign({}, vo1, { submitted: true, evaluateStatus: "Approved" });
     delete legacy.instructionStatus; delete legacy.caCertifiedStatus;
     const old = renderReport(legacy, project, "client");
     assert.match(old, /Instruction \(design team\): <strong>Confirmed<\/strong>/);
-    assert.match(old, /Design team's certification: <strong>Certified<\/strong>/);
 });
 
 test("section 1 shows the instruction's type, reference and due date, not a placeholder", () => {

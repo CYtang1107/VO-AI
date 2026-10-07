@@ -201,7 +201,6 @@ function renderReport(vo, project, role) {
     /* the contract administrator's two steps; a VO saved before that role
        existed reads as the page shows it (js/page-vo.js) */
     const instructionStatus = vo.instructionStatus || (vo.submitted ? "Confirmed" : "Pending");
-    const caStatus = vo.caCertifiedStatus || (vo.evaluateStatus === "Approved" ? "Certified" : "Pending");
     const statusHtml = value => "<strong>" + escapeHtml(t("status." + value, {})) + "</strong>";
 
     return '' +
@@ -263,7 +262,6 @@ function renderReport(vo, project, role) {
         "<div><h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
         "<p>" + t("report.instructionStatusLine", { status: statusHtml(instructionStatus) }) + "<br>" +
         t("report.evaluationLine", { status: statusHtml(vo.evaluateStatus) }) + "<br>" +
-        t("report.caCertificationLine", { status: statusHtml(caStatus) }) + "<br>" +
         t("report.certificationLine", { status: statusHtml(vo.certifiedStatus) }) + "</p></div>" +
       "</div>" +
       (vo.assessmentNote ? '<p class="rate-detail"><strong>' + t("report.assessmentNoteLabel") + '</strong> ' +

@@ -19,7 +19,7 @@ export const ROLE_FRAMING = {
         en: "You are the contractor's self-check agent: help the contractor check a variation claim against the contract before it is submitted, and say what evidence it still needs."
     },
     consultant: {
-        zh: "你是咨询核价员：帮助咨询工料测量师依照合同条文评估这项变更。",
+        zh: "你是咨询核价员：帮助顾问工料测量师依照合同条文评估这项变更。",
         en: "You are the consultant's assessment agent: help the consultant quantity surveyor assess this variation against the contract."
     },
     administrator: {
