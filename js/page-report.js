@@ -261,7 +261,7 @@ function renderReport(vo, project, role) {
         "<div><h3>" + escapeHtml(t("report.section.timeImpact")) + "</h3>" +
         "<p>" + t("report.timeImpactLine", { n: Number(vo.timeImpact) || 0 }) + "</p></div>" +
         "<div><h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
-        "<p>" + t("report.instructionLine", { status: statusHtml(instructionStatus) }) + "<br>" +
+        "<p>" + t("report.instructionStatusLine", { status: statusHtml(instructionStatus) }) + "<br>" +
         t("report.evaluationLine", { status: statusHtml(vo.evaluateStatus) }) + "<br>" +
         t("report.caCertificationLine", { status: statusHtml(caStatus) }) + "<br>" +
         t("report.certificationLine", { status: statusHtml(vo.certifiedStatus) }) + "</p></div>" +

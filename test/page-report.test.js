@@ -206,6 +206,12 @@ test("the report's status shows the contract administrator's two steps", () => {
     assert.match(old, /Design team's certification: <strong>Certified<\/strong>/);
 });
 
+test("section 1 shows the instruction's type, reference and due date, not a placeholder", () => {
+    const html = renderReport(vo1, project, "consultant");
+    assert.doesNotMatch(html, /\{status\}|\{type\}|\{ref\}|\{date\}/);
+    assert.match(html, /<p class="rate-detail">[^<]* · Reference [^<]* · Due [^<]*<\/p><\/section>/);
+});
+
 /* -----------------------------------------------------------
    All-VO summary report
 ----------------------------------------------------------- */
