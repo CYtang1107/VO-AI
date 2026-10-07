@@ -65,13 +65,25 @@ test("after practical completion, only when the project records it", () => {
     assert.ok(!claimCheck(vo(), project()).checks.some(c => c.id === "timing"));
 });
 
-test("a PWD 203A project cites clause 24 and the Superintending Officer", () => {
+test("a PWD 203 project cites its own clauses (Rev. 2007): 24.2, 5.2, 27.1, 25.1", () => {
+    const p = project();
+    p.documents = [{ id: "D", name: "PWD Form 203 Rev. 2007.pdf" }];
+    assert.strictEqual(contractForm(p), "PWD 203");
+    const r = claimCheck(vo({ instructionNo: "" }), p);
+    assert.deepStrictEqual(r.checks.map(c => c.clause),
+        ["PWD 203 Clause 24.2", "PWD 203 Clause 5.2", "PWD 203 Clause 27.1", "PWD 203 Clause 25.1"]);
+    assert.match(r.checks.find(c => c.id === "instruction").reason, /Superintending Officer.*7 days/);
+    const late = Object.assign(project(), { documents: p.documents, practicalCompletion: "2026-07-01" });
+    assert.ok(!claimCheck(vo({ dateIssued: "2026-07-14" }), late).checks.some(c => c.id === "timing"), "no clause like PAM 11.3");
+});
+
+test("a PWD 203A project cites clause 24", () => {
     const p = project();
     p.documents = [{ id: "D", name: "PWD 203A Conditions of Contract.pdf" }];
     assert.strictEqual(contractForm(p), "PWD 203A");
-    const r = claimCheck(vo({ instructionNo: "" }), p);
-    assert.ok(r.checks.every(c => c.clause === "PWD 203A Clause 24"));
-    assert.match(r.checks.find(c => c.id === "instruction").reason, /Superintending Officer/);
+    assert.ok(claimCheck(vo({ instructionNo: "" }), p).checks.every(c => c.clause === "PWD 203A Clause 24"));
+    assert.strictEqual(contractForm({ documents: [{ name: "JKR contract.pdf" }] }), "PWD 203");
+    assert.strictEqual(contractForm(project()), "PAM 2018");
 });
 
 test("the card shows the verdict, each check with its clause, and what was recorded at submission", () => {

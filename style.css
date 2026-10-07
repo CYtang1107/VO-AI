@@ -3472,3 +3472,14 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .cp-prog, .cp-add { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 6px 0; font-size: 13px; }
 .cp-prog input, .cp-add input { padding: 7px; border: 1px solid #dfe3e8; border-radius: 6px; font: inherit; }
 .cp-certs { font-size: 13px; padding-left: 18px; margin: 8px 0; }
+
+/* earned value (js/costplan.js renderEarnedValue) */
+.evm-title { font-size: 13px; margin: 18px 0 8px; }
+.evm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.evm-table th, .evm-table td { padding: 6px 8px; border-bottom: 1px solid var(--rule); text-align: left; font-weight: normal; }
+.evm-table th abbr { font-weight: 700; text-decoration: none; margin-left: 4px; }
+.evm-table td.num { text-align: right; font-weight: 700; white-space: nowrap; }
+.evm-formula { color: var(--sc-muted, #5b6474); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+.evm-flag { font-size: 12px; white-space: nowrap; padding: 2px 8px; border-radius: 10px; }
+.evm-good { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.evm-bad { background: var(--verdict-diff-bg); color: var(--verdict-diff); }

@@ -27,7 +27,7 @@ test("a VO counts at its final price, then its assessed value once approved, els
     assert.strictEqual(c.voValue({ evaluateStatus: "Pending", measurement: vo.measurement }), 5);
 });
 
-test("the S-curve: slow start, fast middle, slow finish, reaching the contract sum at completion", () => {
+test("the S-curve: slow start, fast middle, slow finish, reaching the baseline at completion", () => {
     assert.strictEqual(c.sFraction(0), 0);
     assert.strictEqual(c.sFraction(0.5), 0.5);
     assert.strictEqual(c.sFraction(1), 1);
@@ -36,7 +36,7 @@ test("the S-curve: slow start, fast middle, slow finish, reaching the contract s
     assert.strictEqual(curve.points.length, 18, "Mar 2026 to Aug 2027");
     assert.strictEqual(curve.points[0].date, "2026-03-31");
     assert.strictEqual(curve.points[17].date, "2027-08-31");
-    assert.strictEqual(curve.points[17].planned, 12500000);
+    assert.strictEqual(curve.points[17].planned, 12500000 + 55856, "the baseline: contract sum + approved VOs");
     assert.ok(curve.points[17].forecast > 12500000);
     assert.strictEqual(curve.points[5].actual, 3100000, "August: all six certificates");
     assert.strictEqual(curve.points[6].actual, null, "no certificate after August yet");
@@ -59,10 +59,50 @@ test("the card: tiles, the behind/ahead line, a legend for the three lines, a ta
     const html = c.renderCostOverview(project(), "2026-09-12", { editable: true, width: 760 });
     assert.match(html, /Forecast final cost/);
     assert.match(html, /Behind plan/);
-    assert.match(html, /Planned \(contract sum\)[\s\S]*Forecast \(with variations\)[\s\S]*Certified \(actual\)/);
+    assert.match(html, /Planned \(baseline\)[\s\S]*Forecast \(with variations\)[\s\S]*Certified \(actual\)/);
     assert.match(html, /class="sc-line sc-actual"/);
     assert.match(html, /Show the figures as a table/);
     assert.match(html, /id="cpCertAdd"/);
     assert.doesNotMatch(c.renderCostOverview(project(), "2026-09-12", { editable: false }), /cpCertAdd/);
     assert.strictEqual(c.niceStep(3.1e6), 5e6);
 });
+
+/* the worked examples of a project cost management course (EVM) */
+test("earned value: BAC, PV, EV, AC and the variances and indices worked out as in the course examples", () => {
+    const p = { contractSum: 200000, vos: [], programme: { start: "2026-01-01", end: "2026-12-31" },
+                certificates: [{ date: "2026-02-28", amount: 20000, actual: 35000 }] };
+    const e = c.earnedValue(p, "2026-03-15");
+    assert.strictEqual(e.bac, 200000);
+    assert.strictEqual(e.ev, 20000);
+    assert.strictEqual(e.ac, 35000);
+    assert.strictEqual(e.cv, -15000, "CV = EV − AC");
+    assert.strictEqual(e.cpi, 0.57, "CPI = EV / AC");
+    assert.strictEqual(e.sv, e.ev - e.pv, "SV = EV − PV");
+    assert.strictEqual(e.eac, Math.round(200000 / (20000 / 35000)), "EAC = BAC / CPI");
+    assert.strictEqual(e.etc, e.eac - 35000, "ETC = EAC − AC");
+    assert.strictEqual(e.vac, 200000 - e.eac, "VAC = BAC − EAC");
+});
+
+test("earned value of the demo: behind schedule and slightly over budget", () => {
+    const e = c.earnedValue(project(), "2026-09-12");
+    assert.strictEqual(e.bac, 12555856);
+    assert.strictEqual(e.ev, 3100000);
+    assert.strictEqual(e.ac, 3230000);
+    assert.strictEqual(e.spi, 0.86);
+    assert.strictEqual(e.cpi, 0.96);
+    assert.ok(e.vac < 0, "an overrun is forecast");
+    const html = c.renderEarnedValue(e);
+    assert.match(html, /Schedule performance index <abbr>SPI<\/abbr>[\s\S]*0\.86[\s\S]*behind schedule/);
+    assert.match(html, /BAC \/ CPI/);
+});
+
+test("without an actual cost on every certificate, only the schedule figures are worked out", () => {
+    const p = project();
+    delete p.certificates[2].actual;
+    const e = c.earnedValue(p, "2026-09-12");
+    assert.strictEqual(e.ac, null);
+    assert.deepStrictEqual([e.cv, e.cpi, e.eac, e.etc, e.vac], [null, null, null, null, null]);
+    assert.ok(e.spi !== null);
+    assert.match(c.renderEarnedValue(e), /Enter the actual cost with every certificate/);
+});
+

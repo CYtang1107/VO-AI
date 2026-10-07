@@ -185,7 +185,10 @@ if (typeof document !== "undefined") {
                     const date = document.getElementById("cpCertDate").value;
                     const amount = Number(document.getElementById("cpCertAmount").value);
                     if (!date || !(amount > 0)) { toast(t("costplan.badCert"), "error"); return; }
-                    updateProject(project.id, p => { p.certificates = (p.certificates || []).concat([{ date: date, amount: amount }]); });
+                    const actualRaw = document.getElementById("cpCertActual").value;
+                    const cert = { date: date, amount: amount };
+                    if (actualRaw !== "" && Number(actualRaw) >= 0) cert.actual = Number(actualRaw);
+                    updateProject(project.id, p => { p.certificates = (p.certificates || []).concat([cert]); });
                     toast(t("costplan.certAdded"));
                     drawCost();
                 }

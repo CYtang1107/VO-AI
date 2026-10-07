@@ -176,6 +176,12 @@ function upgradeDemo(db) {
         demo.certificates = shiftDates(seed.certificates, days || 0);
         changed = true;
     }
+    /* the actual cost of each demo certificate (earned value, js/costplan.js),
+       where this browser's copy predates it */
+    if ((demo.certificates || []).length === seed.certificates.length && demo.certificates.every(c => c.actual === undefined)) {
+        demo.certificates.forEach((c, i) => { if (c.amount === seed.certificates[i].amount) c.actual = seed.certificates[i].actual; });
+        changed = true;
+    }
     /* the instructions the design team issued (js/instruction.js) */
     seed.vos.forEach(sv => {
         const vo = (demo.vos || []).find(v => v.id === sv.id);
@@ -621,10 +627,12 @@ function seedDB() {
             /* the programme and the interim certificates, for the cost
                overview's S-curve (js/costplan.js) */
             programme: { start: "2026-03-02", end: "2027-08-31" },
+            /* amount: the value of work certified (earned value); actual:
+               what that work actually cost (for CPI, EAC, VAC) */
             certificates: [
-                { date: "2026-03-31", amount: 150000 }, { date: "2026-04-30", amount: 280000 },
-                { date: "2026-05-31", amount: 450000 }, { date: "2026-06-30", amount: 610000 },
-                { date: "2026-07-31", amount: 760000 }, { date: "2026-08-31", amount: 850000 }
+                { date: "2026-03-31", amount: 150000, actual: 152000 }, { date: "2026-04-30", amount: 280000, actual: 291000 },
+                { date: "2026-05-31", amount: 450000, actual: 468000 }, { date: "2026-06-30", amount: 610000, actual: 640000 },
+                { date: "2026-07-31", amount: 760000, actual: 795000 }, { date: "2026-08-31", amount: 850000, actual: 884000 }
             ],
             bq: bq,
             documents: [

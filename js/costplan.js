@@ -9,7 +9,9 @@
      forecast final cost = contract sum + approved + pending.
 
    The S-curve: cumulative cost month by month over the programme.
-     - planned: the contract sum spread over the programme on the standard
+     - planned: the cost baseline (the contract sum plus the approved
+       variations: a baseline changes only by approved changes) spread
+       over the programme on the standard
        construction S-curve (slow start, fast middle, slow finish:
        f(x) = 3x² − 2x³ of the time elapsed), until the project's own
        cash flow is entered;
@@ -46,11 +48,13 @@ function costOverview(project) {
         else { draft += v; nDraft++; }
     });
     const forecast = sum + approved + pending;
+    /* the cost baseline (BAC): re-baselined only by approved changes */
+    const baseline = sum + approved;
     const certified = ((project && project.certificates) || []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
     return {
         contractSum: sum, approved: approved, pending: pending, draft: draft,
         nApproved: nApproved, nPending: nPending, nDraft: nDraft,
-        forecast: forecast, change: forecast - sum, changePct: sum ? (forecast - sum) / sum * 100 : 0,
+        baseline: baseline, forecast: forecast, change: forecast - sum, changePct: sum ? (forecast - sum) / sum * 100 : 0,
         certified: certified, certifiedPct: forecast ? certified / forecast * 100 : 0
     };
 }
@@ -92,7 +96,7 @@ function sCurve(project, todayIso) {
         const certifiedTo = certs.filter(c => c.date <= date).reduce((a, c) => a + Number(c.amount), 0);
         return {
             date: date,
-            planned: Math.round(o.contractSum * sFraction(x)),
+            planned: Math.round(o.baseline * sFraction(x)),
             forecast: Math.round(o.forecast * sFraction(x)),
             /* actual only up to the month of the latest certificate */
             actual: lastCert && date.slice(0, 7) <= lastCert.slice(0, 7) ? certifiedTo : null
@@ -100,12 +104,51 @@ function sCurve(project, todayIso) {
     });
     /* where things stand today: plan to date, and how far ahead or behind */
     const x = todayIso ? (dayNo(todayIso) - s) / (e - s) : null;
-    const plannedToday = x === null ? null : Math.round(o.contractSum * sFraction(x));
+    const plannedToday = x === null ? null : Math.round(o.baseline * sFraction(x));
     return {
         points: points, today: todayIso, todayX: x, plannedToday: plannedToday,
         certified: o.certified, behind: plannedToday === null ? null : plannedToday - o.certified,
-        progressPct: o.contractSum ? o.certified / o.contractSum * 100 : 0,
-        plannedPct: plannedToday === null || !o.contractSum ? null : plannedToday / o.contractSum * 100
+        progressPct: o.baseline ? o.certified / o.baseline * 100 : 0,
+        plannedPct: plannedToday === null || !o.baseline ? null : plannedToday / o.baseline * 100
+    };
+}
+
+/* ---------- earned value ----------
+   The project's earned value figures today, the way project cost
+   management measures them:
+     BAC  budget at completion: the cost baseline (contract sum + approved VOs)
+     PV   planned value: the baseline's planned share by today (the S-curve)
+     EV   earned value: the value of the work done, i.e. the interim
+          valuations certified to date (a QS valuation measures work done
+          at contract rates)
+     AC   actual cost of that work: entered with each certificate
+          (certificate.actual: the amount paid, or the contractor's
+          recorded cost); known only when every certificate has one
+     SV = EV − PV, SPI = EV / PV        (schedule: always available)
+     CV = EV − AC, CPI = EV / AC        (cost: needs AC)
+     EAC = BAC / CPI  (cost performance so far continues)
+     ETC = EAC − AC,  VAC = BAC − EAC
+   Nulls where a figure cannot be worked out, never a guess. */
+function earnedValue(project, todayIso) {
+    const o = costOverview(project);
+    const curve = sCurve(project, todayIso);
+    const certs = ((project && project.certificates) || []).filter(c => Number(c.amount) > 0 && (!todayIso || c.date <= todayIso));
+    const bac = o.baseline;
+    const pv = curve ? curve.plannedToday : null;
+    const ev = certs.reduce((s, c) => s + Number(c.amount), 0);
+    const haveAc = certs.length > 0 && certs.every(c => c.actual !== undefined && c.actual !== null && c.actual !== "" && Number(c.actual) >= 0);
+    const ac = haveAc ? certs.reduce((s, c) => s + Number(c.actual), 0) : null;
+    const r2 = n => Math.round(n * 100) / 100;
+    const sv = pv === null ? null : ev - pv;
+    const spi = pv ? r2(ev / pv) : null;
+    const cv = ac === null ? null : ev - ac;
+    const cpi = ac ? r2(ev / ac) : null;
+    const eac = cpi ? Math.round(bac / (ev / ac)) : null;
+    return {
+        bac: bac, pv: pv, ev: ev, ac: ac, pctComplete: bac ? ev / bac * 100 : 0,
+        sv: sv, spi: spi, cv: cv, cpi: cpi,
+        eac: eac, etc: eac === null ? null : eac - ac, vac: eac === null ? null : bac - eac,
+        missingAc: certs.length > 0 && !haveAc
     };
 }
 
@@ -185,6 +228,32 @@ function niceStep(raw) {
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
 }
 
+/* The earned value table: each figure, its formula, its value and what
+   it means (an index below 1 or a negative variance is bad). */
+function renderEarnedValue(e) {
+    const money = v => v === null ? "—" : (v < 0 ? "−" : "") + rm(Math.abs(v));
+    const verdict = (good, keyGood, keyBad) => good === null ? "" :
+        '<span class="evm-flag ' + (good ? "evm-good" : "evm-bad") + '">' + (good ? "✓ " : "! ") + escapeHtml(t(good ? keyGood : keyBad)) + "</span>";
+    const row = (abbr, formula, value, flag) => "<tr><th>" + escapeHtml(t("evm.name." + abbr)) + ' <abbr>' + abbr + "</abbr></th>" +
+        '<td class="evm-formula">' + escapeHtml(formula) + '</td><td class="num">' + value + "</td><td>" + (flag || "") + "</td></tr>";
+    return '<h4 class="evm-title">' + escapeHtml(t("evm.title")) + "</h4>" +
+        '<div class="table-scroll"><table class="evm-table"><tbody>' +
+        row("BAC", t("evm.f.BAC"), rm(e.bac)) +
+        row("PV", t("evm.f.PV"), money(e.pv)) +
+        row("EV", t("evm.f.EV", { pct: e.pctComplete.toFixed(1) }), rm(e.ev)) +
+        row("AC", t("evm.f.AC"), money(e.ac)) +
+        row("SV", "EV − PV", money(e.sv), e.sv === null ? "" : verdict(e.sv >= 0, "evm.ahead", "evm.behind")) +
+        row("SPI", "EV / PV", e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? "" : verdict(e.spi >= 1, "evm.ahead", "evm.behind")) +
+        row("CV", "EV − AC", money(e.cv), e.cv === null ? "" : verdict(e.cv >= 0, "evm.under", "evm.over")) +
+        row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : verdict(e.cpi >= 1, "evm.under", "evm.over")) +
+        row("EAC", "BAC / CPI", money(e.eac)) +
+        row("ETC", "EAC − AC", money(e.etc)) +
+        row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : verdict(e.vac >= 0, "evm.underrun", "evm.overrun")) +
+        "</tbody></table></div>" +
+        (e.missingAc ? '<p class="assistant-note">' + escapeHtml(t("evm.needAc")) + "</p>" : "") +
+        '<p class="assistant-note">' + escapeHtml(t("evm.note")) + "</p>";
+}
+
 function tile(label, value, sub, cls) {
     return '<div class="cp-tile' + (cls ? " " + cls : "") + '"><small>' + escapeHtml(label) + "</small><strong>" + value + "</strong>" +
         (sub ? "<span>" + escapeHtml(sub) + "</span>" : "") + "</div>";
@@ -226,15 +295,19 @@ function renderCostOverview(project, todayIso, opts) {
                     "</td><td>" + (p.actual === null ? "—" : rm(p.actual)) + "</td></tr>").join("") + "</tbody></table></div>");
     }
 
+    if (curve) chart += renderEarnedValue(earnedValue(project, todayIso));
+
     const prog = project.programme || {};
     const certs = (project.certificates || []).slice().sort((a, b) => a.date < b.date ? -1 : 1);
     const inputs = fold("cp-inputs", escapeHtml(t("costplan.inputsTitle", { n: certs.length })),
         '<div class="cp-prog"><label>' + escapeHtml(t("costplan.start")) + ' <input type="date" id="cpStart" value="' + escapeHtml(prog.start || "") + '"' + (editable ? "" : " disabled") + "></label>" +
         "<label>" + escapeHtml(t("costplan.end")) + ' <input type="date" id="cpEnd" value="' + escapeHtml(prog.end || "") + '"' + (editable ? "" : " disabled") + "></label></div>" +
         '<ul class="cp-certs">' + certs.map((c, i) => "<li>" + escapeHtml(t("costplan.certLine", { n: i + 1, date: c.date })) + " — <strong>" + rm(c.amount) + "</strong>" +
+            (c.actual !== undefined && c.actual !== null && c.actual !== "" ? ' <span class="rate-detail">' + escapeHtml(t("costplan.actualLine", { amount: rm(Number(c.actual)) })) + "</span>" : "") +
             (editable ? ' <button type="button" class="link-button cp-cert-remove" data-date="' + escapeHtml(c.date) + '" data-amount="' + escapeHtml(String(c.amount)) + '">×</button>' : "") + "</li>").join("") + "</ul>" +
         (editable ? '<div class="cp-add"><input type="date" id="cpCertDate" aria-label="' + escapeHtml(t("costplan.certDate")) + '">' +
             '<input type="number" min="0" step="0.01" id="cpCertAmount" placeholder="' + escapeHtml(t("costplan.certAmount")) + '">' +
+            '<input type="number" min="0" step="0.01" id="cpCertActual" placeholder="' + escapeHtml(t("costplan.certActual")) + '">' +
             '<button type="button" class="secondary-button" id="cpCertAdd">' + escapeHtml(t("costplan.certAdd")) + "</button></div>" : "") +
         '<p class="assistant-note">' + escapeHtml(t(editable ? "costplan.inputsNote" : "costplan.inputsReadOnly")) + "</p>");
     return tiles + chart + inputs;
@@ -273,5 +346,5 @@ function mountCostChart(host, curve) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { voValue, costOverview, sFraction, sCurve, renderCostOverview, renderSCurveSvg, niceStep };
+    module.exports = { voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderSCurveSvg, niceStep };
 }

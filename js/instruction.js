@@ -103,7 +103,7 @@ function renderInstructionSheet(vo, project) {
         "</div>" +
         '<section class="report-sec">' +
             "<p>" + escapeHtml(t("instr.to")) + "</p>" +
-            "<p>" + escapeHtml(t(form === "PWD 203A" ? "instr.underPwd" : "instr.underPam", { form: form })) + "</p>" +
+            "<p>" + escapeHtml(t(form === "PAM 2018" ? "instr.underPam" : "instr.underPwd", { form: form })) + "</p>" +
         "</section>" +
         '<section class="report-sec"><h3>' + escapeHtml(t("instr.sec.instruction")) + "</h3>" +
             "<p>" + escapeHtml(seedText(vo.description) || "—") + "</p>" +
@@ -114,7 +114,8 @@ function renderInstructionSheet(vo, project) {
                              : "<p>" + escapeHtml(t("instr.noDrawings")) + "</p>") +
         "</section>" +
         '<section class="report-sec"><h3>' + escapeHtml(t("instr.sec.valuation")) + "</h3>" +
-            "<p>" + escapeHtml(t(form === "PWD 203A" ? "instr.valuationPwd" : "instr.valuationPam", { vo: vo.no })) + "</p>" +
+            "<p>" + escapeHtml(t(form === "PAM 2018" ? "instr.valuationPam" : "instr.valuationPwd",
+                { vo: vo.no, clause: form === "PWD 203" ? "25" : "24" })) + "</p>" +
         "</section>" +
         '<div class="signatures instr-signatures">' +
             "<div><span></span><small>" + escapeHtml(issuer) + (i.by ? " — " + escapeHtml(i.by) : "") + "</small></div>" +

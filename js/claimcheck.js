@@ -12,7 +12,8 @@
    Deterministic, like js/analysis.js: no language model, every reason
    names the clause it rests on and the VO data it looked at. Clause
    numbers are PAM 2018's as printed (checked against the imported
-   contract text); a PWD 203A project cites its clause 24.
+   contract text); a PWD 203 project its own (Rev. 2007: 5.2, 24.2,
+   25.1, 27.1); a PWD 203A project cites its clause 24.
 
    Pure functions; the VO page renders the result (renderClaimCheck). */
 
@@ -24,10 +25,13 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 }
 
 /* The standard form a project is let under, from its contract documents'
-   names; PAM 2018 (the private-sector form, and the demo's) otherwise. */
+   names: PWD 203A (with bills of quantities), PWD 203 (drawings and
+   specification), else PAM 2018 (the private-sector form, and the demo's). */
 function contractForm(project) {
     const names = ((project && project.documents) || []).map(d => d.name || "").join(" ");
-    return /\b(PWD|JKR)\b|203A?/i.test(names) ? "PWD 203A" : "PAM 2018";
+    if (/203\s*A\b/i.test(names)) return "PWD 203A";
+    if (/\b(PWD|P\.W\.D\.?|JKR)\b|\b203\b/i.test(names)) return "PWD 203";
+    return "PAM 2018";
 }
 
 /* PAM 2018 cl. 11.1 (last words): a change made to put right the
@@ -38,7 +42,12 @@ var RECTIFY_WORDS = /\b(rectif\w*|defect\w*|remedial|rework\w*|re-?do|make good|
 /* Each clause a check cites, per form. */
 var CLAIM_CLAUSES = {
     "PAM 2018": { variation: "11.1", instruction: "2.2", particulars: "11.5", valuation: "11.6", timing: "11.3" },
-    "PWD 203A": { variation: "24", instruction: "24", particulars: "24", valuation: "24", timing: "24" }
+    /* P.W.D. Form 203 (Rev. 2007), checked against its printed text:
+       5.2 instructions in writing (an oral one confirmed within 7 days),
+       24.2 meaning of variation, 25.1 valuation, 27.1 measurement and
+       particulars. It has no clause like PAM's 11.3, so no timing check. */
+    "PWD 203": { variation: "24.2", instruction: "5.2", particulars: "27.1", valuation: "25.1", timing: null },
+    "PWD 203A": { variation: "24", instruction: "24", particulars: "24", valuation: "24", timing: null }
 };
 
 function isEngineerInstruction(type) {
@@ -83,7 +92,7 @@ function claimCheck(vo, project) {
 
     /* 3. Issued after practical completion? Only when the project records
        the date (project.practicalCompletion, ISO). */
-    if (project && project.practicalCompletion && vo.dateIssued && vo.dateIssued > project.practicalCompletion) {
+    if (cl.timing && project && project.practicalCompletion && vo.dateIssued && vo.dateIssued > project.practicalCompletion) {
         checks.push({ id: "timing", clause: ref("timing"), state: "missing",
                       reason: t("claim.timing.afterCpc", { date: project.practicalCompletion }) });
     }

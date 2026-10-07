@@ -39,7 +39,9 @@ var BQ_HEADER_WORDS = {
     "unit": true, "units": true, "uom": true,
     "rate": true, "rate (rm)": true, "unit rate": true,
     "amount": true, "amount (rm)": true, "total": true,
-    "qty": true, "quantity": true, "quantities": true
+    "qty": true, "quantity": true, "quantities": true,
+    "编号": true, "项次": true, "说明": true, "描述": true, "单位": true,
+    "数量": true, "工程量": true, "单价": true, "金额": true, "合价": true
 };
 
 /* Description text that marks a subtotal / running-total row rather
@@ -344,6 +346,50 @@ function bqLooksLikeHeaderRow(row) {
     return matches >= 2 && matches / nonEmpty >= 0.5;
 }
 
+/* What a column's title says it is. Rate is tested before Unit, so
+   "Unit rate" is a rate. English and Chinese titles. */
+var BQ_HEADER_ROLES = [
+    ["rate",        /^(unit\s*)?rate\b|^price\b|单价|单位价格/i],
+    ["qty",         /^(qty|quantity|quantities)\b|数量|工程量/i],
+    ["amount",      /^(amount|total)\b|金额|合价|总价/i],
+    ["unit",        /^(unit|units|uom)\.?$|^单位$/i],
+    ["description", /^(description|desc|particulars)\b|说明|描述|项目名称/i],
+    ["code",        /^(code|ref|reference|item(\s*no\.?)?|no\.?)$|编号|项次/i]
+];
+
+/* The first header row's columns by role ({rate: 4, qty: 3, ...}), and
+   each column's title; empty when the sheet has no header row. */
+function bqHeaderRoles(rows) {
+    var header = (rows || []).find(function (r) { return bqLooksLikeHeaderRow(r); });
+    var roles = {}, titles = {};
+    if (!header) return { roles: roles, titles: titles };
+    header.forEach(function (c, col) {
+        var v = String(c === null || c === undefined ? "" : c).trim();
+        if (!v) return;
+        for (var i = 0; i < BQ_HEADER_ROLES.length; i++) {
+            var role = BQ_HEADER_ROLES[i][0];
+            if (BQ_HEADER_ROLES[i][1].test(v)) {
+                if (roles[role] === undefined) { roles[role] = col; titles[role] = v; }
+                break;
+            }
+        }
+    });
+    return { roles: roles, titles: titles };
+}
+
+/* How many of a column's figures are written with decimals ("85.00"):
+   a rate nearly always is, a quantity often is not. */
+function bqDecimalShare(rows, col) {
+    var n = 0, dec = 0;
+    rows.forEach(function (r) {
+        var v = r[col] === undefined || r[col] === null ? "" : String(r[col]).trim();
+        if (bqNumericLoose(v) === null) return;
+        n++;
+        if (/\.\d/.test(v)) dec++;
+    });
+    return n ? dec / n : 0;
+}
+
 /* Scores every column of `rows` against Rate / Unit / Code /
    Description and returns the best mapping it can find, plus
    human-readable reasons and a plain-label confidence. Never
@@ -390,7 +436,15 @@ function detectColumns(rows) {
     var used = {};
     var reasons = [];
 
+    /* a column whose title names the role is taken first */
+    var heads = bqHeaderRoles(rows);
+    Object.keys(heads.roles).forEach(function (role) { used[heads.roles[role]] = true; });
+
     function pick(filterFn, sortFn, role, describe) {
+        if (heads.roles[role] !== undefined) {
+            reasons.push(t("bqimport.detect.header", { col: heads.roles[role] + 1, title: heads.titles[role], role: t("bqimport.role." + role) }));
+            return heads.roles[role];
+        }
         var candidates = stats.filter(function (s) { return !used[s.col] && filterFn(s); }).sort(sortFn);
         if (candidates.length === 0) {
             reasons.push(describe.none);
@@ -460,19 +514,53 @@ function detectColumns(rows) {
        Amount on most priced rows. They are used only to check that
        arithmetic (checkArithmetic), never imported. */
     var qtyCol = null, amountCol = null;
-    if (rateCol !== null) {
-        var qa = bqFindQtyAmount(usableRows, rateCol, used, maxCols);
+    var ambiguous = false;
+    if (heads.roles.qty !== undefined && heads.roles.amount !== undefined) {
+        qtyCol = heads.roles.qty;
+        amountCol = heads.roles.amount;
+        reasons.push(t("bqimport.detect.header", { col: qtyCol + 1, title: heads.titles.qty, role: t("bqimport.role.qty") }));
+        reasons.push(t("bqimport.detect.header", { col: amountCol + 1, title: heads.titles.amount, role: t("bqimport.role.amount") }));
+        /* the titles, checked against the BQ's own arithmetic */
+        if (rateCol !== null) {
+            var only = {};
+            for (var c = 0; c < maxCols; c++) if (c !== qtyCol && c !== amountCol) only[c] = true;
+            var hq = bqFindQtyAmount(usableRows, rateCol, only, maxCols);
+            if (hq && hq.qty === qtyCol && hq.amount === amountCol) {
+                reasons.push(t("bqimport.detect.qtyAmount.found", { qty: qtyCol + 1, amount: amountCol + 1, m: hq.matches, n: hq.rows }));
+            }
+        }
+    } else if (rateCol !== null) {
+        /* a header naming just one of them still frees its column for the search */
+        var free = Object.assign({}, used);
+        if (heads.roles.qty !== undefined) delete free[heads.roles.qty];
+        if (heads.roles.amount !== undefined) delete free[heads.roles.amount];
+        var qa = bqFindQtyAmount(usableRows, rateCol, free, maxCols);
         if (qa) {
             qtyCol = qa.qty;
             amountCol = qa.amount;
             reasons.push(t("bqimport.detect.qtyAmount.found",
                 { qty: qtyCol + 1, amount: amountCol + 1, m: qa.matches, n: qa.rows }));
+            /* Qty × Rate = Amount reads the same with Qty and Rate swapped.
+               Without a "Rate" title, the column written with decimals is
+               the rate; if both are written alike, say it needs a look. */
+            if (heads.roles.rate === undefined) {
+                var rateDec = bqDecimalShare(usableRows, rateCol), qtyDec = bqDecimalShare(usableRows, qtyCol);
+                if (qtyDec > rateDec) {
+                    var was = rateCol;
+                    rateCol = qtyCol;
+                    qtyCol = was;
+                    reasons.push(t("bqimport.detect.swapped", { rate: rateCol + 1, qty: qtyCol + 1 }));
+                } else if (qtyDec === rateDec) {
+                    ambiguous = true;
+                    reasons.push(t("bqimport.detect.ambiguous", { rate: rateCol + 1, qty: qtyCol + 1 }));
+                }
+            }
         } else {
             reasons.push(t("bqimport.detect.qtyAmount.none"));
         }
     }
 
-    var confidence = (rateCol !== null && descCol !== null) ? "high" : "needs review";
+    var confidence = (rateCol !== null && descCol !== null && !ambiguous) ? "high" : "needs review";
 
     return {
         code: codeCol, description: descCol, unit: unitCol, rate: rateCol,

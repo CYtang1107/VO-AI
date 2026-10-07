@@ -390,3 +390,39 @@ test("checkArithmetic is unavailable until the Amount column is mapped, and foll
     const wrong = checkArithmetic(rows, { code: 0, description: 1, unit: 2, rate: 4, qty: 5, amount: 3 });
     assert.strictEqual(wrong.rowIssues.length, 4);
 });
+
+/* Qty × Rate = Amount reads the same with Qty and Rate swapped, so the
+   two must be told apart by their titles, else by how they are written. */
+const QTY_BEFORE_RATE = [
+    ["B/4.1", "Ceramic floor tiles", "m2", "320", "85.00", "27200.00"],
+    ["B/4.2", "Skirting", "m", "168", "22.00", "3696.00"],
+    ["B/5.1", "Plaster and paint", "m2", "900", "34.00", "30600.00"],
+    ["D/1.2", "uPVC pipe", "m", "120", "48.00", "5760.00"]
+];
+
+test("detectColumns reads the column titles first: Qty before Rate, large whole quantities", () => {
+    const d = detectColumns([["Item", "Description", "Unit", "Qty", "Rate", "Amount"]].concat(QTY_BEFORE_RATE));
+    assert.deepStrictEqual([d.code, d.description, d.unit, d.qty, d.rate, d.amount], [0, 1, 2, 3, 4, 5]);
+    assert.strictEqual(d.confidence, "high");
+    assert.ok(d.reasons.some(r => /headed "Rate" — read as Rate/.test(r)));
+    const items = extractItems([["Item", "Description", "Unit", "Qty", "Rate", "Amount"]].concat(QTY_BEFORE_RATE), d).items;
+    assert.deepStrictEqual(items.map(i => i.rate), [85, 22, 34, 48], "rates, not quantities");
+});
+
+test("detectColumns reads Chinese titles, and Rate before Qty", () => {
+    let d = detectColumns([["编号", "说明", "单位", "数量", "单价", "金额"]].concat(QTY_BEFORE_RATE));
+    assert.deepStrictEqual([d.qty, d.rate, d.amount], [3, 4, 5]);
+    d = detectColumns([["Item", "Description", "Unit", "Rate (RM)", "Qty", "Amount (RM)"]]
+        .concat(QTY_BEFORE_RATE.map(r => [r[0], r[1], r[2], r[4], r[3], r[5]])));
+    assert.deepStrictEqual([d.rate, d.qty, d.amount], [3, 4, 5]);
+});
+
+test("without titles, the column written with decimals is the Rate; written alike, it needs review", () => {
+    let d = detectColumns(QTY_BEFORE_RATE);
+    assert.deepStrictEqual([d.qty, d.rate, d.amount], [3, 4, 5]);
+    assert.strictEqual(d.confidence, "high");
+    assert.ok(d.reasons.some(r => /written with decimals \(column 5\) is read as Rate/.test(r)));
+    d = detectColumns(QTY_BEFORE_RATE.map(r => [r[0], r[1], r[2], r[3] + ".00", r[4], r[5]]));
+    assert.strictEqual(d.confidence, "needs review");
+    assert.ok(d.reasons.some(r => /could each be the Rate/.test(r)));
+});
