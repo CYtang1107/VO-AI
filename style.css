@@ -3443,9 +3443,10 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .cost-plan-card { --sc-planned: #2a78d6; --sc-forecast: #eb6834; --sc-actual: #1baf7a; --sc-grid: #e3e6ec; --sc-muted: #5b6474; }
 .cp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 8px; }
 @media (min-width: 900px) { .cp-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-.cp-tile { background: var(--paper-sunk); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.cp-tile { background: var(--paper-sunk); border-radius: 10px; padding: 10px; display: grid; gap: 3px; min-width: 0; }
 .cp-tile small { font-size: 12px; color: var(--sc-muted); }
-.cp-tile strong { font-size: clamp(14px, 1.25vw, 18px); white-space: nowrap; }
+.cp-tile strong { font-size: clamp(13px, 1.15vw, 18px); white-space: nowrap; letter-spacing: -0.01em; }
+.cp-tile strong .cur { font-size: .7em; font-weight: 600; margin-right: 2px; color: var(--sc-muted); }
 .cp-tile span { font-size: 12px; color: var(--sc-muted); }
 .cp-tile.cp-key { outline: 2px solid var(--accent); outline-offset: -2px; }
 .cp-status { font-size: 14px; margin: 0 0 4px; }
@@ -3581,20 +3582,113 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .register-layout, .register-layout.all-cols .register-side { grid-template-columns: 1fr; }
 }
 
-/* the dashboard: the site map beside the S-curve, the figures and the rest under both */
-.cp-dash { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 30%); column-gap: 20px; }
-.cp-dash > #costPlanBody { display: contents; }
-.cp-dash > #costPlanBody > *, .cp-dash > .cp-map[hidden] ~ * { grid-column: 1 / -1; }
-.cp-dash > #costPlanBody > .cp-chart { grid-column: 1; grid-row: 1; min-width: 0; }
-.cp-dash > .cp-map { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; min-width: 0; }
-.cp-dash > .cp-map[hidden] { display: none; }
-.cp-dash:has(> .cp-map[hidden]) > #costPlanBody > .cp-chart { grid-column: 1 / -1; }
-.cp-map h4 { font-size: 13px; margin: 0 0 6px; }
-.cp-map #siteMapBody { padding: 0; flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.cp-map .site-map { flex: 1; height: auto; min-height: 240px; }
-.cp-map .site-map-summary { font-size: 12px; margin-top: 6px; }
-@media (max-width: 1000px) {
-    .cp-dash { grid-template-columns: minmax(0, 1fr); }
-    .cp-dash > .cp-map { grid-column: 1; grid-row: auto; margin-top: 12px; }
-    .cp-map .site-map { height: 260px; flex: none; }
+/* the dashboard: the cost overview (or, for the consultant, the recent VOs)
+   on the left; the site map and what needs you on the right */
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 30%); gap: 18px; align-items: start; }
+.dash-main, .dash-side { display: grid; gap: 18px; min-width: 0; }
+.dash-has-cost .recent-card { display: none; }
+@media (max-width: 1000px) { .dash-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 1001px) {
+    .dash-side .site-map { height: max(180px, calc(50vh - 120px)); }
+    .dash-side .site-map-card:has(.site-map-set) .site-map { height: max(150px, calc(100vh - 520px)); }
+    .dash-side .site-map-summary { font-size: 12px; margin-top: 6px; }
+    .dash-main .recent-card .table-scroll { max-height: calc(100vh - 170px); overflow: auto; }
+}
+
+.side-disclaimer { display: none; font-size: 10px; line-height: 1.4; color: var(--side-mute); margin: 10px 4px 0; }
+
+/* =========================
+   ONE SCREEN ON A COMPUTER: tighter chrome, so each page fits without scrolling
+========================= */
+.welcome-merged { display: none !important; }
+.top-actions .in-topbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 !important; }
+.topbar-left .topbar-title { font-size: 20px; margin: 0; line-height: 1.25; }
+.topbar-left #voStatus { margin-top: 4px; font-size: 12px; }
+@media (min-width: 1001px) {
+    .main { padding: 18px 28px 20px; }
+    .topbar { margin-bottom: 14px; gap: 16px; }
+    .topbar h1 { font-size: 20px; }
+    .breadcrumb { margin-bottom: 2px; font-size: 12px; }
+    .top-actions { gap: 10px; }
+    .top-actions .secondary-button, .top-actions .primary-button, .top-actions select { padding: 8px 12px; font-size: 13px; }
+    .card-header { padding: 12px 18px; }
+    .card-header h3 { margin-bottom: 0; font-size: 15px; }
+    .card-body { padding: 14px 18px; }
+    .disclaimer { margin-top: 14px; padding: 8px 14px; font-size: 11px; }
+    .sidebar { padding: 16px 14px; }
+    .sidebar .logo { padding: 2px 8px 16px; }
+    .project-chip-wrap { margin-bottom: 12px; }
+    nav { gap: 2px; }
+    .nav-item { padding: 9px 13px; }
+    .main > .disclaimer { display: none; }
+    .side-disclaimer { display: block; }
+    /* the register: the counts in one compact row under the map, the list scrolls */
+    .register-layout { margin-bottom: 0; }
+    .register-side { gap: 14px; }
+    .register-side .site-map { height: max(200px, calc(100vh - 330px)); }
+    .register-summary-card .card-body.stats-compact { grid-template-columns: 1fr 1fr 1fr 1.7fr; padding: 10px; gap: 8px; }
+    .stats-compact .stat-icon, .stats-compact .stat-card small { display: none; }
+    .stats-compact .stat-card { padding: 8px 10px; }
+    .stats-compact .stat-card h2 { font-size: 15px; white-space: nowrap; margin: 0; }
+    .stats-compact .stat-card p { font-size: 11px; margin: 0 0 2px; }
+    .register-main .legend-bar { margin-bottom: 8px; padding: 6px 12px; }
+    .register-filter-bar { padding: 10px 14px; gap: 8px 12px; }
+    .register-scroll thead th { position: sticky; top: 0; z-index: 1; }
+    .report-scroll, .doc-scroll { border-radius: 12px; }
+    .chat { min-height: 0; }
+    .top-actions #voPicker { max-width: 300px; }
+    .topbar-left h1 { white-space: nowrap; }
+    .copilot-card { margin-bottom: 0; }
+}
+
+/* the sign-in page on a computer: one wide card in two columns, no scrolling */
+@media (min-width: 900px) {
+    .login-page { padding: 16px; }
+    .login-card { max-width: 960px; padding: 22px 32px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; grid-auto-flow: row dense; align-items: start; }
+    .login-card > * { grid-column: 1 / -1; }
+    .login-card > .logo { grid-column: 1; padding: 0 0 6px; }
+    .login-card > .login-lang-row { grid-column: 2; justify-self: end; align-self: center; margin: 0; }
+    .login-card > h1 { grid-column: 1; font-size: 20px; margin-bottom: 10px; }
+    .login-card > .login-mode { grid-column: 2; align-self: end; margin-bottom: 10px; }
+    #demoLogin, #teamLogin:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; grid-auto-flow: row dense; align-items: start; }
+    #demoLogin > *, #teamLogin > * { grid-column: 2; }
+    #demoLogin > .lead:first-child, #demoLogin > .judge-btn, #demoLogin > .judge-hint, #demoLogin > #demoNote,
+    #teamLogin > .lead:first-child, #teamLogin > .login-note { grid-column: 1; }
+    #demoLogin > .lead:last-child, #teamLogin > .lead:last-child, #demoLogin > .passcode-panel { grid-column: 1; margin-top: 6px !important; }
+    .login-card .lead { margin-bottom: 12px; }
+    .login-card .field { margin-bottom: 10px; }
+    .login-card .judge-btn { padding: 14px; font-size: 15px; }
+    .role-grid { gap: 8px; margin-bottom: 12px; }
+    .role-option { padding: 10px 12px; display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; }
+    .role-option .role-icon { width: 30px; height: 30px; margin: 0; grid-row: span 2; font-size: 14px; }
+    .role-option strong { margin: 0; }
+    .role-option span { font-size: 11px; line-height: 1.35; }
+}
+
+/* the VO page's tabs (a computer only: a phone shows every card in turn) */
+.vo-tabs { display: none; }
+@media (min-width: 1001px) {
+    .vo-tabbed .vo-tabs:not([hidden]) { display: flex; flex-direction: row; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--rule); margin: 0 0 12px; }
+    .vo-tabbed .vo-panes { overflow: auto; padding-right: 4px; }
+    .vo-tab { border: 0; background: none; padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .vo-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+    .vo-tabbed [data-tab]:not(.tab-on) { display: none !important; }
+    .vo-tabbed .role-panels-toggle { display: none !important; }
+    .vo-tabbed .role-panels.record.tab-on:not([hidden]) { display: grid !important; }
+    .vo-tabbed .vo-panes > .card, .vo-tabbed .vo-panes > section { margin-bottom: 12px !important; }
+    .vo-tabbed .vo-panes > .tab-on:last-child, .vo-tabbed .vo-panes > .card:last-of-type { margin-bottom: 0 !important; }
+    .vo-tabbed .wf-card .card-body { padding-top: 10px; padding-bottom: 12px; }
+    .vo-tabbed .wf-card textarea { min-height: 54px; }
+}
+
+/* the site record on a computer: photos, what changed and the measurement
+   side by side, the save button under them */
+@media (min-width: 1001px) {
+    .capture-form:not([hidden]) { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 14px; max-width: none; align-items: start; }
+    .capture-form > .capture-actions { grid-column: 1 / -1; }
+    .capture-form .capture-shoot { flex-direction: column; }
+    .capture-form .capture-shoot-main { min-height: 84px; }
+    .capture-form textarea { min-height: 64px; }
+    .capture-form:not([hidden]) { gap: 12px; }
+    .capture-form .field { margin-bottom: 10px; }
 }

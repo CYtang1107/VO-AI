@@ -270,7 +270,7 @@ function renderThread(state, opts) {
 
 function renderCopilot(state, opts) {
     const o = opts || {};
-    return '<div class="chat">' +
+    return '<div class="chat" data-fit="height" data-fit-gap="24" data-fit-min="340">' +
         '<div class="chat-thread" id="copilotThread" role="log" aria-live="polite">' + renderThread(state, o) + "</div>" +
         '<div class="chat-dock">' +
             '<div class="copilot-suggestions">' + copilotQuestions(o.role).map(q =>

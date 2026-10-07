@@ -322,7 +322,9 @@ function renderEarnedValue(e, opts) {
 }
 
 function tile(label, value, sub, cls) {
-    return '<div class="cp-tile' + (cls ? " " + cls : "") + '"><small>' + escapeHtml(label) + "</small><strong>" + value + "</strong>" +
+    /* the currency smaller, so five figures fit one row */
+    const v = String(value).replace(/^(RM)\s*/, '<span class="cur">$1</span>');
+    return '<div class="cp-tile' + (cls ? " " + cls : "") + '"><small>' + escapeHtml(label) + "</small><strong>" + v + "</strong>" +
         (sub ? "<span>" + escapeHtml(sub) + "</span>" : "") + "</div>";
 }
 

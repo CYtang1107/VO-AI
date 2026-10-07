@@ -925,6 +925,37 @@ if (typeof document !== "undefined") {
             const pc = document.querySelector(".photo-check-card"), wc = document.querySelector(".wf-card");
             if (pc && wc) wc.after(pc);
         }
+
+        /* On a computer the page's cards are tabs, so it fits one screen:
+           this step, measurement, contract, photos, record, activity. A tab
+           shows when one of its cards has something at this stage; a new
+           stage opens on "this step". The open tab scrolls inside. */
+        const VO_TABS = ["step", "measure", "contract", "photos", "record", "activity"];
+        const tabsHost = document.getElementById("voTabs");
+        const vt = { tab: null, stage: null };
+        function tabCards(id) { return Array.from(document.querySelectorAll('[data-tab="' + id + '"]')); }
+        function tabHas(id) {
+            return tabCards(id).some(el => !el.hidden && !el.classList.contains("role-panels-toggle"));
+        }
+        function drawTabs(stage) {
+            if (!tabsHost) return;
+            const avail = VO_TABS.filter(tabHas);
+            if (vt.stage !== stage || avail.indexOf(vt.tab) === -1) {
+                vt.stage = stage;
+                vt.tab = avail[0];
+            }
+            tabsHost.hidden = avail.length === 0;
+            tabsHost.innerHTML = avail.map(id => '<button type="button" role="tab" class="vo-tab' + (id === vt.tab ? " on" : "") +
+                '" data-vo-tab="' + id + '" aria-selected="' + (id === vt.tab) + '">' + escapeHtml(t("vo.tab." + id)) + "</button>").join("");
+            document.body.classList.add("vo-tabbed");
+            VO_TABS.forEach(id => tabCards(id).forEach(el => el.classList.toggle("tab-on", id === vt.tab)));
+        }
+        if (tabsHost) tabsHost.addEventListener("click", e => {
+            const b = e.target.closest(".vo-tab");
+            if (!b) return;
+            vt.tab = b.dataset.voTab;
+            drawTabs(vt.stage);
+        });
         /* which cards a stage shows: measuring and pricing only once the
            design team has approved; the photo check is the consultant's */
         const LATE = ["measure", "rejected", "consultant", "info", "client", "done", "closed"];
@@ -941,6 +972,7 @@ if (typeof document !== "undefined") {
             const pc = document.querySelector(".photo-check-card");
             if (pc && role !== "consultant") pc.hidden = true;
             else if (pc && !pc.dataset.off) pc.hidden = !late;
+            drawTabs(stage);
         }
 
         /* Cost planning: the built-up rate (js/buildup.js). The contractor

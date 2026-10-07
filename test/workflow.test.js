@@ -56,7 +56,7 @@ test("approved: the contractor measures, attaches photos and submits to the cons
 test("the consultant QS assesses, submits to the client, or asks for information; the contractor answers", () => {
     const v = JSON.parse(JSON.stringify(project().vos[1]));   /* VO-002 */
     let html = renderWorkflow(v, project(), "consultant", {});
-    assert.match(html, /AI photo check below/);
+    assert.match(html, /AI photo check/);
     assert.match(html, /id="wfSubmitClient"/);
     assert.match(html, /id="wfRequestInfo"/);
     Object.assign(v, { infoRequestedAt: "2026-10-01", infoRequestNote: "Show the sump base" });

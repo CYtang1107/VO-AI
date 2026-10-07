@@ -1485,7 +1485,7 @@ var I18N_EN = {
     "wf.a.reject": "Reject",
     "wf.a.rejectNeedsNote": "Say why it is rejected.",
     "wf.q.title": "Assess and submit to the client",
-    "wf.q.todo1": "Check the photos match the description (AI photo check below).",
+    "wf.q.todo1": "Check the photos match the description (AI photo check).",
     "wf.q.todo2": "Assess each item in the measurement table.",
     "wf.q.todo3": "Write the assessment and submit, reject, or ask for more information.",
     "wf.q.answered": "The contractor replied on {date}: {text}",
@@ -1518,7 +1518,14 @@ var I18N_EN = {
     "history.submittedClient": "Submitted to the client",
     "register.allColumns": "Show all columns",
     "register.fewerColumns": "Show fewer columns",
-    "costplan.more": "More: earned value, the figures as a table, programme and interim certificates"
+    "costplan.more": "More: earned value, the figures as a table, programme and interim certificates",
+    "projects.newBtn": "+ New project",
+    "vo.tab.measure": "Measurement",
+    "vo.tab.contract": "Contract",
+    "vo.tab.photos": "Photos and map",
+    "vo.tab.record": "Record",
+    "vo.tab.activity": "Activity",
+    "vo.tab.step": "This step"
 };
 
 var I18N_ZH = {
@@ -2962,7 +2969,7 @@ var I18N_ZH = {
     "wf.a.reject": "退回",
     "wf.a.rejectNeedsNote": "请说明退回原因。",
     "wf.q.title": "评估并提交业主",
-    "wf.q.todo1": "核对照片与描述是否相符（下方 AI 照片核对）。",
+    "wf.q.todo1": "核对照片与描述是否相符（AI 照片核对）。",
     "wf.q.todo2": "在计量表中评估每个项目。",
     "wf.q.todo3": "填写评估后提交、退回或要求补充资料。",
     "wf.q.answered": "承包商已于 {date} 答复：{text}",
@@ -2995,7 +3002,14 @@ var I18N_ZH = {
     "history.submittedClient": "已提交业主",
     "register.allColumns": "显示全部栏位",
     "register.fewerColumns": "显示较少栏位",
-    "costplan.more": "更多：挣值、数据表、工期与期中证书"
+    "costplan.more": "更多：挣值、数据表、工期与期中证书",
+    "projects.newBtn": "+ 新建项目",
+    "vo.tab.measure": "计量",
+    "vo.tab.contract": "合同",
+    "vo.tab.photos": "照片与地图",
+    "vo.tab.record": "记录",
+    "vo.tab.activity": "动态",
+    "vo.tab.step": "当前步骤"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract
