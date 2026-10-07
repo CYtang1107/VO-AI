@@ -222,18 +222,6 @@ if (typeof document !== "undefined") {
                 escapeHtml(i.text) + "</span></a>"
             ).join("");
 
-        /* Only the contractor raises a new VO. */
-        const newBtn = document.getElementById("newVoBtn");
-        if (session.role !== "contractor") {
-            newBtn.style.display = "none";
-        } else {
-            /* ...and can do it from site: photos first (capture.html). */
-            document.getElementById("captureBtn").hidden = false;
-            newBtn.addEventListener("click", () => {
-                const vo = createVO(project.id, session);
-                window.location.href = "vo.html?id=" + encodeURIComponent(vo.id);
-            });
-        }
         /* The contract sets the clocks shown here (js/deadlines.js);
            read it the first time, then show the page again with it. */
         if (typeof ensureContractReadings === "function") {
