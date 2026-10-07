@@ -10,7 +10,14 @@ if (typeof document !== "undefined") {
         /* the general AI mode: a team account, or the demo's guest allowance */
         const ai = typeof askContractAvailable === "function" && askContractAvailable(project.id);
 
-        function draw() { host.innerHTML = renderCopilot(state, { ai: ai, role: session.role }); }
+        /* the page is drawn once; each question redraws only the conversation */
+        host.innerHTML = renderCopilot(state, { ai: ai, role: session.role });
+        const thread = document.getElementById("copilotThread");
+        const input = document.getElementById("copilotInput");
+        function draw() {
+            thread.innerHTML = renderThread(state, { ai: ai, role: session.role });
+            thread.scrollTop = thread.scrollHeight;
+        }
 
         async function askAi(q) {
             if (state.busy) return;
@@ -33,6 +40,7 @@ if (typeof document !== "undefined") {
         function ask(question, intentHint) {
             const q = String(question || "").trim();
             if (!q || state.busy) return;
+            input.value = "";
             const intent = intentHint || copilotIntent(q);
             if (intent) {
                 const fresh = getProject(project.id) || project;
@@ -50,10 +58,7 @@ if (typeof document !== "undefined") {
             if (again) { if (ai) askAi(again.dataset.question); return; }
             const btn = e.target.closest(".copilot-q-btn");
             if (btn) { ask(btn.dataset.question, btn.dataset.intent); return; }
-            if (e.target.id === "copilotAskBtn") {
-                const input = document.getElementById("copilotInput");
-                ask(input.value);
-            }
+            if (e.target.id === "copilotAskBtn") { ask(input.value); input.focus(); }
         });
         host.addEventListener("keydown", e => {
             if (e.target.id === "copilotInput" && e.key === "Enter") { e.preventDefault(); ask(e.target.value); }

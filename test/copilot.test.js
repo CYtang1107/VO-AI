@@ -90,11 +90,12 @@ test("an AI answer shows its text and the clauses it cites; a refused one says w
     assert.doesNotMatch(cp.renderDataAnswer(d, "q", {}), /copilot-reask/);
 });
 
-test("the page offers the seven questions and shows answers newest first", () => {
+test("the chat offers the seven questions and shows the conversation oldest first, newest at the bottom", () => {
     const d = cp.answerFromData("waiting", ctx());
     const html = cp.renderCopilot({ history: [{ question: "first", data: d }, { question: "second", data: d }] }, { contract: false });
     assert.strictEqual((html.match(/copilot-q-btn/g) || []).length, 7);
-    assert.ok(html.indexOf("second") < html.indexOf("first"));
+    assert.ok(html.indexOf(">first<") < html.indexOf(">second<"));
+    assert.strictEqual((html.match(/chat-msg chat-user/g) || []).length, 2);
     assert.match(html, /href="vo\.html\?id=VO-SEED-2"/);
     assert.match(cp.renderCopilot({ history: [{ question: "what is clause 2.2?" }] }, {}), /need a team account/);
 });
