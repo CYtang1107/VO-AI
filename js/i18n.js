@@ -808,7 +808,7 @@ var I18N_EN = {
     "ask.refused.amount": "The draft answer contained an amount that the rule engine did not produce, so it was not shown. Amounts come only from the VO-AI assessment.",
     "ask.refused.citation": "The draft answer did not cite the contract correctly, so it was not shown. Try asking more specifically.",
     "ask.failedTitle": "Could not ask the contract",
-    "ask.failed": "The contract service did not answer ({reason}). The VO helper in the other tab still works offline.",
+    "ask.failed": "The AI did not answer ({reason}). The quick questions still work offline.",
     "ask.q.contractor.1": "What notice must I give before claiming additional expense for a variation?",
     "ask.q.contractor.2": "What records must I keep to support a variation claim?",
     "ask.q.contractor.3": "Can a variation be ordered verbally?",
@@ -1287,7 +1287,6 @@ var I18N_EN = {
     "bqocr.guestLimit": "Today's limit for the demo has been reached: sign in with a team account, or try again tomorrow.",
     "bqocr.badImage": "That image could not be opened.",
     "costplan.title": "Project cost overview",
-    "costplan.sub": "Contract sum, variations and forecast final cost, with the S-curve",
     "costplan.contractSum": "Contract sum",
     "costplan.approved": "Approved variations",
     "costplan.pending": "Pending variations",
@@ -1392,7 +1391,7 @@ var I18N_EN = {
     "copilot.sub": "Ask about this project: answered from its own data, the firm's past projects and, with a team account, the contract.",
     "copilot.placeholder": "Ask about this project, its contract, or past rates…",
     "copilot.ask": "Ask",
-    "copilot.empty": "Pick a question above, or type your own.",
+    "copilot.empty": "Hi, I'm the project Copilot. Ask me anything about this project, or tap a question below.",
     "copilot.noteContract": "Questions about the project's data are answered at once from the register; other questions go to the contract (「问合同」) and cite its clauses.",
     "copilot.noteOffline": "Answers come from the project's own data and the firm's past projects. Questions about the contract's wording need a team account.",
     "copilot.unknown": "I can answer about this project's status, what is waiting for you, deadlines, claims, rates, cost and past projects' rates. Questions about the contract's wording need a team account.",
@@ -1442,7 +1441,7 @@ var I18N_EN = {
     "copilot.exp.row": "{desc}: priced at {used}; past projects paid {rate}/{unit} (median of {n}; {low} to {high}).",
     "copilot.exp.rowNone": "{desc}: no comparable item in past projects: needs a quotation or a built-up rate.",
     "copilot.reask": "Not what you asked? Ask the AI instead →",
-    "copilot.noteAi": "The seven questions above are answered at once from the register. Anything else goes to the AI, which answers only from this project's data and its contract: every amount it gives is checked against the data.",
+    "copilot.noteAi": "The quick questions are answered at once from the register. Anything else goes to the AI, which answers only from this project's data and its contract: every amount it gives is checked against the data.",
     "copilot.ai.title": "AI answer",
     "copilot.ai.thinking": "The AI is reading the project's data and contract… (about 10 seconds)",
     "copilot.ai.source": "Answered by AI from this project's data and contract; every amount was checked against VO-AI's figures. Check before relying on it.",
@@ -1548,7 +1547,10 @@ var I18N_EN = {
     "history.designApproved": "Design team approved — {no}",
     "history.designRejected": "Design team rejected: {note}",
     "history.infoSentBack": "Further information sent back",
-    "history.submittedClient": "Submitted to the client"
+    "history.submittedClient": "Submitted to the client",
+    "register.allColumns": "Show all columns",
+    "register.fewerColumns": "Show fewer columns",
+    "costplan.more": "More: earned value, the figures as a table, programme and interim certificates"
 };
 
 var I18N_ZH = {
@@ -2322,7 +2324,7 @@ var I18N_ZH = {
     "ask.refused.amount": "草拟的答案含有规则引擎没有算出的金额，因此不予显示。金额只来自 VO-AI 的评估。",
     "ask.refused.citation": "草拟的答案没有正确引用合同条文，因此不予显示。请把问题问得更具体。",
     "ask.failedTitle": "无法询问合同",
-    "ask.failed": "合同服务没有回应（{reason}）。另一个标签中的变更令助手离线也能使用。",
+    "ask.failed": "AI 没有回应（{reason}）。快捷问题离线也能使用。",
     "ask.q.contractor.1": "变更产生额外费用，索赔前要发出什么通知？",
     "ask.q.contractor.2": "申报变更需要保留哪些记录？",
     "ask.q.contractor.3": "变更可以口头指示吗？",
@@ -2794,7 +2796,6 @@ var I18N_ZH = {
     "bqocr.guestLimit": "今日演示次数已用完：请以团队账号登录，或明天再试。",
     "bqocr.badImage": "无法打开该图片。",
     "costplan.title": "项目成本总览",
-    "costplan.sub": "合同金额、变更与预计最终成本，以及 S 曲线",
     "costplan.contractSum": "合同金额",
     "costplan.approved": "已批准变更",
     "costplan.pending": "待定变更",
@@ -2899,7 +2900,7 @@ var I18N_ZH = {
     "copilot.sub": "询问本项目的任何问题：依据项目本身的数据、公司过往项目的经验，以及（团队账号）合同条款作答。",
     "copilot.placeholder": "询问本项目、合同条款或过往单价……",
     "copilot.ask": "提问",
-    "copilot.empty": "点选上方问题，或自行输入。",
+    "copilot.empty": "您好，我是项目 Copilot。可以问我任何关于本项目的问题，或点选下方的问题。",
     "copilot.noteContract": "关于项目数据的问题即时由登记册作答；其他问题会转交合同（「问合同」）并引用条款。",
     "copilot.noteOffline": "答案来自项目自身数据与公司过往项目。询问合同条文需使用团队账号。",
     "copilot.unknown": "我可以回答本项目的状况、待您处理的事项、期限、索赔、单价、成本及过往项目单价。询问合同条文需使用团队账号。",
@@ -2949,7 +2950,7 @@ var I18N_ZH = {
     "copilot.exp.row": "{desc}：本项目单价 {used}；过往项目 {rate}/{unit}（{n} 笔中位数；{low} 至 {high}）。",
     "copilot.exp.rowNone": "{desc}：过往项目没有可比项目，需报价或组价。",
     "copilot.reask": "答非所问？改问 AI →",
-    "copilot.noteAi": "上方七个问题即时由登记册作答。其他问题交给 AI，只依据本项目数据与合同作答：所给的每个金额都会与数据核对。",
+    "copilot.noteAi": "快捷问题即时由登记册作答。其他问题交给 AI，只依据本项目数据与合同作答：所给的每个金额都会与数据核对。",
     "copilot.ai.title": "AI 回答",
     "copilot.ai.thinking": "AI 正在阅读项目数据与合同……（约 10 秒）",
     "copilot.ai.source": "由 AI 依据本项目数据与合同作答；所有金额已与 VO-AI 的数据核对。依据前请再核实。",
@@ -3055,7 +3056,10 @@ var I18N_ZH = {
     "history.designApproved": "设计团队已批准 — {no}",
     "history.designRejected": "设计团队已退回：{note}",
     "history.infoSentBack": "已送回补充资料",
-    "history.submittedClient": "已提交业主"
+    "history.submittedClient": "已提交业主",
+    "register.allColumns": "显示全部栏位",
+    "register.fewerColumns": "显示较少栏位",
+    "costplan.more": "更多：挣值、数据表、工期与期中证书"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

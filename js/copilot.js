@@ -216,24 +216,37 @@ function copilotQuestions(role) {
         .map(id => ({ id: id, text: t("copilot.q." + id) }));
 }
 
+/* ---------- the chat: the person's question on the right, Copilot's
+   answer on the left, newest at the bottom ---------- */
+
+function userBubble(question) {
+    return '<div class="chat-msg chat-user"><div class="chat-bubble">' + escapeHtml(question) + "</div></div>";
+}
+
+function botBubble(inner, extraClass) {
+    return '<div class="chat-msg chat-bot"><span class="chat-avatar" aria-hidden="true">✦</span>' +
+        '<div class="chat-bubble' + (extraClass ? " " + extraClass : "") + '">' + inner + "</div></div>";
+}
+
 function renderDataAnswer(a, question, opts) {
-    return '<div class="copilot-answer">' +
-        '<p class="copilot-q">' + escapeHtml(question) + "</p>" +
+    return botBubble(
         '<h4 class="copilot-title">' + escapeHtml(a.title) + "</h4>" +
         '<ul class="copilot-lines">' + a.lines.map(l => "<li>" +
             (l.vo ? '<a class="copilot-vo" href="vo.html?id=' + encodeURIComponent(l.vo.id) + '">' + escapeHtml(l.vo.no) + "</a> " : "") +
             escapeHtml(l.text) + "</li>").join("") + "</ul>" +
         '<p class="copilot-source">' + escapeHtml(a.source) + "</p>" +
-        (opts && opts.ai ? '<button type="button" class="link-button copilot-reask" data-question="' + escapeHtml(question) + '">' + escapeHtml(t("copilot.reask")) + "</button>" : "") +
-        "</div>";
+        (opts && opts.ai ? '<button type="button" class="link-button copilot-reask" data-question="' + escapeHtml(question) + '">' + escapeHtml(t("copilot.reask")) + "</button>" : ""));
 }
 
 /* The general AI mode's answer: state {loading} | {error} | {answer, citations} | {answer: null, reason} */
 function renderAiAnswer(state, question) {
+    if (state.loading) {
+        return botBubble('<span class="chat-typing" aria-label="' + escapeHtml(t("copilot.ai.thinking")) + '"><i></i><i></i><i></i></span>' +
+            '<p class="copilot-source">' + escapeHtml(t("copilot.ai.thinking")) + "</p>", "chat-ai");
+    }
     let body;
-    if (state.loading) body = '<p class="assistant-note">' + escapeHtml(t("copilot.ai.thinking")) + "</p>";
-    else if (state.error) body = '<p class="assistant-note">' + escapeHtml(t("ask.failed", { reason: state.error })) + "</p>";
-    else if (!state.answer) body = '<p class="assistant-note">' + escapeHtml(t("copilot.ai.refused." + (state.reason === "guest-limit" || state.reason === "amount-check" ? state.reason : "format"))) + "</p>";
+    if (state.error) body = "<p>" + escapeHtml(t("ask.failed", { reason: state.error })) + "</p>";
+    else if (!state.answer) body = "<p>" + escapeHtml(t("copilot.ai.refused." + (state.reason === "guest-limit" || state.reason === "amount-check" ? state.reason : "format"))) + "</p>";
     else {
         const text = typeof answerHtml === "function" ? answerHtml(state.answer) : "<p>" + escapeHtml(state.answer) + "</p>";
         const sources = (state.citations || []).map(c => '<details class="cite-source"><summary>' + escapeHtml(c.form + " " + t("ask.clause", { no: c.clause_no }) + (c.title ? " — " + c.title : "")) +
@@ -242,26 +255,33 @@ function renderAiAnswer(state, question) {
             (sources ? '<h4 class="ask-sources-title">' + escapeHtml(t("ask.sources")) + "</h4>" + sources : "") +
             '<p class="copilot-source">' + escapeHtml(t("copilot.ai.source")) + "</p>";
     }
-    return '<div class="copilot-answer copilot-ai"><p class="copilot-q">' + escapeHtml(question) + "</p>" +
-        '<h4 class="copilot-title">' + escapeHtml(t("copilot.ai.title")) + "</h4>" + body + "</div>";
+    return botBubble('<h4 class="copilot-title">' + escapeHtml(t("copilot.ai.title")) + "</h4>" + body, "chat-ai");
 }
 
-/* history: [{question, data?} | {question, contract: state}] newest last */
+/* the conversation so far: history [{question, data?} | {question, ai: state} | {question}], oldest first */
+function renderThread(state, opts) {
+    const o = opts || {};
+    return botBubble("<p>" + escapeHtml(t("copilot.empty")) + "</p>") +
+        state.history.map(h => userBubble(h.question) +
+            (h.data ? renderDataAnswer(h.data, h.question, { ai: o.ai })
+            : h.ai ? renderAiAnswer(h.ai, h.question)
+            : botBubble("<p>" + escapeHtml(t("copilot.unknown")) + "</p>"))).join("");
+}
+
 function renderCopilot(state, opts) {
     const o = opts || {};
-    return '<div class="copilot-suggestions">' + copilotQuestions(o.role).map(q =>
-            '<button type="button" class="assistant-suggestion-btn copilot-q-btn" data-intent="' + q.id + '" data-question="' + escapeHtml(q.text) + '">' + escapeHtml(q.text) + "</button>").join("") +
-        "</div>" +
-        '<div class="assistant-ask-row"><input type="text" id="copilotInput" maxlength="500" placeholder="' + escapeHtml(t("copilot.placeholder")) + '">' +
-        '<button type="button" class="primary-button" id="copilotAskBtn">' + escapeHtml(t("copilot.ask")) + "</button></div>" +
-        '<p class="assistant-note">' + escapeHtml(t(o.ai ? "copilot.noteAi" : "copilot.noteOffline")) + "</p>" +
-        '<div class="copilot-history">' + (state.history.length ? state.history.slice().reverse().map(h =>
-            h.data ? renderDataAnswer(h.data, h.question, { ai: o.ai })
-            : h.ai ? renderAiAnswer(h.ai, h.question)
-            : '<div class="copilot-answer"><p class="copilot-q">' + escapeHtml(h.question) + '</p><p class="assistant-note">' + escapeHtml(t("copilot.unknown")) + "</p></div>").join("")
-            : '<div class="empty-state">' + escapeHtml(t("copilot.empty")) + "</div>") + "</div>";
+    return '<div class="chat">' +
+        '<div class="chat-thread" id="copilotThread" role="log" aria-live="polite">' + renderThread(state, o) + "</div>" +
+        '<div class="chat-dock">' +
+            '<div class="copilot-suggestions">' + copilotQuestions(o.role).map(q =>
+                '<button type="button" class="assistant-suggestion-btn copilot-q-btn" data-intent="' + q.id + '" data-question="' + escapeHtml(q.text) + '">' + escapeHtml(q.text) + "</button>").join("") +
+            "</div>" +
+            '<div class="chat-compose"><input type="text" id="copilotInput" maxlength="500" autocomplete="off" placeholder="' + escapeHtml(t("copilot.placeholder")) + '">' +
+            '<button type="button" class="primary-button" id="copilotAskBtn">' + escapeHtml(t("copilot.ask")) + "</button></div>" +
+            '<p class="copilot-source">' + escapeHtml(t(o.ai ? "copilot.noteAi" : "copilot.noteOffline")) + "</p>" +
+        "</div></div>";
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { COPILOT_INTENTS, copilotIntent, answerFromData, projectData, copilotQuestions, renderDataAnswer, renderAiAnswer, renderCopilot };
+    module.exports = { COPILOT_INTENTS, copilotIntent, answerFromData, projectData, copilotQuestions, renderDataAnswer, renderAiAnswer, renderThread, renderCopilot };
 }

@@ -43,13 +43,15 @@ function rateFlags(vo, project) {
     return bits.join(" ") || "—";
 }
 
+/* `compact` columns make the short VO list beside the site map; the rest
+   show with "Show all columns" (the full register, in the template's order). */
 /* `label` stays the English source of truth for callers that read
    COLUMNS without going through js/i18n.js's t(); rendering always
    prefers t(labelKey) so the header follows the current language. */
 const COLUMNS = [
-    { field: "no",                label: "VO NO.",           labelKey: "register.col.no",
+    { field: "no", compact: true,                label: "VO NO.",           labelKey: "register.col.no",
       render: v => "<strong>" + escapeHtml(v.no) + "</strong>" },
-    { field: "description",       label: "DESCRIPTION",      labelKey: "register.col.description",
+    { field: "description", compact: true,       label: "DESCRIPTION",      labelKey: "register.col.description",
       render: v => escapeHtml(seedText(v.description) || "—") },
     { field: "dateIssued",        label: "DATE ISSUED",      labelKey: "register.col.dateIssued",
       render: v => prettyDate(v.dateIssued) },
@@ -57,7 +59,7 @@ const COLUMNS = [
       render: (v, p) => dueDateCell(v, today(), p) },
     { field: "typeOfInstruction", label: "TYPE",             labelKey: "register.col.type",
       render: v => escapeHtml(instructionTypeLabel(v.typeOfInstruction) || "—") },
-    { field: "measurement",       label: "CONTRACTOR'S MEASUREMENT", labelKey: "register.col.contractorMeasurement",
+    { field: "measurement", compact: true,       label: "CONTRACTOR'S MEASUREMENT", labelKey: "register.col.contractorMeasurement",
       render: v => rm(contractorTotal(v)) },
     { field: "assessment",        label: "CONSULTANT'S ASSESSMENT",  labelKey: "register.col.consultantAssessment",
       render: v => rm(assessedTotal(v)) },
@@ -65,9 +67,9 @@ const COLUMNS = [
       render: (v, p) => rateFlags(v, p) },
     { field: "timeImpact",        label: "TIME IMPACT",      labelKey: "register.col.timeImpact",
       render: v => t("register.dayUnit", { n: Number(v.timeImpact) || 0 }) },
-    { field: "evaluateStatus",    label: "EVALUATE STATUS",  labelKey: "register.col.evaluateStatus",
+    { field: "evaluateStatus", compact: true,    label: "EVALUATE STATUS",  labelKey: "register.col.evaluateStatus",
       render: v => statusPill(v.evaluateStatus) },
-    { field: "certifiedStatus",   label: "CERTIFIED STATUS", labelKey: "register.col.certifiedStatus",
+    { field: "certifiedStatus", compact: true,   label: "CERTIFIED STATUS", labelKey: "register.col.certifiedStatus",
       render: v => statusPill(v.certifiedStatus) },
     { field: "finalPrice",        label: "FINAL PRICE",      labelKey: "register.col.finalPrice",
       render: v => (v.finalPrice === null || v.finalPrice === "" ? "—" : rm(v.finalPrice)) },
@@ -110,8 +112,8 @@ function filterVos(vos, filters) {
 
 function renderRegisterHead(role) {
     return "<tr>" + COLUMNS.map(c => {
-        const owned = FIELD_OWNER[c.field] === role;
-        return "<th" + (owned ? ' class="owned-col"' : "") + ">" + escapeHtml(t(c.labelKey)) + "</th>";
+        const cls = [FIELD_OWNER[c.field] === role ? "owned-col" : "", c.compact ? "" : "col-extra"].filter(Boolean);
+        return "<th" + (cls.length ? ' class="' + cls.join(" ") + '"' : "") + ">" + escapeHtml(t(c.labelKey)) + "</th>";
     }).join("") + "</tr>";
 }
 
@@ -150,6 +152,7 @@ function renderRegisterBody(project, role, opts) {
             const classes = [];
             if (owned) classes.push("owned-col");
             if (heading) classes.push("card-heading");
+            if (!c.compact) classes.push("col-extra");
             const cls = classes.length ? ' class="' + classes.join(" ") + '"' : "";
             const stage = c.field === "no" ? ' data-stage="' + escapeHtml(t("register.stage." + voStage(v))) + '"' : "";
             return "<td" + cls + stage + ' data-label="' + escapeHtml(t(c.labelKey)) + '">' +
@@ -231,6 +234,35 @@ if (typeof document !== "undefined") {
                 a.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 60000);
                 toast(t("export.done"));
+            });
+        }
+
+        /* the short list, or every column of the register (this browser remembers) */
+        const layout = document.getElementById("registerLayout");
+        const colsBtn = document.getElementById("registerColsBtn");
+        function showAllCols(on) {
+            layout.classList.toggle("all-cols", on);
+            colsBtn.setAttribute("aria-pressed", String(on));
+            colsBtn.textContent = t(on ? "register.fewerColumns" : "register.allColumns");
+        }
+        let allCols = false;
+        try { allCols = localStorage.getItem("voai.registerCols.v1") === "all"; } catch (e) { /* default */ }
+        showAllCols(allCols);
+        colsBtn.addEventListener("click", () => {
+            allCols = !allCols;
+            showAllCols(allCols);
+            try { localStorage.setItem("voai.registerCols.v1", allCols ? "all" : "short"); } catch (e) { /* not kept */ }
+        });
+
+        /* The site map (js/sitemap.js), as on the dashboard */
+        const mapHost = document.getElementById("siteMapBody");
+        if (mapHost && typeof drawSiteMap === "function") {
+            drawSiteMap(mapHost, getProject(project.id) || project, {
+                canSetSite: session.role === "consultant",
+                onSiteSaved: site => {
+                    updateProject(project.id, p => { p.site = site; });
+                    toast(t("map.siteSaved"));
+                }
             });
         }
 
