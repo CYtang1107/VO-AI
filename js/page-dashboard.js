@@ -119,10 +119,18 @@ if (typeof document !== "undefined") {
         /* the S-curve zoomed to date, or the whole programme: this viewer's choice */
         let costRange = "toDate";
         try { if (localStorage.getItem("voai.scRange.v1") === "all") costRange = "all"; } catch (e) { /* default */ }
+        /* the S-curve's height: what is left of the screen under the card's
+           first lines, so the whole curve shows when the page opens (the
+           chart keeps its own limits on a very short or very tall screen) */
+        function chartHeight() {
+            if (window.innerWidth <= 760) return null; /* a phone: the chart's own height */
+            const top = costHost.getBoundingClientRect().top + window.scrollY;
+            return window.innerHeight - top - 120;
+        }
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;
             const p = getProject(project.id) || project;
-            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, range: costRange }); });
+            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, height: chartHeight(), range: costRange }); });
             mountCostChart(costHost, viewCurve(sCurve(p, today()), costRange));
         }
         if (costHost) {
@@ -176,10 +184,14 @@ if (typeof document !== "undefined") {
             });
             drawCost();
             /* redrawn at the new width when the window is resized */
-            let costWidth = costHost.clientWidth, costTimer = null;
+            let costWidth = costHost.clientWidth, costTall = window.innerHeight, costTimer = null;
             window.addEventListener("resize", () => {
                 clearTimeout(costTimer);
-                costTimer = setTimeout(() => { if (Math.abs(costHost.clientWidth - costWidth) > 40) { costWidth = costHost.clientWidth; drawCost(); } }, 200);
+                costTimer = setTimeout(() => {
+                    if (Math.abs(costHost.clientWidth - costWidth) > 40 || Math.abs(window.innerHeight - costTall) > 60) {
+                        costWidth = costHost.clientWidth; costTall = window.innerHeight; drawCost();
+                    }
+                }, 200);
             });
         }
 

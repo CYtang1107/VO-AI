@@ -202,11 +202,14 @@ function viewCurve(curve, range) {
     return Object.assign({}, curve, { points: pts.slice(0, Math.max(2, end)) });
 }
 
-function renderSCurveSvg(curve, width) {
+function renderSCurveSvg(curve, width, height) {
     /* drawn at the width it is shown at, so text stays 11px on a phone;
-       taller on a wide screen, so the lines do not flatten */
+       taller on a wide screen, so the lines do not flatten; `height`, when
+       given, fits the chart to the screen (the dashboard: the whole curve in
+       view when the page opens) */
     const W = Math.max(300, Math.min(1800, Math.round(width || 760)));
-    const H = Math.max(240, Math.min(440, Math.round(W * 0.4))), L = 70, R = 14, T = 16, B = 34;
+    const H = height ? Math.max(220, Math.min(460, Math.round(height)))
+        : Math.max(240, Math.min(440, Math.round(W * 0.4))), L = 70, R = 14, T = 16, B = 34;
     const pts = curve.points;
     const max = Math.max.apply(null, pts.map(p => Math.max(p.planned, p.forecast, p.actual || 0))) || 1;
     /* about one gridline per 55 px of height */
@@ -347,15 +350,15 @@ function renderCostOverview(project, todayIso, opts) {
             '<p class="cp-status">' + escapeHtml(t(curve.todayX < 0 ? "costplan.notStarted" : curve.behind > 0 ? "costplan.behind" : "costplan.ahead", {
                 amount: rm(Math.abs(curve.behind)), actual: curve.progressPct.toFixed(1), planned: (curve.plannedPct || 0).toFixed(1) })) + "</p>";
         chart = status +
-            '<div class="cp-legend">' +
+            '<div class="cp-bar"><div class="cp-legend">' +
                 '<span><i class="k k-planned"></i>' + escapeHtml(t("costplan.series.planned")) + "</span>" +
                 '<span><i class="k k-forecast"></i>' + escapeHtml(t("costplan.series.forecast")) + "</span>" +
                 '<span><i class="k k-actual"></i>' + escapeHtml(t("costplan.series.actual")) + "</span>" +
             "</div>" +
             '<div class="sc-range" role="group" aria-label="' + escapeHtml(t("costplan.rangeLabel")) + '">' +
                 ["toDate", "all"].map(r => '<button type="button" class="sc-range-btn' + (range === r ? " on" : "") + '" data-range="' + r + '" aria-pressed="' +
-                    (range === r) + '">' + escapeHtml(t("costplan.range." + r)) + "</button>").join("") + "</div>" +
-            '<div class="sc-wrap">' + renderSCurveSvg(viewCurve(curve, range), opts && opts.width) + '<div class="sc-tip" hidden></div></div>' +
+                    (range === r) + '">' + escapeHtml(t("costplan.range." + r)) + "</button>").join("") + "</div></div>" +
+            '<div class="sc-wrap">' + renderSCurveSvg(viewCurve(curve, range), opts && opts.width, opts && opts.height) + '<div class="sc-tip" hidden></div></div>' +
             '<p class="assistant-note">' + escapeHtml(t("costplan.curveNote")) + "</p>" +
             tiles +
             fold("cp-table", escapeHtml(t("costplan.tableTitle")),
