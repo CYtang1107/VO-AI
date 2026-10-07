@@ -90,8 +90,8 @@ test("placeholder substitution works", () => {
 
 test("placeholder substitution handles multiple and repeated placeholders", () => {
     assert.strictEqual(
-        t("assistant.rateFlag.other", { desc: "X", unit: "m2", claimedRate: "RM 1.00", contractRate: "RM 2.00", detail: "d." }),
-        "X — claimed RM 1.00 per m2, contract BQ rate RM 2.00 per m2. The contract BQ rate governs. d."
+        t("bqimport.detect.swapped", { rate: "C", qty: "B" }),
+        "columns C and B: Qty × Rate = Amount reads either way, so the one written with decimals (column C) is read as Rate and column B as Qty."
     );
 });
 

@@ -4,13 +4,11 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
     var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER, voStage, infoRequestKey } = require("./permissions.js");
     var { checkRate, analyse, matchBqItem, suggestBqForChange } = require("./analysis.js");
-    var { answer, suggestions } = require("./assistant.js");
     var { escapeHtml, statusPill, fileLink, fold, seedText } = require("./ui.js");
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate, pastRateSources, pastRateWords, MATERIAL_WORDS } = require("./ratehistory.js");
     var { renderContractBlock } = require("./contractread.js");
-    var { renderContractPane } = require("./askcontract.js");
     var { t } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
     var { renderIssueForm, renderIssued, instructionProblem } = require("./instruction.js");
@@ -598,61 +596,6 @@ function renderWorkflow(vo, project, role, ui) {
 }
 
 /* -----------------------------------------------------------
-   Assistant panel — a structured helper, not a chat bubble. Suggested
-   questions are the primary interaction; typed input is matched against
-   the same fixed set of intents by keyword. See js/assistant.js: this
-   file only renders and wires up what that pure module returns.
------------------------------------------------------------ */
-
-function renderAssistantSuggestions(context) {
-    const list = suggestions(context);
-    if (list.length === 0) {
-        return '<div class="empty-state">' + escapeHtml(t("assistant.noQuestionsVo")) + '</div>';
-    }
-    return list.map(s =>
-        '<button type="button" class="assistant-suggestion-btn" data-question="' +
-        escapeHtml(s.id) + '">' + escapeHtml(s.label) + "</button>").join("");
-}
-
-function renderAssistantAnswer(result) {
-    if (!result) {
-        return '<div class="empty-state">' + escapeHtml(t("assistant.answerEmptyVo")) + '</div>';
-    }
-    const lines = result.lines.map(l =>
-        '<div class="finding"><span>' + escapeHtml(l) + "</span></div>").join("");
-    return '<div class="' + (result.unmatched ? "assistant-unmatched" : "") + '">' +
-        '<p class="assistant-answer-title">' + escapeHtml(result.title) + "</p>" +
-        lines +
-    "</div>";
-}
-
-/* With a team account the card has two tabs: this structured helper, and
-   「问合同」 (js/askcontract.js), which answers from the contract itself.
-   context.contract = { tab: "vo" | "contract", state } keeps the open tab
-   and the last contract answer across redraws. */
-function renderAssistantPanel(context) {
-    const helper = '' +
-        '<p class="assistant-note">' + escapeHtml(t("assistant.note")) + "</p>" +
-        '<div class="assistant-suggestions" id="assistantSuggestions">' +
-        renderAssistantSuggestions(context) + "</div>" +
-        '<div class="assistant-ask-row">' +
-        '<input type="text" id="assistantInput" placeholder="' + escapeHtml(t("assistant.placeholder")) + '">' +
-        '<button type="button" class="secondary-button" id="assistantAskBtn">' + escapeHtml(t("assistant.ask")) + '</button>' +
-        "</div>" +
-        '<div id="assistantAnswer">' + renderAssistantAnswer(null) + "</div>";
-    if (!context.contract) return helper;
-    const tab = context.contract.tab === "contract" ? "contract" : "vo";
-    const tabButton = (id, label) =>
-        '<button type="button" role="tab" class="ask-tab' + (tab === id ? " active" : "") + '" data-ask-tab="' + id +
-        '" aria-selected="' + (tab === id) + '">' + escapeHtml(label) + "</button>";
-    return '' +
-        '<div class="ask-tabs" role="tablist">' + tabButton("vo", t("ask.tabVo")) + tabButton("contract", t("ask.tabContract")) + "</div>" +
-        '<div data-ask-pane="vo"' + (tab === "vo" ? "" : " hidden") + ">" + helper + "</div>" +
-        '<div data-ask-pane="contract"' + (tab === "contract" ? "" : " hidden") + ">" +
-        renderContractPane(context.role, context.contract.state, typeof askAsGuest === "function" && askAsGuest(context.project && context.project.id)) + "</div>";
-}
-
-/* -----------------------------------------------------------
    Contractual time bars — three clocks computed by js/deadlines.js.
    Shown to every role (everyone can see the position); the "record a
    request" control below is consultant-only and drives the second and
@@ -830,7 +773,7 @@ function renderHistory(vo) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
-        renderAssistantSuggestions, renderAssistantAnswer, renderAssistantPanel, renderHistory, translateHistoryAction,
+        renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel,
         renderWorkflow, renderStepper
     };
@@ -842,7 +785,6 @@ if (typeof document !== "undefined") {
         if (!ctx) return;
         const { session, project } = ctx;
         const role = session.role;
-        const contractAsk = { tab: "vo", state: null };
 
         /* Narrow screens stack the three role panels; the signed-in
            role's own panel should come first since that is the one they
@@ -969,10 +911,6 @@ if (typeof document !== "undefined") {
             }
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
             drawBuildUp(v, fresh);
-
-            document.getElementById("assistantPanel").innerHTML =
-                renderAssistantPanel({ vo: v, project: fresh, role: role, session: session,
-                                       contract: askContractAvailable(project.id) ? contractAsk : null });
 
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
@@ -1453,77 +1391,6 @@ if (typeof document !== "undefined") {
 
         document.getElementById("reportBtn").addEventListener("click", () => {
             location.href = "report.html?id=" + encodeURIComponent(voId);
-        });
-
-        /* Assistant: suggested-question clicks and typed input both route
-           through the same answer() call. Delegated on the panel element
-           itself (which persists across draw()'s innerHTML updates), so
-           it only needs wiring once. */
-        function askAssistant(question) {
-            const fresh = getProject(project.id);
-            const v = fresh.vos.find(x => x.id === voId);
-            const result = answer(question, { vo: v, project: fresh, role: role, session: session });
-            document.getElementById("assistantAnswer").innerHTML = renderAssistantAnswer(result);
-        }
-
-        document.getElementById("assistantPanel").addEventListener("click", e => {
-            const btn = e.target.closest(".assistant-suggestion-btn");
-            if (!btn) return;
-            askAssistant(btn.dataset.question);
-        });
-
-        document.getElementById("assistantPanel").addEventListener("click", e => {
-            if (e.target.id !== "assistantAskBtn") return;
-            const input = document.getElementById("assistantInput");
-            askAssistant(input.value);
-        });
-
-        document.getElementById("assistantPanel").addEventListener("keydown", e => {
-            if (e.target.id !== "assistantInput" || e.key !== "Enter") return;
-            askAssistant(e.target.value);
-        });
-
-        /* 「问合同」 tab: switching tabs and asking keep their state in
-           contractAsk, so a redraw of the page leaves both in place. */
-        document.getElementById("assistantPanel").addEventListener("click", e => {
-            const tabBtn = e.target.closest(".ask-tab");
-            if (!tabBtn) return;
-            contractAsk.tab = tabBtn.dataset.askTab;
-            document.querySelectorAll("#assistantPanel .ask-tab").forEach(b => {
-                const on = b === tabBtn;
-                b.classList.toggle("active", on);
-                b.setAttribute("aria-selected", String(on));
-            });
-            document.querySelectorAll("#assistantPanel [data-ask-pane]").forEach(p => {
-                p.hidden = p.dataset.askPane !== contractAsk.tab;
-            });
-        });
-
-        function showContractAnswer() {
-            const el = document.getElementById("contractAnswer");
-            if (el) el.innerHTML = renderContractAnswer(contractAsk.state);
-        }
-
-        async function askTheContract(question) {
-            const q = String(question || "").trim();
-            if (!q || (contractAsk.state && contractAsk.state.loading)) return;
-            const fresh = getProject(project.id);
-            const v = fresh.vos.find(x => x.id === voId);
-            contractAsk.state = { loading: true, question: q };
-            showContractAnswer();
-            contractAsk.state = await askContract(fresh, v, q, role);
-            showContractAnswer();
-        }
-
-        document.getElementById("assistantPanel").addEventListener("click", e => {
-            const btn = e.target.closest(".contract-question-btn");
-            if (btn) { askTheContract(btn.dataset.question); return; }
-            if (e.target.id === "contractAskBtn") askTheContract(document.getElementById("contractAskInput").value);
-        });
-
-        document.getElementById("assistantPanel").addEventListener("keydown", e => {
-            if (e.target.id !== "contractAskInput" || e.key !== "Enter") return;
-            askTheContract(e.target.value);
         });
 
         /* 「AI 照片核对」 (js/photocheck.js): asked on demand, kept for this

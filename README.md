@@ -261,7 +261,6 @@ your browser's `localStorage` and attached files in its IndexedDB; nothing is se
 | `js/documents.js` | Document revision history |
 | `js/filestore.js` | Attached files' content (IndexedDB), opened from their names |
 | `js/xlsxexport.js` | The register as an Excel workbook, written without a library |
-| `js/assistant.js` | Grounded question answering |
 | `js/store.js` | Data model, seed data, persistence |
 | `js/i18n.js` | English / 中文 |
 | `js/ui.js` | Shared chrome, guards, toasts |

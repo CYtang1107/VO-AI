@@ -3,8 +3,7 @@ const assert = require("node:assert");
 const path = require("path");
 const { pathToFileURL } = require("url");
 
-const { engineFacts, contractQuestions, answerHtml, renderContractAnswer, renderContractPane } = require("../js/askcontract.js");
-const { renderAssistantPanel } = require("../js/page-vo.js");
+const { engineFacts, contractQuestions, answerHtml, renderContractAnswer } = require("../js/askcontract.js");
 const { seedDB } = require("../js/store.js");
 
 /* The Edge Function's rules (an ES module, shared with Deno). */
@@ -133,12 +132,3 @@ test("no clause, a refused draft and a network error each say so", () => {
     assert.match(renderContractAnswer({ loading: true }), /Searching the contract/);
 });
 
-test("the ask card has the contract tab only for a team account", () => {
-    const ctx = { vo: project.vos[0], project: project, role: "consultant", session: {} };
-    assert.ok(!/ask-tab/.test(renderAssistantPanel(ctx)), "offline: the structured helper alone");
-    const html = renderAssistantPanel(Object.assign({ contract: { tab: "contract", state: null } }, ctx));
-    assert.match(html, /data-ask-tab="contract"/);
-    assert.match(html, /data-ask-pane="vo" hidden/);
-    assert.match(html, /Consultant assessment agent/);
-    assert.match(renderContractPane("client", null), /Client certification agent/);
-});
