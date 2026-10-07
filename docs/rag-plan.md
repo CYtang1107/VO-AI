@@ -58,6 +58,14 @@ Branch `claude/eager-ramanujan-6i2lox`.
   `RESEND_API_KEY` and `NOTIFY_FROM` secrets are set, which needs a sending domain) and `read-bq` (BQ OCR,
   Qwen-VL; checked live on the demo BQ page: 6 of 6 items exact, about 6 s). The live demo project has no
   programme or certificates yet: the consultant enters them on the dashboard.
+- **Project Copilot (7 Oct, later):** `copilot.html` replaces the AI Analysis page (`analysis.html` forwards
+  there). Seven project-wide questions are answered at once from the register (`js/copilot.js`); anything else,
+  and any question naming one VO, goes to the `copilot` Edge Function (deployed): Qwen answers from the project's
+  data (`projectData`, readable keys, the rule engine's own differences) and the contract clauses nearest the
+  question (similarity ≥ 0.4, optional). Checked (`supabase/functions/copilot/rules.mjs`, which reuses
+  `ask-contract/rules.mjs`): every amount must be in the data, the question or a clause; a cited clause must be one
+  given; one retry, then nothing. Same guest route and daily limit as 「问合同」. Checked live: "which VO has the
+  largest difference" (EN and ZH), a VO summary, who certified VO-001, and a contract question with PAM citations.
 - **Sign-up:** open. Email confirmation is off (no mail server; the built-in mailer only reaches the project's own
   team, 2 emails an hour), and the site URL is GitHub Pages. A new account sees nothing until a consultant adds it.
   Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,

@@ -1,7 +1,7 @@
 /* VO-AI | page-register.js — the VO register, in the template's column order. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { rm, prettyDate, contractorTotal, assessedTotal, voValue, today } = require("./calc.js");
+    var { rm, prettyDate, contractorTotal, assessedTotal, voValue, today, projectStats } = require("./calc.js");
     var { statusPill, escapeHtml, seedText } = require("./ui.js");
     var { FIELD_OWNER } = require("./permissions.js");
     var { rateSummary } = require("./analysis.js");
@@ -158,8 +158,33 @@ function renderRegisterBody(project, role, opts) {
     ).join("");
 }
 
+/* The register's four headline numbers: VOs, pending, approved, value
+   (moved here from the dashboard). */
+function renderStatCards(stats, role) {
+    const cards = [
+        { icon: "▧", cls: "blue",   label: t("dashboard.stat.total"),     value: stats.total,
+          note: t("dashboard.stat.totalNote", { n: stats.draft }) },
+        { icon: "◷", cls: "orange", label: t("dashboard.stat.pending"), value: stats.pending,
+          note: stats.pending > 0 ? t("dashboard.stat.pendingNoteWarn") : t("dashboard.stat.pendingNoteOk"), warn: stats.pending > 0 },
+        { icon: "✓", cls: "green",  label: t("dashboard.stat.approved"),       value: stats.approved,
+          note: t("dashboard.stat.approvedNote", { n: stats.certified }) },
+        { icon: "RM", cls: "purple", label: t("dashboard.stat.value"), value: rm(stats.value),
+          note: t("dashboard.stat.valueNote", { n: stats.timeImpact }) }
+    ];
+
+    return cards.map(c =>
+        '<div class="stat-card">' +
+            '<div class="stat-icon ' + c.cls + '">' + c.icon + "</div>" +
+            "<div><p>" + c.label + "</p><h2>" + c.value + "</h2>" +
+            '<small' + (c.warn ? ' class="warning"' : "") + ">" + escapeHtml(c.note) +
+            "</small></div>" +
+        "</div>"
+    ).join("");
+}
+
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
+        renderStatCards,
         COLUMNS, columnsForRole, renderRegisterHead, renderRegisterBody, dueDateCell, filterVos, voStage
     };
 }
@@ -167,6 +192,9 @@ if (typeof module !== "undefined" && module.exports) {
 if (typeof document !== "undefined") {
     (function () {
         const ctx = mountChrome("register", t("nav.register"), t("crumb.register"));
+        if (ctx && document.getElementById("statCards")) {
+            document.getElementById("statCards").innerHTML = renderStatCards(projectStats(ctx.project), ctx.session.role);
+        }
         if (!ctx) return;
         const { session, project } = ctx;
 
