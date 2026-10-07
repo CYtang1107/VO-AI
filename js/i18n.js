@@ -1046,7 +1046,7 @@ var I18N_EN = {
     "projects.field.contractDocHint": "Record the contract document name. The full contract text can be imported into the knowledge base from the Documents page, for 「问合同」.",
     "projects.field.bq": "Priced Bills of Quantities",
     "projects.field.bqHint": "These rates are what VO-AI cross-checks the contractor's measurement against.",
-    "projects.field.bqFile": "Or upload a priced BQ file (.csv or .xlsx)",
+    "projects.field.bqFile": "Or upload a priced BQ file (.csv, .xlsx, or a PDF / photo read by OCR)",
     "projects.field.bqFileHint": "Unlike the documents below, this file's contents are actually read: columns are matched to Code / Description / Unit / Rate automatically, and you confirm the result before anything is imported.",
     "projects.createBtn": "Create project",
     "toast.giveProjectName": "Give the project a name.",
@@ -1058,7 +1058,7 @@ var I18N_EN = {
     "toast.importFailed": "Import failed — {reasons}",
     "toast.importedAs": "Imported \"{name}\" as a copy in this browser.",
     "toast.couldNotReadFile": "Could not read that file.",
-    "toast.onlyCsvXlsx": "Only .csv and .xlsx files are supported for the BQ upload.",
+    "toast.onlyCsvXlsx": "The BQ upload reads .csv, .xlsx, .pdf, .jpg and .png files.",
 
     /* ---------- generic chrome ---------- */
     "disclaimer.title": "⚠ Professional Review Required",
@@ -1341,7 +1341,15 @@ var I18N_EN = {
     "suppliers.what.tool_hire": "tool hire",
     "suppliers.what.builder": "builder",
     "suppliers.what.company": "company",
-    "suppliers.note": "From OpenStreetMap, which is mapped by volunteers: a shop may be missing or closed. Prices are not shown: ask for a quotation and add it to your price list."
+    "suppliers.note": "From OpenStreetMap, which is mapped by volunteers: a shop may be missing or closed. Prices are not shown: ask for a quotation and add it to your price list.",
+    "bqocr.progress": "Reading the BQ by OCR: page {done} of {total} done…",
+    "bqocr.reason": "Read by OCR from {pages} page(s): {rows} row(s). Check every rate against the printed BQ before confirming.",
+    "bqocr.failedPages": "Page(s) {pages} could not be read: import them separately or type them in.",
+    "bqocr.unavailable": "Reading a PDF or photo needs the internet connection to VO-AI's server.",
+    "bqocr.nothing": "No priced items were found on the {pages} page(s).",
+    "bqocr.failed": "The BQ could not be read: {reason}",
+    "bqocr.guestLimit": "Today's limit for the demo has been reached: sign in with a team account, or try again tomorrow.",
+    "bqocr.badImage": "That image could not be opened."
 };
 
 var I18N_ZH = {
@@ -2350,7 +2358,7 @@ var I18N_ZH = {
     "projects.field.contractDocHint": "记录合同文件名称。合同全文可在「文件」页导入知识库，供「问合同」检索。",
     "projects.field.bq": "已标价工程量清单",
     "projects.field.bqHint": "VO-AI 会将承包商的计量与这些单价进行核对。",
-    "projects.field.bqFile": "或上传已标价工程量清单文件（.csv 或 .xlsx）",
+    "projects.field.bqFile": "或上传已标价工程量清单文件（.csv、.xlsx，或以 OCR 读取的 PDF / 照片）",
     "projects.field.bqFileHint": "与下方的文件不同，系统会实际读取此文件的内容：各栏位会自动匹配为编号 / 说明 / 单位 / 单价，并在导入前请您确认结果。",
     "projects.createBtn": "创建项目",
     "toast.giveProjectName": "请为项目命名。",
@@ -2362,7 +2370,7 @@ var I18N_ZH = {
     "toast.importFailed": "导入失败 — {reasons}",
     "toast.importedAs": "已将「{name}」作为副本导入此浏览器。",
     "toast.couldNotReadFile": "无法读取该文件。",
-    "toast.onlyCsvXlsx": "工程量清单上传仅支持 .csv 和 .xlsx 文件。",
+    "toast.onlyCsvXlsx": "工程量清单上传支持 .csv、.xlsx、.pdf、.jpg 和 .png 文件。",
 
     "disclaimer.title": "⚠ 须经专业审核",
     "disclaimer.body": "AI 生成的结果仅供决策参考。最终的变更评估、核证与批准，必须由相应的建筑专业人士审核。",
@@ -2642,7 +2650,15 @@ var I18N_ZH = {
     "suppliers.what.tool_hire": "工具租赁",
     "suppliers.what.builder": "建筑商",
     "suppliers.what.company": "公司",
-    "suppliers.note": "资料来自志愿者绘制的 OpenStreetMap：可能有遗漏或已歇业的商店。不显示价格：请索取报价并加入价目表。"
+    "suppliers.note": "资料来自志愿者绘制的 OpenStreetMap：可能有遗漏或已歇业的商店。不显示价格：请索取报价并加入价目表。",
+    "bqocr.progress": "正在以 OCR 读取工程量清单：已完成第 {done} / {total} 页…",
+    "bqocr.reason": "以 OCR 从 {pages} 页读取：{rows} 行。确认前请逐项与纸本清单核对单价。",
+    "bqocr.failedPages": "第 {pages} 页无法读取：请另行导入或手动输入。",
+    "bqocr.unavailable": "读取 PDF 或照片需要连接 VO-AI 服务器。",
+    "bqocr.nothing": "在 {pages} 页中没有找到已标价的项目。",
+    "bqocr.failed": "无法读取工程量清单：{reason}",
+    "bqocr.guestLimit": "今日演示次数已用完：请以团队账号登录，或明天再试。",
+    "bqocr.badImage": "无法打开该图片。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract
