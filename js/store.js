@@ -166,6 +166,13 @@ function upgradeDemo(db) {
         ["instructionStatus", "instructionNote", "caCertifiedStatus", "caRemark"].forEach(k => { vo[k] = sv[k]; });
         changed = true;
     });
+    /* the instructions the design team issued (js/instruction.js) */
+    seed.vos.forEach(sv => {
+        const vo = (demo.vos || []).find(v => v.id === sv.id);
+        if (!vo || !sv.issuedInstruction || vo.issuedInstruction || vo.instructionStatus !== "Confirmed") return;
+        vo.issuedInstruction = Object.assign({}, sv.issuedInstruction);
+        changed = true;
+    });
     if (changed) saveDB(db);
     return db;
 }
@@ -651,6 +658,7 @@ function seedDB() {
                     infoRequestNote: "",
                     instructionStatus: "Confirmed",
                     instructionNote: "AI-021 confirmed: the floor finish change is instructed under clause 11.1.",
+                    issuedInstruction: { kind: "AI", no: "AI-021", date: "2026-07-16", by: "Lim Kok Wai", note: "" },
                     caCertifiedStatus: "Certified",
                     caRemark: "Certified at the assessed value for Interim Certificate No. 4.",
                     certifiedStatus: "Approved",
@@ -705,6 +713,7 @@ function seedDB() {
                     infoRequestNote: "",
                     instructionStatus: "Confirmed",
                     instructionNote: "EI-008 confirmed: additional drainage instructed on site.",
+                    issuedInstruction: { kind: "EI", no: "EI-008", date: "2026-07-17", by: "Lim Kok Wai", note: "" },
                     caCertifiedStatus: "Pending",
                     caRemark: "",
                     certifiedStatus: "Pending",

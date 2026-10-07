@@ -51,6 +51,7 @@ var FIELD_OWNER = {
     instructionNote: "administrator",
     caCertifiedStatus: "administrator",
     caRemark: "administrator",
+    issuedInstruction: "administrator",
 
     /* client's columns */
     certifiedStatus: "client",
@@ -79,7 +80,7 @@ function caCertified(vo) {
     return vo.caCertifiedStatus === "Certified";
 }
 
-var CA_INSTRUCTION_FIELDS = ["instructionStatus", "instructionNote"];
+var CA_INSTRUCTION_FIELDS = ["instructionStatus", "instructionNote", "issuedInstruction"];
 
 function canEdit(field, vo, role) {
     if (FIELD_OWNER[field] !== role) return false;
@@ -150,7 +151,8 @@ var FIELD_LABEL_KEY = {
     clientInfoRequestedAt: "vo.field.clientInfoRequestedAt",
     assessment: "vo.field.assessedMeasurement",
     instructionStatus: "vo.field.instructionStatus", instructionNote: "vo.field.instructionNote",
-    caCertifiedStatus: "vo.field.caCertifiedStatus", caRemark: "vo.field.caRemark"
+    caCertifiedStatus: "vo.field.caCertifiedStatus", caRemark: "vo.field.caRemark",
+    issuedInstruction: "instr.fieldLabel"
 };
 
 function fieldLabel(name) {

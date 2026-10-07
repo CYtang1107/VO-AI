@@ -13,6 +13,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { renderContractPane } = require("./askcontract.js");
     var { t } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
+    var { renderIssueForm, renderIssued, instructionProblem } = require("./instruction.js");
 }
 
 /* An <option> VALUE is always the raw English data value (evaluateStatus,
@@ -31,7 +32,7 @@ function optionDisplayText(value) {
    ① confirm the instruction the contractor's claim rests on, or return
    it; ② once the consultant QS has approved the value, certify it.
    Each step names what it is checking against. */
-function renderAdministratorPanel(vo, role) {
+function renderAdministratorPanel(vo, role, project) {
     const ref = [optionDisplayText(vo.typeOfInstruction || ""), vo.instructionNo, vo.dateIssued ? prettyDate(vo.dateIssued) : ""]
         .filter(Boolean).join(" · ");
     const status = vo.instructionStatus || (vo.submitted ? "Confirmed" : "Pending");
@@ -41,6 +42,11 @@ function renderAdministratorPanel(vo, role) {
               verdict: t("claim.verdict." + vo.claimCheck.verdict), date: prettyDate(vo.claimCheck.at) })) + "</p>" : "";
     return panelLockNote(vo, role, "administrator") +
         '<h4 class="ca-step">' + escapeHtml(t("vo.ca.step1")) + "</h4>" + recorded +
+        /* issue the AI / EI (js/instruction.js): once issued, what was
+           issued; until then, the design team's form to issue it */
+        (vo.issuedInstruction ? renderIssued(vo)
+            : role === "administrator" && project && canEdit("issuedInstruction", vo, role) && status !== "Confirmed"
+                ? renderIssueForm(project, vo) : "") +
         '<p class="ca-ref">' + escapeHtml(t("vo.ca.instructionRef", { ref: ref || t("vo.ca.noRef") })) + "</p>" +
         (vo.submitted || status !== "Returned" ? "" : '<p class="ca-note">' + escapeHtml(t("vo.ca.returnedWaiting")) + "</p>") +
         field({ field: "instructionStatus", label: t("vo.field.instructionStatus"), type: "select",
@@ -643,6 +649,7 @@ function translateHistoryAction(action) {
     if (a === "Contract administrator certified the assessed value") return t("history.caCertified");
     if ((m = a.match(/^Instruction confirmed — (.+)$/))) return t("history.instructionConfirmed", { ref: m[1] });
     if (a === "Instruction confirmed") return t("history.instructionConfirmedNoRef");
+    if ((m = a.match(/^Instruction issued — (.+)$/))) return t("history.instructionIssued", { no: m[1] });
     if ((m = a.match(/^Instruction returned to contractor: (.+)$/))) return t("history.instructionReturnedWithNote", { note: m[1] });
     if (a === "Instruction returned to contractor") return t("history.instructionReturned");
     if ((m = a.match(/^Contract agent: (claimable|needsInfo|notClaimable)$/))) return t("history.claimCheck", { verdict: t("claim.verdict." + m[1]) });
@@ -785,7 +792,7 @@ if (typeof document !== "undefined") {
                 renderDocList(v, "contractDocs", t("documents.field.contractDocs"), role,
                               t("vo.docList.contractIntro"));
 
-            document.getElementById("administratorPanel").innerHTML = renderAdministratorPanel(v, role);
+            document.getElementById("administratorPanel").innerHTML = renderAdministratorPanel(v, role, fresh);
 
             document.getElementById("consultantPanel").innerHTML =
                 panelLockNote(v, role, "consultant") +
@@ -1074,6 +1081,25 @@ if (typeof document !== "undefined") {
                 v.measurement.push({ id: uid("M"), bqItemId: null, description: "",
                     unit: "", qty: 0, rate: 0, assessedQty: "", assessedRate: "" });
             });
+            draw();
+        });
+
+        /* the design team issues the AI / EI, which confirms the instruction */
+        document.getElementById("administratorPanel").addEventListener("click", e => {
+            if (e.target.id !== "issueInstrBtn") return;
+            const fresh = getProject(project.id);
+            const kind = document.getElementById("instrKind").value;
+            const no = document.getElementById("instrNo").value.trim().toUpperCase();
+            const note = document.getElementById("instrNote").value.trim();
+            const problem = instructionProblem(fresh, fresh.vos.find(x => x.id === voId), kind, no);
+            if (problem) { toast(problem, "error"); return; }
+            updateVO(project.id, voId, v => {
+                v.issuedInstruction = { kind: kind, no: no, date: today(), by: session.name, note: note };
+                v.instructionStatus = "Confirmed";
+                if (note && !v.instructionNote) v.instructionNote = note;
+                logHistory(v, session, "Instruction issued — " + no);
+            });
+            toast(t("instr.issuedToast", { no: no }));
             draw();
         });
 
