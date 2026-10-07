@@ -6,6 +6,10 @@
      1. Every amount in the answer is in the project's data, the question or
         a clause given: never the model's own arithmetic or estimate.
      2. A clause it cites must be one it was given.
+   A general question (not about this project: a definition, construction
+   practice, general knowledge) may be answered from general knowledge;
+   such an answer starts with GENERAL_TAG, is shown labelled as general,
+   and may quote no money amount that is not in the project's data.
    One retry naming the broken rule; then no answer. */
 
 import { amountsIn, checkCitations, citationLabel, citationsFor, groupChunks, questionLang, unsupportedAmounts } from "../ask-contract/rules.mjs";
@@ -13,6 +17,14 @@ import { amountsIn, checkCitations, citationLabel, citationsFor, groupChunks, qu
 export { citationsFor, groupChunks, questionLang };
 
 export const MAX_QUESTION = 500;
+export const GENERAL_TAG = "[GENERAL]";
+
+/* An answer from general knowledge carries the tag first; it is taken off
+   for showing, and the answer is marked general. */
+export function splitGeneral(text) {
+    const s = String(text || "").trim();
+    return s.toUpperCase().startsWith(GENERAL_TAG) ? { general: true, text: s.slice(GENERAL_TAG.length).trim() } : { general: false, text: s };
+}
 export const MAX_DATA_CHARS = 60000;
 
 export function validCopilotRequest(body) {
@@ -38,7 +50,8 @@ export function copilotSystemPrompt(role, lang) {
     return [
         "You are VO-AI's project Copilot for a construction project in Malaysia, helping " + who + " with the project's variation orders (VOs), cost and contract.",
         "Rules you must follow:",
-        "1. Answer ONLY from PROJECT DATA and, if given, CONTRACT CLAUSES in the user message. If they do not contain the answer, say plainly that VO-AI's data does not show it. Never use outside knowledge as if it were this project's facts.",
+        "0. First decide what kind of question it is. A question about THIS project (its VOs, costs, rates, deadlines, documents, people, programme or contract) is a project question: follow rules 1 to 7. Any other question (a definition, how something is usually done in construction or quantity surveying, or general knowledge) is a general question: answer it briefly and correctly from general knowledge, start the answer with exactly " + GENERAL_TAG + ", state no fact or figure about this project, write no money amount, and follow rules 5 to 7. Prefer the project's data whenever the question could be about the project.",
+        "1. Answer a project question ONLY from PROJECT DATA and, if given, CONTRACT CLAUSES in the user message. If they do not contain the answer, say plainly that VO-AI's data does not show it. Never use outside knowledge as if it were this project's facts.",
         "2. Every amount of money, rate or quantity you write must be copied exactly from PROJECT DATA, the question or a clause. Never calculate, add, subtract, compare by subtraction, estimate or round an amount. You may say which is larger or name the VO with the largest figure, quoting the figures as given.",
         "3. Name VOs by their number (e.g. VO-002) so the reader can open them. Write natural sentences: never copy the data's keys, never write a word with an underscore, and in Chinese use Chinese terms (申报金额, 评估金额, 差额, 核证, 批准).",
         "Differences already worked out by VO-AI (such as \"assessed minus claimed\") may be quoted and compared to answer which is largest or smallest.",
@@ -63,12 +76,17 @@ export function copilotUserPrompt(question, projectData, clauses, lang) {
 
 export function reviewCopilotAnswer(answer, projectData, clauses, question) {
     const problems = [];
-    if (!String(answer || "").trim()) problems.push("empty");
-    const citations = checkCitations(answer, clauses || []);
+    const { general, text } = splitGeneral(answer);
+    if (!text) problems.push("empty");
+    const citations = checkCitations(text, clauses || []);
     if (citations.invented.length) problems.push("invented-citation");
-    const badAmounts = unsupportedAmounts(answer, projectData, question, clauses || []);
+    /* a project answer: every amount from the data; a general one: no
+       money amount that is not in the data (other numbers, such as a
+       year or a size, are general knowledge) */
+    const badAmounts = unsupportedAmounts(text, projectData, question, clauses || [])
+        .filter(a => !general || /RM|MYR|令吉/i.test(a));
     if (badAmounts.length) problems.push("amount-check");
-    return { ok: problems.length === 0, problems, cited: citations.cited, invented: citations.invented, badAmounts };
+    return { ok: problems.length === 0, problems, cited: citations.cited, invented: citations.invented, badAmounts, general, text };
 }
 
 export function copilotCorrection(review) {

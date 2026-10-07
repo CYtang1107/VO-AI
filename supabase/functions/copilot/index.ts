@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         if (!review.ok) {
             return reply({ answer: null, reason: review.problems.includes("amount-check") ? "amount-check" : "format", citations: [] });
         }
-        return reply({ answer: result.text, citations: citationsFor(review.cited, clauses), model: result.model });
+        return reply({ answer: review.text, general: review.general, citations: citationsFor(review.cited, clauses), model: result.model });
     } catch (e) {
         return reply({ error: (e as Error).message || String(e) }, 502);
     }

@@ -253,9 +253,9 @@ function renderAiAnswer(state, question) {
             '</summary><p class="rate-detail">' + escapeHtml(c.text) + "</p></details>").join("");
         body = '<div class="ask-answer-text">' + text.replace(/\b(VO-\d{3,})\b/g, '<span class="copilot-vo">$1</span>') + "</div>" +
             (sources ? '<h4 class="ask-sources-title">' + escapeHtml(t("ask.sources")) + "</h4>" + sources : "") +
-            '<p class="copilot-source">' + escapeHtml(t("copilot.ai.source")) + "</p>";
+            '<p class="copilot-source">' + escapeHtml(t(state.general ? "copilot.ai.generalSource" : "copilot.ai.source")) + "</p>";
     }
-    return botBubble('<h4 class="copilot-title">' + escapeHtml(t("copilot.ai.title")) + "</h4>" + body, "chat-ai");
+    return botBubble('<h4 class="copilot-title">' + escapeHtml(t(state.general ? "copilot.ai.generalTitle" : "copilot.ai.title")) + "</h4>" + body, "chat-ai" + (state.general ? " chat-general" : ""));
 }
 
 /* the conversation so far: history [{question, data?} | {question, ai: state} | {question}], oldest first */
