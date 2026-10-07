@@ -20,10 +20,6 @@ if (typeof document !== "undefined") {
         /* {blob, url, ext} per photo, in the order taken. */
         const photos = [];
 
-        const typeSelect = document.getElementById("capType");
-        typeSelect.innerHTML = ["Architect's Instruction (AI)", "Engineer's instruction (EI)"].map(ty =>
-            '<option value="' + escapeHtml(ty) + '">' + escapeHtml(t("instructionType." + ty)) + "</option>"
-        ).join("");
         document.getElementById("capDate").value = today();
 
         /* A phone photo is 3–10 MB; the register only needs to show what
@@ -112,8 +108,6 @@ if (typeof document !== "undefined") {
             const rec = {
                 description: document.getElementById("capDescription").value,
                 location: document.getElementById("capLocation").value,
-                typeOfInstruction: typeSelect.value,
-                instructionNo: document.getElementById("capInstructionNo").value,
                 dateIssued: document.getElementById("capDate").value || today(),
                 line: {
                     qty: document.getElementById("capQty").value,

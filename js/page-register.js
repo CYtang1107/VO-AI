@@ -58,7 +58,7 @@ const COLUMNS = [
     { field: "dueDate",           label: "VO DUE DATE",      labelKey: "register.col.dueDate",
       render: (v, p) => dueDateCell(v, today(), p) },
     { field: "typeOfInstruction", label: "TYPE",             labelKey: "register.col.type",
-      render: v => escapeHtml(instructionTypeLabel(v.typeOfInstruction) || "—") },
+      render: v => escapeHtml(v.issuedInstruction ? t("instr.kind." + v.issuedInstruction.kind) : (instructionTypeLabel(v.typeOfInstruction) || "—")) },
     { field: "measurement", compact: true,       label: "CONTRACTOR'S MEASUREMENT", labelKey: "register.col.contractorMeasurement",
       render: v => rm(contractorTotal(v)) },
     { field: "assessment",        label: "CONSULTANT'S ASSESSMENT",  labelKey: "register.col.consultantAssessment",

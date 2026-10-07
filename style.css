@@ -3692,3 +3692,4 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .capture-form:not([hidden]) { gap: 12px; }
     .capture-form .field { margin-bottom: 10px; }
 }
+#rolePanelsSection[hidden] { display: none !important; }

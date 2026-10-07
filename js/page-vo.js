@@ -790,26 +790,11 @@ if (typeof document !== "undefined") {
            role's own panel should come first since that is the one they
            can edit — see .role-panels[data-active-role] in style.css. */
         const panelsSection = document.getElementById("rolePanelsSection");
-        /* the four roles' columns at the bottom are the full record,
-           read-only and folded away: each role works in the workflow card */
+        /* the four roles' columns (the old full record) are not shown:
+           each role works in the step card; the VO report has every field */
         if (panelsSection) panelsSection.classList.add("record");
         const view = "_view";
 
-        /* Each role sees only its own panel by default, so the page is
-           just the form they fill in. The other two roles' columns are
-           one click away, read-only, for checking what they entered. */
-        const toggleOthers = document.getElementById("toggleOtherPanels");
-        function setShowOthers(show) {
-            if (!panelsSection || !toggleOthers) return;
-            panelsSection.classList.toggle("show-others", show);
-            toggleOthers.setAttribute("aria-expanded", show ? "true" : "false");
-            toggleOthers.textContent = t(show ? "vo.panel.hideRecord" : "vo.panel.showRecord");
-        }
-        if (toggleOthers) {
-            setShowOthers(false);
-            toggleOthers.addEventListener("click", () =>
-                setShowOthers(!panelsSection.classList.contains("show-others")));
-        }
 
         const voId = new URLSearchParams(location.search).get("id");
         const vo = (project.vos || []).find(v => v.id === voId);
@@ -930,12 +915,12 @@ if (typeof document !== "undefined") {
            this step, measurement, contract, photos, record, activity. A tab
            shows when one of its cards has something at this stage; a new
            stage opens on "this step". The open tab scrolls inside. */
-        const VO_TABS = ["step", "measure", "contract", "photos", "record", "activity"];
+        const VO_TABS = ["step", "measure", "contract", "photos", "activity"];
         const tabsHost = document.getElementById("voTabs");
         const vt = { tab: null, stage: null };
         function tabCards(id) { return Array.from(document.querySelectorAll('[data-tab="' + id + '"]')); }
         function tabHas(id) {
-            return tabCards(id).some(el => !el.hidden && !el.classList.contains("role-panels-toggle"));
+            return tabCards(id).some(el => !el.hidden);
         }
         function drawTabs(stage) {
             if (!tabsHost) return;

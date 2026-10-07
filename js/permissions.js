@@ -121,8 +121,9 @@ function voStage(vo) {
 /* Which of a role's fields are open at which stage. */
 var STAGE_FIELDS = {
     contractor: {
-        describe: ["description", "contractorRemark", "dateIssued", "typeOfInstruction", "instructionNo", "supportingDocs"],
-        designRejected: ["description", "contractorRemark", "dateIssued", "typeOfInstruction", "instructionNo", "supportingDocs"],
+        /* the instruction's type and number are the design team's, set when it issues it */
+        describe: ["description", "contractorRemark", "dateIssued", "supportingDocs"],
+        designRejected: ["description", "contractorRemark", "dateIssued", "supportingDocs"],
         measure: ["measurement", "supportingDocs", "contractorRemark"],
         rejected: ["measurement", "supportingDocs", "contractorRemark"],
         info: ["infoResponse", "supportingDocs", "measurement"]
