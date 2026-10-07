@@ -184,13 +184,28 @@ function shortMonth(iso) {
 /* The chart: one y axis (RM), three lines, a "today" line, a crosshair
    readout (wired by mountCostChart). Series colours are the reference
    palette's first three slots (they pass every colour-vision pair). */
+/* The months shown: the whole programme, or "toDate": from the start to
+   the month after today (or after the latest certificate, if later), where
+   planned and certified can be told apart. */
+function viewCurve(curve, range) {
+    if (!curve || range !== "toDate") return curve;
+    const pts = curve.points;
+    let last = pts.findIndex(p => p.date >= curve.today);
+    if (last < 0) last = pts.length - 1;
+    pts.forEach((p, i) => { if (p.actual !== null) last = Math.max(last, i); });
+    const end = Math.min(pts.length, last + 2);
+    return Object.assign({}, curve, { points: pts.slice(0, Math.max(2, end)) });
+}
+
 function renderSCurveSvg(curve, width) {
-    /* drawn at the width it is shown at, so text stays 11px on a phone */
-    const W = Math.max(300, Math.min(1000, Math.round(width || 760)));
-    const H = W < 500 ? 240 : 300, L = 62, R = 14, T = 16, B = 34;
+    /* drawn at the width it is shown at, so text stays 11px on a phone;
+       taller on a wide screen, so the lines do not flatten */
+    const W = Math.max(300, Math.min(1800, Math.round(width || 760)));
+    const H = Math.max(240, Math.min(440, Math.round(W * 0.4))), L = 70, R = 14, T = 16, B = 34;
     const pts = curve.points;
     const max = Math.max.apply(null, pts.map(p => Math.max(p.planned, p.forecast, p.actual || 0))) || 1;
-    const step = niceStep(max / 4);
+    /* about one gridline per 55 px of height */
+    const step = niceStep(max / Math.max(4, Math.floor((H - T - B) / 55)));
     const top = Math.ceil(max / step) * step;
     const x = i => L + (pts.length === 1 ? 0 : i * (W - L - R) / (pts.length - 1));
     const y = v => T + (H - T - B) * (1 - v / top);
@@ -210,7 +225,7 @@ function renderSCurveSvg(curve, width) {
         '<text class="sc-tick" x="' + x(i).toFixed(1) + '" y="' + (H - 12) + '" text-anchor="' + (i === pts.length - 1 ? "end" : i === 0 ? "start" : "middle") + '">' +
         escapeHtml(shortMonth(p.date)) + "</text>").join("");
     let today = "";
-    if (curve.todayX !== null && curve.todayX >= 0 && curve.todayX <= 1) {
+    if (curve.todayX !== null && curve.todayX >= 0 && curve.todayX <= 1 && curve.today <= pts[pts.length - 1].date) {
         /* on the same month scale as the points: between the two
            month-ends today falls between */
         const d = dayNo(curve.today);
@@ -232,7 +247,8 @@ function renderSCurveSvg(curve, width) {
         '<path class="sc-line sc-planned" d="' + path("planned") + '"/>' +
         '<path class="sc-line sc-forecast" d="' + path("forecast") + '"/>' +
         '<path class="sc-line sc-actual" d="' + path("actual") + '"/>' + dot +
-        '<line class="sc-cross" x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" hidden/>' +
+        /* SVG ignores the hidden attribute: display is what hides it */
+        '<line class="sc-cross" x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" style="display:none"/>' +
         '<rect class="sc-hit" x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - B) + '"/>' +
     "</svg>";
 }
@@ -299,6 +315,8 @@ function renderCostOverview(project, todayIso, opts) {
     const o = costOverview(project);
     const curve = sCurve(project, todayIso);
     const editable = opts && opts.editable;
+    /* the S-curve's months: "toDate" (zoomed in, the default) or "all" */
+    const range = opts && opts.range === "all" ? "all" : "toDate";
     const tiles = '<div class="cp-tiles">' +
         tile(t("costplan.contractSum"), rm(o.contractSum)) +
         tile(t("costplan.approved"), rm(o.approved), t("costplan.nVos", { n: o.nApproved })) +
@@ -320,7 +338,10 @@ function renderCostOverview(project, todayIso, opts) {
                 '<span><i class="k k-forecast"></i>' + escapeHtml(t("costplan.series.forecast")) + "</span>" +
                 '<span><i class="k k-actual"></i>' + escapeHtml(t("costplan.series.actual")) + "</span>" +
             "</div>" +
-            '<div class="sc-wrap">' + renderSCurveSvg(curve, opts && opts.width) + '<div class="sc-tip" hidden></div></div>' +
+            '<div class="sc-range" role="group" aria-label="' + escapeHtml(t("costplan.rangeLabel")) + '">' +
+                ["toDate", "all"].map(r => '<button type="button" class="sc-range-btn' + (range === r ? " on" : "") + '" data-range="' + r + '" aria-pressed="' +
+                    (range === r) + '">' + escapeHtml(t("costplan.range." + r)) + "</button>").join("") + "</div>" +
+            '<div class="sc-wrap">' + renderSCurveSvg(viewCurve(curve, range), opts && opts.width) + '<div class="sc-tip" hidden></div></div>' +
             '<p class="assistant-note">' + escapeHtml(t("costplan.curveNote")) + "</p>" +
             fold("cp-table", escapeHtml(t("costplan.tableTitle")),
                 '<div class="table-scroll"><table class="cp-table"><thead><tr><th>' + escapeHtml(t("costplan.col.month")) + "</th><th>" +
@@ -360,7 +381,7 @@ function mountCostChart(host, curve) {
         const sx = (evt.clientX - box.left) * W / box.width;
         const i = Math.max(0, Math.min(n - 1, Math.round((sx - L) / ((W - L - R) / Math.max(1, n - 1)))));
         const px = L + i * (W - L - R) / Math.max(1, n - 1);
-        cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.hidden = false;
+        cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.style.display = "";
         const p = curve.points[i];
         tip.textContent = "";
         const head = document.createElement("div"); head.className = "sc-tip-head"; head.textContent = shortMonth(p.date); tip.appendChild(head);
@@ -377,9 +398,9 @@ function mountCostChart(host, curve) {
     }
     hit.addEventListener("pointermove", show);
     hit.addEventListener("pointerdown", show);
-    hit.addEventListener("pointerleave", () => { cross.hidden = true; tip.hidden = true; });
+    hit.addEventListener("pointerleave", () => { cross.style.display = "none"; tip.hidden = true; });
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderSCurveSvg, niceStep };
+    module.exports = { viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderSCurveSvg, niceStep };
 }

@@ -150,3 +150,16 @@ test("the EAC choice sits in a folded Advanced section that names the current ch
     assert.match(html, /<details class="fold" data-fold="evm-advanced"><summary><span class="fold-summary">Advanced: how EAC is forecast — Cost performance so far continues \(BAC \/ CPI\)/);
     assert.match(html, /data-fold="evm-advanced"[\s\S]*id="evmMethod"/);
 });
+
+test("the S-curve zoomed to date ends the month after today; the whole programme keeps every month", () => {
+    const curve = c.sCurve(project(), "2026-09-12");
+    const z = c.viewCurve(curve, "toDate");
+    assert.strictEqual(z.points[z.points.length - 1].date, "2026-10-31", "September (today) and October");
+    assert.strictEqual(c.viewCurve(curve, "all").points.length, 18);
+    const svg = c.renderSCurveSvg(z, 1500);
+    assert.match(svg, /viewBox="0 0 1500 440"/, "taller on a wide screen");
+    assert.match(svg, /class="sc-cross"[^>]*style="display:none"/);
+    const html = c.renderCostOverview(project(), "2026-09-12", { width: 1000 });
+    assert.match(html, /class="sc-range-btn on" data-range="toDate"/, "zoomed in by default");
+});
+
