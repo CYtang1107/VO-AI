@@ -1,0 +1,82 @@
+const test = require("node:test");
+const assert = require("node:assert");
+
+const { claimCheck, contractForm, renderClaimCheck } = require("../js/claimcheck.js");
+const { seedDB } = require("../js/store.js");
+
+const project = () => seedDB().projects[0];
+const vo = (over) => Object.assign(JSON.parse(JSON.stringify(project().vos[0])), over || {});
+
+test("the demo's VO-001 (AI-021, measured, drawings attached) is claimable under PAM 2018", () => {
+    const r = claimCheck(vo(), project());
+    assert.strictEqual(r.form, "PAM 2018");
+    assert.strictEqual(r.verdict, "claimable");
+    assert.deepStrictEqual(r.checks.map(c => c.id), ["variation", "instruction", "particulars", "valuation"]);
+    assert.ok(r.checks.every(c => c.state === "ok" || c.state === "info"));
+    assert.strictEqual(r.checks[0].clause, "PAM 2018 Clause 11.1");
+    assert.strictEqual(r.checks[1].clause, "PAM 2018 Clause 2.2");
+    assert.match(r.checks[1].reason, /AI-021/);
+    assert.match(r.checks[3].reason, /fair market rates/, "the marble row has no BQ item");
+});
+
+test("putting right the contractor's own defective work is not a variation (cl. 11.1)", () => {
+    ["Rectify defective floor tiles in living area", "Rework of skirting not in accordance with specification", "客厅地砖返工"]
+        .forEach(d => {
+            const r = claimCheck(vo({ description: d }), project());
+            assert.strictEqual(r.verdict, "notClaimable", d);
+            assert.strictEqual(r.checks[0].state, "fail");
+            assert.match(r.checks[0].reason, /own cost/);
+        });
+});
+
+test("no written instruction, an Engineer's Instruction under PAM, or no measurement: needs information", () => {
+    let r = claimCheck(vo({ instructionNo: "" }), project());
+    assert.strictEqual(r.verdict, "needsInfo");
+    assert.match(r.checks.find(c => c.id === "instruction").reason, /CAI/);
+
+    r = claimCheck(vo({ typeOfInstruction: "Engineer's instruction (EI)", instructionNo: "EI-04", instructionStatus: "Pending" }), project());
+    assert.strictEqual(r.verdict, "needsInfo");
+    assert.match(r.checks.find(c => c.id === "instruction").reason, /EI-04.*Architect/);
+    r = claimCheck(vo({ typeOfInstruction: "Engineer's instruction (EI)", instructionNo: "EI-04", instructionStatus: "Confirmed" }), project());
+    assert.strictEqual(r.checks.find(c => c.id === "instruction").state, "ok", "the design team confirmed it");
+
+    r = claimCheck(vo({ measurement: [], revisedDrawing: [], supportingDocs: [] }), project());
+    const p = r.checks.find(c => c.id === "particulars");
+    assert.strictEqual(p.state, "missing");
+    assert.match(p.reason, /measurement.*drawing/);
+    assert.ok(!r.checks.some(c => c.id === "valuation"), "nothing to value yet");
+});
+
+test("a vague description cannot be classified, and an off-site photo is flagged as missing evidence", () => {
+    let r = claimCheck(vo({ description: "", measurement: [] }), project());
+    assert.strictEqual(r.checks[0].state, "missing");
+    const v = vo();
+    v.supportingDocs.push({ id: "X", name: "elsewhere.jpg", geo: { lat: 3.3, lng: 101.5, src: "exif" } });
+    r = claimCheck(v, project());
+    assert.strictEqual(r.verdict, "needsInfo");
+    assert.match(r.checks.find(c => c.id === "particulars").reason, /1 photo\(s\) not taken on the site/);
+});
+
+test("after practical completion, only when the project records it", () => {
+    const p = Object.assign(project(), { practicalCompletion: "2026-07-01" });
+    const r = claimCheck(vo({ dateIssued: "2026-07-14" }), p);
+    assert.strictEqual(r.checks.find(c => c.id === "timing").clause, "PAM 2018 Clause 11.3");
+    assert.strictEqual(r.verdict, "needsInfo");
+    assert.ok(!claimCheck(vo(), project()).checks.some(c => c.id === "timing"));
+});
+
+test("a PWD 203A project cites clause 24 and the Superintending Officer", () => {
+    const p = project();
+    p.documents = [{ id: "D", name: "PWD 203A Conditions of Contract.pdf" }];
+    assert.strictEqual(contractForm(p), "PWD 203A");
+    const r = claimCheck(vo({ instructionNo: "" }), p);
+    assert.ok(r.checks.every(c => c.clause === "PWD 203A Clause 24"));
+    assert.match(r.checks.find(c => c.id === "instruction").reason, /Superintending Officer/);
+});
+
+test("the card shows the verdict, each check with its clause, and what was recorded at submission", () => {
+    const html = renderClaimCheck(claimCheck(vo({ instructionNo: "" }), project()), { recorded: { verdict: "claimable", at: "14 Jul 2026" } });
+    assert.match(html, /Needs information/);
+    assert.match(html, /PAM 2018 Clause 2\.2/);
+    assert.match(html, /At submission the contract agent said: Claimable \(14 Jul 2026\)/);
+});

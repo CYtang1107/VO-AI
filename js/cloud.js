@@ -425,6 +425,8 @@ var Cloud = (function () {
                 var before = cachedDB();
                 pull().then(function (db) {
                     if (sameJson(db, before)) return;
+                    /* the bell (js/notify.js) recounts from the new copy */
+                    try { window.dispatchEvent(new CustomEvent("voai:dbchanged")); } catch (e) { /* old browser */ }
                     notify(t("cloud.remoteChange"), "ok", t("cloud.refresh"), function () {
                         window.location.reload();
                     });

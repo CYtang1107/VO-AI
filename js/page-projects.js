@@ -643,8 +643,15 @@ if (typeof document !== "undefined") {
                 if (!file) return;
                 const lower = file.name.toLowerCase();
 
-                function useRows(rows) {
+                function useRows(rows, ocr) {
                     const detection = detectColumns(rows);
+                    /* a BQ read by OCR (js/bqocr.js): its columns are known,
+                       and it always needs the consultant's review */
+                    if (ocr) {
+                        Object.assign(detection, BQ_OCR_MAPPING, { confidence: "needsReview",
+                            reasons: [t("bqocr.reason", { pages: ocr.pages, rows: rows.length - 1 })].concat(
+                                ocr.failed.length ? [t("bqocr.failedPages", { pages: ocr.failed.join(", ") })] : []) });
+                    }
                     bqFileState = {
                         fileName: file.name,
                         fileSize: file.size,
@@ -686,6 +693,24 @@ if (typeof document !== "undefined") {
                         bqFileInput.value = "";
                     };
                     reader.readAsArrayBuffer(file);
+                } else if (typeof isOcrBqFile === "function" && isOcrBqFile(lower)) {
+                    if (!bqOcrAvailable()) { toast(t("bqocr.unavailable"), "error"); bqFileInput.value = ""; return; }
+                    const note = document.getElementById("bqOcrProgress");
+                    note.hidden = false;
+                    bqFileInput.disabled = true;
+                    readBqFile(file, text => { note.textContent = text; })
+                        .then(res => {
+                            if (!res.rows.length) throw new Error(t("bqocr.nothing", { pages: res.pages }));
+                            useRows(ocrRowsToSheet(res.rows), res);
+                            note.hidden = true;
+                        })
+                        .catch(err => {
+                            note.textContent = t("bqocr.failed", { reason: err.message || String(err) });
+                            bqFileState = null;
+                            bqFileInput.value = "";
+                            renderBqPreview();
+                        })
+                        .then(() => { bqFileInput.disabled = false; });
                 } else {
                     toast(t("toast.onlyCsvXlsx"), "error");
                     bqFileInput.value = "";

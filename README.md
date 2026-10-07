@@ -26,15 +26,43 @@ Miss one rate, and someone is paid the wrong amount.
 
 ## What VO-AI does
 
-Three roles work on one shared variation register. Each role works in its own panel and can
+Four roles work on one shared variation register. Each role works in its own panel and can
 edit only the columns the contract gives it; the other roles' columns are one click away,
 read-only:
 
 | Role | Responsibility |
 |---|---|
 | **Contractor QS** | Raises the variation, records the instruction, enters the measurement, attaches drawings, supporting documents and the contract the variation is assessed against, submits |
-| **Consultant QS** | Creates the project, uploads the contract and priced BQ, cross-checks every rate, assesses cost and time impact, approves or rejects |
-| **Client / Developer** | Reviews the recommendation, certifies the value, requests further information, tracks the whole project |
+| **Design Team** (Architect / Engineer / SO) | Issues the Architect's or Engineer's Instruction (or returns the VO), then certifies the value the consultant QS approved |
+| **Consultant QS** | Creates the project, uploads the contract and priced BQ, cross-checks every rate, builds up rates for new work, assesses cost and time impact, approves or rejects |
+| **Client / Developer** | Reviews the recommendation, certifies the value, requests further information, tracks the project's cost on the S-curve |
+
+The workflow: **contractor submits → contract agent checks it can be claimed → design team issues
+the AI / EI → consultant QS values it (BQ rates, or a built-up rate) → design team certifies →
+client approves.** Whoever's turn it is gets a notification.
+
+### The workflow agents
+
+- **Contract agent** (`js/claimcheck.js`). Before a VO goes to the design team it is checked
+  against the contract's conditions for a variation, each with its clause: is it a variation
+  (PAM 2018 cl. 11.1, which excludes putting right the contractor's own defective work), does it
+  rest on a written instruction (cl. 2.2: an AI, or one confirmed by CAI / AI), was it issued in
+  time (cl. 11.3), are the details and particulars there (cl. 11.5), and how it will be valued
+  (cl. 11.6). Verdict: **claimable**, **needs information** or **not claimable**, with the reason
+  for each check. PWD 203A projects cite clause 24. Deterministic, no language model.
+- **Design team issues the AI / EI** (`js/instruction.js`), numbered in the project's series, and
+  prints it from the report page.
+- **Cost planning** (`js/buildup.js`). For work with no comparable BQ item, a built-up rate:
+  materials (with waste) + labour + plant + overhead and profit, drafted from the description and
+  priced from the contractor's own price list first, else indicative regional reference prices
+  (to be checked against CIDB's published prices). Rent or buy compares hiring plant with buying
+  it. **Suppliers and plant hire near the site** come from OpenStreetMap (`js/suppliers.js`).
+- **Photo location check** (`js/sitemap.js`). Each site photo is on site (within 500 m) or not;
+  an off-site photo is a finding.
+- **Notifications** (`js/notify.js`). A bell and a pop-up for whatever is waiting for your role,
+  desktop notifications, and email through the `notify` Edge Function once an email key is set.
+- **Cost overview and S-curve** (`js/costplan.js`) on the dashboard: contract sum, approved and
+  pending variations, forecast final cost, and planned / forecast / certified cumulative cost.
 
 ---
 
@@ -104,7 +132,8 @@ Three clocks, computed automatically and surfaced with approaching and overdue s
 
 ### Bills of Quantities import
 
-Upload a priced BQ as **CSV or XLSX** — parsed natively, with no library. The system works out
+Upload a priced BQ as **CSV or XLSX** — parsed natively, with no library — or as a **PDF or a
+photo**, read by OCR (`js/bqocr.js`, the `read-bq` Edge Function) into the same preview. The system works out
 which column holds the code, description, unit and rate by examining the data, explains its
 reasoning, previews what it will import and reports which rows it skipped (headers, section
 titles, subtotals). Nothing is imported until you confirm, and you can correct any column

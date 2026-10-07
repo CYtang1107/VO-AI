@@ -1,0 +1,68 @@
+const test = require("node:test");
+const assert = require("node:assert");
+
+const c = require("../js/costplan.js");
+const { seedDB, demoDB } = require("../js/store.js");
+
+const project = () => seedDB().projects[0];
+
+test("forecast final cost = contract sum + approved + pending; drafts and rejections are not counted", () => {
+    const o = c.costOverview(project());
+    assert.strictEqual(o.contractSum, 12500000);
+    assert.strictEqual(o.approved, 55856, "VO-001: the client's final price");
+    assert.strictEqual(o.nPending, 1, "VO-002, submitted");
+    assert.strictEqual(o.nDraft, 1, "VO-003, a draft");
+    assert.strictEqual(o.forecast, 12500000 + 55856 + o.pending);
+    assert.strictEqual(o.certified, 3100000, "the six interim certificates");
+    const p = project();
+    p.vos[1].evaluateStatus = "Rejected";
+    assert.strictEqual(c.costOverview(p).nPending, 0);
+});
+
+test("a VO counts at its final price, then its assessed value once approved, else what is claimed", () => {
+    const vo = { certifiedStatus: "Approved", finalPrice: 1000, measurement: [{ qty: 1, rate: 5, assessedQty: 1, assessedRate: 4 }] };
+    assert.strictEqual(c.voValue(vo), 1000);
+    assert.strictEqual(c.voValue(Object.assign({}, vo, { finalPrice: null })), 4);
+    assert.strictEqual(c.voValue({ evaluateStatus: "Approved", measurement: vo.measurement }), 4);
+    assert.strictEqual(c.voValue({ evaluateStatus: "Pending", measurement: vo.measurement }), 5);
+});
+
+test("the S-curve: slow start, fast middle, slow finish, reaching the contract sum at completion", () => {
+    assert.strictEqual(c.sFraction(0), 0);
+    assert.strictEqual(c.sFraction(0.5), 0.5);
+    assert.strictEqual(c.sFraction(1), 1);
+    assert.ok(c.sFraction(0.1) < 0.1 && c.sFraction(0.9) > 0.9);
+    const curve = c.sCurve(project(), "2026-09-12");
+    assert.strictEqual(curve.points.length, 18, "Mar 2026 to Aug 2027");
+    assert.strictEqual(curve.points[0].date, "2026-03-31");
+    assert.strictEqual(curve.points[17].date, "2027-08-31");
+    assert.strictEqual(curve.points[17].planned, 12500000);
+    assert.ok(curve.points[17].forecast > 12500000);
+    assert.strictEqual(curve.points[5].actual, 3100000, "August: all six certificates");
+    assert.strictEqual(curve.points[6].actual, null, "no certificate after August yet");
+    assert.ok(curve.behind > 0, "the demo is a little behind plan");
+});
+
+test("no programme, or one that ends before it starts: no curve", () => {
+    assert.strictEqual(c.sCurve({ contractSum: 1 }), null);
+    assert.strictEqual(c.sCurve({ programme: { start: "2026-05-01", end: "2026-01-01" } }), null);
+    assert.match(c.renderCostOverview({ contractSum: 100, vos: [] }, "2026-10-01", {}), /Enter the programme/);
+});
+
+test("the demo as a browser first sees it: the programme moves with the VOs' dates", () => {
+    const p = demoDB("2027-01-15").projects[0];
+    assert.ok(p.programme.start > "2026-03-02");
+    assert.strictEqual(p.certificates.length, 6);
+});
+
+test("the card: tiles, the behind/ahead line, a legend for the three lines, a table view, and inputs only for those who keep them", () => {
+    const html = c.renderCostOverview(project(), "2026-09-12", { editable: true, width: 760 });
+    assert.match(html, /Forecast final cost/);
+    assert.match(html, /Behind plan/);
+    assert.match(html, /Planned \(contract sum\)[\s\S]*Forecast \(with variations\)[\s\S]*Certified \(actual\)/);
+    assert.match(html, /class="sc-line sc-actual"/);
+    assert.match(html, /Show the figures as a table/);
+    assert.match(html, /id="cpCertAdd"/);
+    assert.doesNotMatch(c.renderCostOverview(project(), "2026-09-12", { editable: false }), /cpCertAdd/);
+    assert.strictEqual(c.niceStep(3.1e6), 5e6);
+});

@@ -30,7 +30,7 @@ var ROLES = {
     },
     administrator: {
         id: "administrator",
-        label: "Contract Administrator",
+        label: "Design Team",
         blurb: "The Architect, Engineer or SO: confirm each VO's instruction, then certify the assessed value.",
         icon: "◆",
         colour: "#0e7490"
@@ -164,6 +164,23 @@ function upgradeDemo(db) {
         const vo = (demo.vos || []).find(v => v.id === sv.id);
         if (!vo || vo.instructionStatus !== undefined) return;
         ["instructionStatus", "instructionNote", "caCertifiedStatus", "caRemark"].forEach(k => { vo[k] = sv[k]; });
+        changed = true;
+    });
+    /* the programme and certificates (js/costplan.js), moved by as many
+       days as this browser's demo was moved from the seed */
+    if (!demo.programme) {
+        const v1 = (demo.vos || []).find(v => v.id === "VO-SEED-1");
+        const sv1 = seed.vos.find(v => v.id === "VO-SEED-1");
+        const days = v1 && v1.dateIssued ? Math.round((Date.parse(v1.dateIssued) - Date.parse(sv1.dateIssued)) / 86400000) : 0;
+        demo.programme = shiftDates(seed.programme, days || 0);
+        demo.certificates = shiftDates(seed.certificates, days || 0);
+        changed = true;
+    }
+    /* the instructions the design team issued (js/instruction.js) */
+    seed.vos.forEach(sv => {
+        const vo = (demo.vos || []).find(v => v.id === sv.id);
+        if (!vo || !sv.issuedInstruction || vo.issuedInstruction || vo.instructionStatus !== "Confirmed") return;
+        vo.issuedInstruction = Object.assign({}, sv.issuedInstruction);
         changed = true;
     });
     if (changed) saveDB(db);
@@ -601,6 +618,14 @@ function seedDB() {
             passcode: null,
             /* a made-up demo location (Cheras, Kuala Lumpur) for the site map */
             site: { lat: 3.0857, lng: 101.7425, address: "Demo site, Cheras, Kuala Lumpur" },
+            /* the programme and the interim certificates, for the cost
+               overview's S-curve (js/costplan.js) */
+            programme: { start: "2026-03-02", end: "2027-08-31" },
+            certificates: [
+                { date: "2026-03-31", amount: 150000 }, { date: "2026-04-30", amount: 280000 },
+                { date: "2026-05-31", amount: 450000 }, { date: "2026-06-30", amount: 610000 },
+                { date: "2026-07-31", amount: 760000 }, { date: "2026-08-31", amount: 850000 }
+            ],
             bq: bq,
             documents: [
                 { id: "D1", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.D1, category: "contract", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:10:00Z" },
@@ -651,6 +676,7 @@ function seedDB() {
                     infoRequestNote: "",
                     instructionStatus: "Confirmed",
                     instructionNote: "AI-021 confirmed: the floor finish change is instructed under clause 11.1.",
+                    issuedInstruction: { kind: "AI", no: "AI-021", date: "2026-07-16", by: "Lim Kok Wai", note: "" },
                     caCertifiedStatus: "Certified",
                     caRemark: "Certified at the assessed value for Interim Certificate No. 4.",
                     certifiedStatus: "Approved",
@@ -705,6 +731,7 @@ function seedDB() {
                     infoRequestNote: "",
                     instructionStatus: "Confirmed",
                     instructionNote: "EI-008 confirmed: additional drainage instructed on site.",
+                    issuedInstruction: { kind: "EI", no: "EI-008", date: "2026-07-17", by: "Lim Kok Wai", note: "" },
                     caCertifiedStatus: "Pending",
                     caRemark: "",
                     certifiedStatus: "Pending",

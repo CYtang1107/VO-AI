@@ -73,7 +73,7 @@ test("pins: every placed document, or one VO's; the demo has a site and a placed
     assert.strictEqual(siteOf({ site: { lat: "x" } }), null);
 });
 
-test("the summary says how far the farthest photo is, and warns past 1 km", () => {
+test("the summary says how far the farthest photo is, and warns past the site radius", () => {
     const site = { lat: 3.0857, lng: 101.7425, address: "Demo site" };
     const near = { lat: 3.08594, lng: 101.74271 };
     assert.ok(metresBetween(site, near) > 20 && metresBetween(site, near) < 60);
@@ -107,4 +107,32 @@ test("demo data saved before the site map gets the demo site and its placed phot
     demo.site = { lat: 3.2, lng: 101.6, address: "Our own site" };
     upgradeDemo(old);
     assert.strictEqual(demo.site.address, "Our own site");
+});
+
+test("each site photo of a VO is checked against the project's site", () => {
+    const { photoLocations, renderPhotoLocations, SITE_RADIUS_M } = require("../js/sitemap.js");
+    const site = { lat: 3.0857, lng: 101.7425, address: "Demo site" };
+    const vo = { id: "V", supportingDocs: [
+        { id: "a", name: "near.jpg", geo: { lat: 3.08594, lng: 101.74271, src: "gps" } },
+        { id: "b", name: "far.jpg", geo: { lat: 3.13, lng: 101.74, src: "exif" } },
+        { id: "c", name: "nogps.png" },
+        { id: "d", name: "drawing.pdf", geo: { lat: 3.13, lng: 101.74 } }
+    ] };
+    const rows = photoLocations({ site: site, vos: [vo] }, vo);
+    assert.deepStrictEqual(rows.map(r => r.verdict), ["onSite", "offSite", "noLocation"], "the PDF is not a photo");
+    assert.ok(rows[0].metres <= SITE_RADIUS_M && rows[1].metres > SITE_RADIUS_M);
+    assert.deepStrictEqual(photoLocations({ vos: [vo] }, vo).map(r => r.verdict), ["noSite", "noSite", "noLocation"]);
+    assert.match(renderPhotoLocations(rows), /On site[\s\S]*Off site[\s\S]*No location/);
+    assert.strictEqual(renderPhotoLocations([]), "");
+});
+
+test("an off-site photo becomes a finding of the VO's assessment; the demo's photos are all on site", () => {
+    const { analyse } = require("../js/analysis.js");
+    const { seedDB } = require("../js/store.js");
+    const project = seedDB().projects[0];
+    project.vos.forEach(v => assert.ok(!analyse(v, project).findings.some(f => /away from the project site/.test(f)), v.no));
+    const vo = JSON.parse(JSON.stringify(project.vos[0]));
+    vo.supportingDocs.push({ id: "X", name: "elsewhere.jpg", geo: { lat: 3.2, lng: 101.6, src: "exif" } });
+    const f = analyse(vo, project).findings.find(x => /away from the project site/.test(x));
+    assert.match(f, /1 site photo\(s\).*elsewhere\.jpg/);
 });

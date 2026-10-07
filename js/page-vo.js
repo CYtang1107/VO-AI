@@ -12,6 +12,9 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { renderContractBlock } = require("./contractread.js");
     var { renderContractPane } = require("./askcontract.js");
     var { t } = require("./i18n.js");
+    var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
+    var { renderIssueForm, renderIssued, instructionProblem } = require("./instruction.js");
+    var { renderBuildUpCard, suggestBuildUp, buildUpRate, parsePriceList } = require("./buildup.js");
 }
 
 /* An <option> VALUE is always the raw English data value (evaluateStatus,
@@ -30,13 +33,21 @@ function optionDisplayText(value) {
    ① confirm the instruction the contractor's claim rests on, or return
    it; ② once the consultant QS has approved the value, certify it.
    Each step names what it is checking against. */
-function renderAdministratorPanel(vo, role) {
+function renderAdministratorPanel(vo, role, project) {
     const ref = [optionDisplayText(vo.typeOfInstruction || ""), vo.instructionNo, vo.dateIssued ? prettyDate(vo.dateIssued) : ""]
         .filter(Boolean).join(" · ");
     const status = vo.instructionStatus || (vo.submitted ? "Confirmed" : "Pending");
     const certStatus = vo.caCertifiedStatus || (vo.evaluateStatus === "Approved" ? "Certified" : "Pending");
+    const recorded = vo.claimCheck && vo.claimCheck.verdict
+        ? '<p class="ca-ref">' + escapeHtml(t("claim.recorded", {
+              verdict: t("claim.verdict." + vo.claimCheck.verdict), date: prettyDate(vo.claimCheck.at) })) + "</p>" : "";
     return panelLockNote(vo, role, "administrator") +
-        '<h4 class="ca-step">' + escapeHtml(t("vo.ca.step1")) + "</h4>" +
+        '<h4 class="ca-step">' + escapeHtml(t("vo.ca.step1")) + "</h4>" + recorded +
+        /* issue the AI / EI (js/instruction.js): once issued, what was
+           issued; until then, the design team's form to issue it */
+        (vo.issuedInstruction ? renderIssued(vo)
+            : role === "administrator" && project && canEdit("issuedInstruction", vo, role) && status !== "Confirmed"
+                ? renderIssueForm(project, vo) : "") +
         '<p class="ca-ref">' + escapeHtml(t("vo.ca.instructionRef", { ref: ref || t("vo.ca.noRef") })) + "</p>" +
         (vo.submitted || status !== "Returned" ? "" : '<p class="ca-note">' + escapeHtml(t("vo.ca.returnedWaiting")) + "</p>") +
         field({ field: "instructionStatus", label: t("vo.field.instructionStatus"), type: "select",
@@ -639,8 +650,11 @@ function translateHistoryAction(action) {
     if (a === "Contract administrator certified the assessed value") return t("history.caCertified");
     if ((m = a.match(/^Instruction confirmed — (.+)$/))) return t("history.instructionConfirmed", { ref: m[1] });
     if (a === "Instruction confirmed") return t("history.instructionConfirmedNoRef");
+    if ((m = a.match(/^Instruction issued — (.+)$/))) return t("history.instructionIssued", { no: m[1] });
     if ((m = a.match(/^Instruction returned to contractor: (.+)$/))) return t("history.instructionReturnedWithNote", { note: m[1] });
     if (a === "Instruction returned to contractor") return t("history.instructionReturned");
+    if ((m = a.match(/^Contract agent: (claimable|needsInfo|notClaimable)$/))) return t("history.claimCheck", { verdict: t("claim.verdict." + m[1]) });
+    if ((m = a.match(/^Built-up rate RM ([\d.]+) used for row (\d+)$/))) return t("history.buildUpUsed", { rate: m[1], row: m[2] });
     if (a === "Created from AI Analysis") return t("history.createdFromAnalysis");
     if (a === "Requested further information") return t("history.infoRequested");
     if ((m = a.match(/^Requested further information: (.+)$/))) {
@@ -739,6 +753,15 @@ if (typeof document !== "undefined") {
 
         function draw() { keepFolds(drawNow); }
 
+        /* A change that may move the VO to its next step: with a team
+           account, whoever's turn it now is gets an email (js/notify.js). */
+        function voNow() { return getProject(project.id).vos.find(x => x.id === voId); }
+        function withStepNotice(change) {
+            const before = JSON.parse(JSON.stringify(voNow()));
+            change();
+            if (typeof announceStep === "function") announceStep(project.id, before, voNow());
+        }
+
         function drawNow() {
             const fresh = getProject(project.id);
             const v = fresh.vos.find(x => x.id === voId);
@@ -780,7 +803,7 @@ if (typeof document !== "undefined") {
                 renderDocList(v, "contractDocs", t("documents.field.contractDocs"), role,
                               t("vo.docList.contractIntro"));
 
-            document.getElementById("administratorPanel").innerHTML = renderAdministratorPanel(v, role);
+            document.getElementById("administratorPanel").innerHTML = renderAdministratorPanel(v, role, fresh);
 
             document.getElementById("consultantPanel").innerHTML =
                 panelLockNote(v, role, "consultant") +
@@ -796,6 +819,10 @@ if (typeof document !== "undefined") {
                 field({ field: "consultantRemark", label: t("vo.field.consultantRemark"),
                         type: "textarea", value: seedText(v.consultantRemark), vo: v, role: role }) +
                 renderInfoRequestControl(v, role, fresh);
+
+            document.getElementById("claimCheckPanel").innerHTML =
+                renderClaimCheck(claimCheck(v, fresh), { recorded: v.claimCheck && v.claimCheck.verdict
+                    ? { verdict: v.claimCheck.verdict, at: prettyDate(v.claimCheck.at) } : null });
 
             document.getElementById("deadlinesPanel").innerHTML =
                 renderDeadlinesPanel(v, today(), fresh);
@@ -822,6 +849,7 @@ if (typeof document !== "undefined") {
                 ensureContractReadings(project.id, v).then(changed => { if (changed) draw(); });
             }
             document.getElementById("historyPanel").innerHTML = renderHistory(v);
+            drawBuildUp(v, fresh);
 
             document.getElementById("assistantPanel").innerHTML =
                 renderAssistantPanel({ vo: v, project: fresh, role: role, session: session,
@@ -833,6 +861,111 @@ if (typeof document !== "undefined") {
             document.getElementById("submitBtn").style.display =
                 (role === "contractor" && !v.submitted) ? "" : "none";
         }
+
+        /* Cost planning: the built-up rate (js/buildup.js). The contractor
+           builds up the rate they claim, the consultant QS the rate they
+           assess; the build-up is kept on the measurement row. */
+        const bu = { rowIndex: null, rent: {}, suppliers: null };
+        function buEditable(v) { return canEdit("measurement", v, role) || canEdit("assessment", v, role); }
+        function drawBuildUp(v, fresh) {
+            const host = document.getElementById("buildUpPanel");
+            if (!host || typeof renderBuildUpCard !== "function") return;
+            const bq = fresh.bq || [];
+            const stars = new Set();
+            (v.measurement || []).forEach((r, k) => { if (checkRate(r, bq).state === "star") stars.add(k); });
+            if (bu.rowIndex === null || bu.rowIndex >= (v.measurement || []).length) {
+                bu.rowIndex = stars.size ? Math.min.apply(null, Array.from(stars)) : 0;
+            }
+            const useAs = canEdit("assessment", v, role) ? "assessed" : canEdit("measurement", v, role) ? "claimed" : null;
+            host.innerHTML = renderBuildUpCard(v, fresh, { rowIndex: bu.rowIndex, stars: stars, editable: buEditable(v),
+                useAs: useAs, rent: bu.rent, suppliers: bu.suppliers,
+                canEditPriceList: role === "contractor" || role === "consultant" });
+        }
+        /* the row's build-up as shown (the drafted one until first edited) */
+        function currentBuildUp(v) {
+            const row = v.measurement[bu.rowIndex];
+            return JSON.parse(JSON.stringify(row.buildUp || suggestBuildUp(row, getProject(project.id)) || { items: [], ohp: 15 }));
+        }
+        function saveBuildUp(change, logLine) {
+            const v = voNow();
+            if (!buEditable(v)) return;
+            const b = currentBuildUp(v);
+            change(b);
+            updateVO(project.id, voId, x => {
+                x.measurement[bu.rowIndex].buildUp = b;
+                if (logLine) logHistory(x, session, logLine);
+            });
+            draw();
+        }
+        const buPanel = document.getElementById("buildUpPanel");
+        buPanel.addEventListener("change", e => {
+            const el = e.target;
+            if (el.id === "buRow") { bu.rowIndex = Number(el.value); draw(); return; }
+            if (el.dataset.rent) {
+                const key = el.dataset.rent;
+                bu.rent[key] = bu.rent[key] || {};
+                bu.rent[key][el.dataset.k] = Number(el.value) || 0;
+                draw();
+                return;
+            }
+            if (!el.dataset.bu) return;
+            const k = el.dataset.bu, i = Number(el.dataset.i);
+            saveBuildUp(b => {
+                if (k === "ohp") { b.ohp = Number(el.value) || 0; return; }
+                const it = b.items[i];
+                if (!it) return;
+                if (k === "name") it.name = el.value;
+                else if (k === "waste") it.waste = (Number(el.value) || 0) / 100;
+                else it[k] = Number(el.value) || 0;
+                if (k === "price" || k === "name") it.source = "manual";
+            });
+        });
+        buPanel.addEventListener("click", e => {
+            const add = e.target.closest(".bu-add");
+            if (add) { saveBuildUp(b => b.items.push({ kind: add.dataset.kind, name: "", unit: add.dataset.kind === "material" ? "" : "hr", qty: 1, waste: 0, price: 0, source: "manual" })); return; }
+            const rem = e.target.closest(".bu-remove");
+            if (rem) { saveBuildUp(b => b.items.splice(Number(rem.dataset.i), 1)); return; }
+            if (e.target.id === "buUseRate") {
+                const v = voNow();
+                const b = currentBuildUp(v);
+                const rate = buildUpRate(b).rate;
+                const assessed = canEdit("assessment", v, role);
+                updateVO(project.id, voId, x => {
+                    const row = x.measurement[bu.rowIndex];
+                    row.buildUp = b;
+                    if (assessed) { row.assessedRate = rate; if (row.assessedQty === "" || row.assessedQty === null || row.assessedQty === undefined) row.assessedQty = row.qty; }
+                    else row.rate = rate;
+                    logHistory(x, session, "Built-up rate RM " + rate.toFixed(2) + " used for row " + (bu.rowIndex + 1));
+                });
+                toast(t("buildup.used", { rate: rm(rate), row: bu.rowIndex + 1 }));
+                draw();
+                return;
+            }
+            if (e.target.id === "findSuppliersBtn") {
+                bu.suppliers = { loading: true };
+                draw();
+                findSuppliers(getProject(project.id))
+                    .then(list => { bu.suppliers = { list: list }; })
+                    .catch(err => { bu.suppliers = { error: err.message || String(err) }; })
+                    .then(draw);
+                return;
+            }
+            if (e.target.id === "buPriceListSave") {
+                const parsed = parsePriceList(document.getElementById("buPriceListInput").value);
+                if (!parsed.items.length) { toast(t("buildup.priceListNone"), "error"); return; }
+                updateProject(project.id, p => {
+                    const list = p.priceList || [];
+                    parsed.items.forEach(it => {
+                        const same = list.find(x => x.name.toLowerCase() === it.name.toLowerCase() && x.unit === it.unit);
+                        if (same) same.price = it.price; else list.push(it);
+                    });
+                    p.priceList = list;
+                });
+                toast(t("buildup.priceListSaved", { n: parsed.items.length }) + (parsed.bad.length ? " " + t("buildup.priceListBad", { lines: parsed.bad.join(", ") }) : ""),
+                      parsed.bad.length ? "warn" : undefined);
+                draw();
+            }
+        });
 
         /* Persist any panel field on change. */
         document.querySelectorAll(".role-panel").forEach(panel => {
@@ -892,7 +1025,7 @@ if (typeof document !== "undefined") {
                 if (!el || el.disabled) return;
                 const name = el.dataset.field;
                 let note = "";
-                updateVO(project.id, voId, v => {
+                withStepNotice(() => updateVO(project.id, voId, v => {
                     v[name] = el.type === "number"
                         ? (el.value === "" ? (name === "finalPrice" ? null : 0) : Number(el.value))
                         : el.value;
@@ -912,7 +1045,7 @@ if (typeof document !== "undefined") {
                     } else {
                         logHistory(v, session, "Updated " + name);
                     }
-                });
+                }));
                 toast(note || t("toast.saved"));
                 draw();
             });
@@ -1068,6 +1201,25 @@ if (typeof document !== "undefined") {
             draw();
         });
 
+        /* the design team issues the AI / EI, which confirms the instruction */
+        document.getElementById("administratorPanel").addEventListener("click", e => {
+            if (e.target.id !== "issueInstrBtn") return;
+            const fresh = getProject(project.id);
+            const kind = document.getElementById("instrKind").value;
+            const no = document.getElementById("instrNo").value.trim().toUpperCase();
+            const note = document.getElementById("instrNote").value.trim();
+            const problem = instructionProblem(fresh, fresh.vos.find(x => x.id === voId), kind, no);
+            if (problem) { toast(problem, "error"); return; }
+            withStepNotice(() => updateVO(project.id, voId, v => {
+                v.issuedInstruction = { kind: kind, no: no, date: today(), by: session.name, note: note };
+                v.instructionStatus = "Confirmed";
+                if (note && !v.instructionNote) v.instructionNote = note;
+                logHistory(v, session, "Instruction issued — " + no);
+            }));
+            toast(t("instr.issuedToast", { no: no }));
+            draw();
+        });
+
         document.getElementById("consultantPanel").addEventListener("click", e => {
             if (e.target.id !== "recordInfoRequestBtn") return;
             const noteInput = document.getElementById("infoRequestNoteInput");
@@ -1097,11 +1249,21 @@ if (typeof document !== "undefined") {
         });
 
         document.getElementById("submitBtn").addEventListener("click", () => {
-            updateVO(project.id, voId, v => {
+            /* the contract agent (js/claimcheck.js) runs first; a VO it
+               finds not claimable, or short of information, is submitted
+               only when the contractor says so */
+            const fresh = getProject(project.id);
+            const check = claimCheck(fresh.vos.find(x => x.id === voId), fresh);
+            const reasons = state => check.checks.filter(c => c.state === state).map(c => c.reason).join("\n");
+            if (check.verdict === "notClaimable" && !window.confirm(t("claim.confirmSubmit", { reason: reasons("fail") }))) return;
+            if (check.verdict === "needsInfo" && !window.confirm(t("claim.confirmNeedsInfo", { reason: reasons("missing") }))) return;
+            withStepNotice(() => updateVO(project.id, voId, v => {
                 v.submitted = true;
                 v.evaluateStatus = "Pending";
+                v.claimCheck = { verdict: check.verdict, at: today(), form: check.form };
+                logHistory(v, session, "Contract agent: " + check.verdict);
                 logHistory(v, session, "Submitted to contract administrator");
-            });
+            }));
             toast(t("toast.submittedToCa"));
             draw();
         });

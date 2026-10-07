@@ -261,7 +261,7 @@ function renderReport(vo, project, role) {
         "<div><h3>" + escapeHtml(t("report.section.timeImpact")) + "</h3>" +
         "<p>" + t("report.timeImpactLine", { n: Number(vo.timeImpact) || 0 }) + "</p></div>" +
         "<div><h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
-        "<p>" + t("report.instructionLine", { status: statusHtml(instructionStatus) }) + "<br>" +
+        "<p>" + t("report.instructionStatusLine", { status: statusHtml(instructionStatus) }) + "<br>" +
         t("report.evaluationLine", { status: statusHtml(vo.evaluateStatus) }) + "<br>" +
         t("report.caCertificationLine", { status: statusHtml(caStatus) }) + "<br>" +
         t("report.certificationLine", { status: statusHtml(vo.certifiedStatus) }) + "</p></div>" +
@@ -393,6 +393,7 @@ if (typeof document !== "undefined") {
             ">" + escapeHtml(v.no + " — " + (seedText(v.description) || t("report.pickerUntitled"))) + "</option>"
         ).join("");
         picker.value = voId || (project.vos[0] || {}).id || "";
+        if (new URLSearchParams(location.search).get("mode") === "instruction") modeSelect.value = "instruction";
 
         /* Building the sheet is one long string concatenation over the
            whole VO, so any single bad field throws before the assignment
@@ -411,6 +412,7 @@ if (typeof document !== "undefined") {
                 const fresh = getProject(project.id) || project;
                 const vo = (fresh.vos || []).find(v => v.id === picker.value) || fresh.vos[0];
                 if (!vo) { host.innerHTML = '<div class="empty-state">' + escapeHtml(t("report.noVos")) + '</div>'; return; }
+                if (modeSelect.value === "instruction") { host.innerHTML = renderInstructionSheet(vo, fresh); return; }
                 host.innerHTML = renderReport(vo, fresh, role);
                 /* the contract is read once; redraw when it is in */
                 if (typeof ensureContractReadings === "function") {
