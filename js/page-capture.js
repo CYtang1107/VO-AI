@@ -51,46 +51,6 @@ if (typeof document !== "undefined") {
             });
         }
 
-        /* 「根据照片生成说明」 (js/photocheck.js): the AI drafts the
-           description from the first photos; the contractor edits it. */
-        const draftBox = document.getElementById("photoDraft");
-        const draftBtn = document.getElementById("photoDraftBtn");
-        const draftNote = document.getElementById("photoDraftNote");
-        const canDraft = typeof photoCheckAvailable === "function" && photoCheckAvailable(project.id);
-        let drafting = false;
-        function drawDraft() {
-            if (!draftBox) return;
-            draftBox.hidden = !canDraft;
-            draftBtn.disabled = drafting || photos.length === 0;
-            if (!drafting && photos.length === 0) draftNote.textContent = t("photo.draftNeedPhoto");
-            else if (!drafting && draftNote.dataset.state !== "done") draftNote.textContent = "";
-        }
-        if (draftBtn) draftBtn.addEventListener("click", async () => {
-            if (drafting || photos.length === 0) return;
-            drafting = true;
-            draftNote.dataset.state = "";
-            draftNote.textContent = t("photo.drafting");
-            drawDraft();
-            const images = photos.slice(0, PHOTO_CHECK_MAX).map((p, i) => ({ id: "photo-" + (i + 1), blob: p.blob }));
-            const reply = await askPhotos(project.id, "describe", images);
-            drafting = false;
-            const box = document.getElementById("capDescription");
-            if (reply && reply.description) {
-                if (!box.value.trim() || window.confirm(t("photo.draftReplace"))) {
-                    box.value = reply.description;
-                    draftNote.dataset.state = "done";
-                    draftNote.textContent = t("photo.draftDone");
-                } else {
-                    draftNote.textContent = "";
-                }
-            } else {
-                draftNote.dataset.state = "done";
-                draftNote.textContent = reply && reply.error ? t("photo.failed", { reason: reply.error })
-                    : t("photo.refused." + ((reply && reply.reason) || "format"));
-            }
-            drawDraft();
-        });
-
         function drawPhotos() {
             document.getElementById("photoCount").textContent =
                 photos.length ? t("capture.photoCount", { n: photos.length }) : "";
@@ -102,7 +62,6 @@ if (typeof document !== "undefined") {
                     '<button type="button" class="capture-remove" data-index="' + i + '" aria-label="' +
                     escapeHtml(t("capture.removePhoto")) + '">×</button></figure>'
                   ).join("");
-            drawDraft();
         }
 
         /* Where each photo was taken (js/sitemap.js): the photo's own GPS

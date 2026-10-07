@@ -1,16 +1,14 @@
 /* VO-AI | photocheck.js — AI looks at a VO's site photos.
 
-   Two uses, both through the photo-check Edge Function
-   (supabase/functions/photo-check):
-   - on the VO page, 「AI 照片核对」: does each photo show what the
-     description says? One verdict per photo (match / mismatch / unclear)
-     with what the photo shows and why;
-   - on the capture page, 「根据照片生成说明」: a draft description from
-     the photos, for the contractor to edit before saving.
+   On the VO page, 「AI 照片核对」, through the photo-check Edge Function
+   (supabase/functions/photo-check): does each photo show what the
+   description says? One verdict per photo (match / mismatch / unclear)
+   with what the photo shows and why. (The capture page's AI-drafted
+   description was dropped; the function's "describe" mode is unused.)
 
    The AI never states quantities or amounts from a photo (checked on the
    server), and a photo never proves an instruction: the contract
-   administrator still confirms it. The browser scales each photo down
+   design team still confirms it. The browser scales each photo down
    before sending it.
 
    Available with a team account, and in the no-sign-in demo for the demo

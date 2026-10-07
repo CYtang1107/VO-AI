@@ -3351,8 +3351,6 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .photo-verdict.match    { background: var(--verdict-same-bg); color: var(--verdict-same); }
 .photo-verdict.mismatch { background: var(--verdict-diff-bg); color: var(--verdict-diff); }
 .photo-verdict.unclear  { background: var(--tag-bg); color: var(--tag-ink); }
-.photo-draft { margin-top: 8px; }
-.photo-draft .assistant-note { margin: 6px 0 0; }
 @media (max-width: 560px) {
     .photo-check-thumb { width: 72px; height: 56px; }
 }
