@@ -35,7 +35,7 @@ test("sent: the design team adds drawings and documents, then approves or reject
     ["oldDrawing", "revisedDrawing", "designDocs"].forEach(f => assert.match(html, new RegExp('class="doc-picker" data-field="' + f + '"')));
     assert.match(html, /id="issueInstrBtn">Approve and issue the instruction/);
     assert.match(html, /id="wfReject"/);
-    assert.match(renderWorkflow(v, project(), "contractor", {}), /Sent to the design team/);
+    assert.match(renderWorkflow(v, project(), "contractor", {}), /With the design team/);
     /* rejected: back to the contractor with the note */
     const back = Object.assign(draft(), { instructionStatus: "Returned", instructionNote: "Need the ceiling layout" });
     assert.strictEqual(voStage(back), "designRejected");
@@ -47,7 +47,7 @@ test("approved: the contractor measures, attaches photos and submits to the cons
     assert.strictEqual(voStage(v), "measure");
     assert.strictEqual(canEdit("measurement", v, "contractor"), true);
     const html = renderWorkflow(v, project(), "contractor", {});
-    assert.match(html, /Approved by the design team \(Architect&#39;s Instruction \(AI\) AI-027\)/);
+    assert.match(html, /Approved \(Architect&#39;s Instruction \(AI\) AI-027\)/);
     assert.match(html, /id="wfSubmitQs">Submit to the consultant QS/);
     assert.doesNotMatch(renderWorkflow(Object.assign(v, { measurement: [] }), project(), "contractor", {}), /id="wfSubmitQs">/,
         "a disabled button with no measured item");
@@ -56,7 +56,7 @@ test("approved: the contractor measures, attaches photos and submits to the cons
 test("the consultant QS assesses, submits to the client, or asks for information; the contractor answers", () => {
     const v = JSON.parse(JSON.stringify(project().vos[1]));   /* VO-002 */
     let html = renderWorkflow(v, project(), "consultant", {});
-    assert.match(html, /AI photo check is just below/);
+    assert.match(html, /AI photo check below/);
     assert.match(html, /id="wfSubmitClient"/);
     assert.match(html, /id="wfRequestInfo"/);
     Object.assign(v, { infoRequestedAt: "2026-10-01", infoRequestNote: "Show the sump base" });

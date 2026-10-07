@@ -88,8 +88,6 @@ if (typeof document !== "undefined") {
 
         document.getElementById("greeting").textContent =
             t("dashboard.greeting", { name: session.name });
-        document.getElementById("greetingSub").innerHTML =
-            t("dashboard.greetingSub", { name: "<strong>" + escapeHtml(project.name) + "</strong>" });
 
         document.getElementById("recentBody").innerHTML = renderRecentRows(project.vos);
 

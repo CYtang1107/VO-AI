@@ -126,8 +126,8 @@ test("an answer draws its citation labels as chips and its clauses as openable s
 });
 
 test("no clause, a refused draft and a network error each say so", () => {
-    assert.match(renderContractAnswer({ answer: null, reason: "no-clause" }), /does not answer from general knowledge/);
-    assert.match(renderContractAnswer({ answer: null, reason: "amount-check" }), /amount that the rule engine did not produce/);
+    assert.match(renderContractAnswer({ answer: null, reason: "no-clause" }), /No matching clause in the contract/);
+    assert.match(renderContractAnswer({ answer: null, reason: "amount-check" }), /amount not in the data/);
     assert.match(renderContractAnswer({ error: "offline" }), /offline/);
     assert.match(renderContractAnswer({ loading: true }), /Searching the contract/);
 });

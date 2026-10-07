@@ -361,7 +361,6 @@ function renderCostOverview(project, todayIso, opts) {
                 ["toDate", "all"].map(r => '<button type="button" class="sc-range-btn' + (range === r ? " on" : "") + '" data-range="' + r + '" aria-pressed="' +
                     (range === r) + '">' + escapeHtml(t("costplan.range." + r)) + "</button>").join("") + "</div></div>" +
             '<div class="sc-wrap">' + renderSCurveSvg(viewCurve(curve, range), opts && opts.width, opts && opts.height) + '<div class="sc-tip" hidden></div></div>' +
-            '<p class="assistant-note">' + escapeHtml(t("costplan.curveNote")) + "</p>" +
             tiles +
             MORE_START +
             fold("cp-table", escapeHtml(t("costplan.tableTitle")),

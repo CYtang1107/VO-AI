@@ -81,9 +81,9 @@ test("the AI mode gets the whole project: cost, earned value, and every VO with 
 test("an AI answer shows its text and the clauses it cites; a refused one says why", () => {
     let html = cp.renderAiAnswer({ answer: "VO-002 is waiting for the consultant QS (RM 13,804.00).", citations: [] }, "q");
     assert.match(html, /<span class="copilot-vo">VO-002<\/span>/);
-    assert.match(html, /every amount was checked/);
+    assert.match(html, /checked against the project&#39;s figures/);
     html = cp.renderAiAnswer({ answer: null, reason: "amount-check" }, "q");
-    assert.match(html, /not in the project&#39;s data/);
+    assert.match(html, /not in the data/);
     assert.match(cp.renderAiAnswer({ loading: true }, "q"), /about 10 seconds/);
     const d = cp.answerFromData("waiting", ctx());
     assert.match(cp.renderDataAnswer(d, "q", { ai: true }), /class="link-button copilot-reask"/);
@@ -97,7 +97,7 @@ test("the chat offers the seven questions and shows the conversation oldest firs
     assert.ok(html.indexOf(">first<") < html.indexOf(">second<"));
     assert.strictEqual((html.match(/chat-msg chat-user/g) || []).length, 2);
     assert.match(html, /href="vo\.html\?id=VO-SEED-2"/);
-    assert.match(cp.renderCopilot({ history: [{ question: "what is clause 2.2?" }] }, {}), /need a team account/);
+    assert.match(cp.renderCopilot({ history: [{ question: "what is clause 2.2?" }] }, {}), /I can answer about status/);
 });
 
 test("the consultant QS gets no cost question, no cost in the overview, and no cost data for the AI", () => {

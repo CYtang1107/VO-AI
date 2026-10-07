@@ -278,7 +278,6 @@ function renderCopilot(state, opts) {
             "</div>" +
             '<div class="chat-compose"><input type="text" id="copilotInput" maxlength="500" autocomplete="off" placeholder="' + escapeHtml(t("copilot.placeholder")) + '">' +
             '<button type="button" class="primary-button" id="copilotAskBtn">' + escapeHtml(t("copilot.ask")) + "</button></div>" +
-            '<p class="copilot-source">' + escapeHtml(t(o.ai ? "copilot.noteAi" : "copilot.noteOffline")) + "</p>" +
         "</div></div>";
 }
 
