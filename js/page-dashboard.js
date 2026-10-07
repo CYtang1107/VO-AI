@@ -160,6 +160,53 @@ if (typeof document !== "undefined") {
             });
         });
 
+        /* The cost overview and S-curve (js/costplan.js): everyone sees
+           it; the consultant QS and the client keep the programme and the
+           interim certificates. */
+        const costHost = document.getElementById("costPlanBody");
+        const costEditable = session.role === "consultant" || session.role === "client";
+        function drawCost() {
+            if (!costHost || typeof renderCostOverview !== "function") return;
+            const p = getProject(project.id) || project;
+            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth }); });
+            mountCostChart(costHost, sCurve(p, today()));
+        }
+        if (costHost) {
+            costHost.addEventListener("change", e => {
+                if (!costEditable || (e.target.id !== "cpStart" && e.target.id !== "cpEnd")) return;
+                const start = document.getElementById("cpStart").value, end = document.getElementById("cpEnd").value;
+                if (start && end && end <= start) { toast(t("costplan.badProgramme"), "error"); return; }
+                updateProject(project.id, p => { p.programme = { start: start, end: end }; });
+                drawCost();
+            });
+            costHost.addEventListener("click", e => {
+                if (!costEditable) return;
+                if (e.target.id === "cpCertAdd") {
+                    const date = document.getElementById("cpCertDate").value;
+                    const amount = Number(document.getElementById("cpCertAmount").value);
+                    if (!date || !(amount > 0)) { toast(t("costplan.badCert"), "error"); return; }
+                    updateProject(project.id, p => { p.certificates = (p.certificates || []).concat([{ date: date, amount: amount }]); });
+                    toast(t("costplan.certAdded"));
+                    drawCost();
+                }
+                const rem = e.target.closest(".cp-cert-remove");
+                if (rem) {
+                    updateProject(project.id, p => {
+                        const i = (p.certificates || []).findIndex(c => c.date === rem.dataset.date && String(c.amount) === rem.dataset.amount);
+                        if (i >= 0) p.certificates.splice(i, 1);
+                    });
+                    drawCost();
+                }
+            });
+            drawCost();
+            /* redrawn at the new width when the window is resized */
+            let costWidth = costHost.clientWidth, costTimer = null;
+            window.addEventListener("resize", () => {
+                clearTimeout(costTimer);
+                costTimer = setTimeout(() => { if (Math.abs(costHost.clientWidth - costWidth) > 40) { costWidth = costHost.clientWidth; drawCost(); } }, 200);
+            });
+        }
+
         /* Action list */
         const items = actionItems(project, session.role);
         document.getElementById("actionList").innerHTML = items.length === 0

@@ -3432,3 +3432,43 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .supplier-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
 .supplier-list li { padding: 8px 10px; background: var(--paper-sunk); border-radius: 8px; display: grid; gap: 3px; }
 .supplier-links { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+
+/* project cost overview and S-curve (js/costplan.js); series colours are
+   the dataviz reference palette's first three categorical slots */
+.cost-plan-card { --sc-planned: #2a78d6; --sc-forecast: #eb6834; --sc-actual: #1baf7a; --sc-grid: #e3e6ec; --sc-muted: #5b6474; }
+.cp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.cp-tile { background: var(--paper-sunk); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.cp-tile small { font-size: 12px; color: var(--sc-muted); }
+.cp-tile strong { font-size: 18px; }
+.cp-tile span { font-size: 12px; color: var(--sc-muted); }
+.cp-tile.cp-key { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cp-status { font-size: 14px; margin: 12px 0 6px; }
+.cp-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-2); margin: 6px 0; }
+.cp-legend span, .sc-tip-row { display: inline-flex; align-items: center; gap: 6px; }
+.k { display: inline-block; width: 16px; height: 0; border-top: 2px solid; }
+.k-planned { border-color: var(--sc-planned); }
+.k-forecast { border-color: var(--sc-forecast); border-top-style: dashed; }
+.k-actual { border-color: var(--sc-actual); border-top-width: 3px; }
+.sc-wrap { position: relative; }
+.sc-svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.sc-grid { stroke: var(--sc-grid); stroke-width: 1; }
+.sc-tick { font-size: 11px; fill: var(--sc-muted); }
+.sc-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.sc-planned { stroke: var(--sc-planned); }
+.sc-forecast { stroke: var(--sc-forecast); stroke-dasharray: 6 4; }
+.sc-actual { stroke: var(--sc-actual); stroke-width: 3; }
+.sc-actual-dot { fill: var(--sc-actual); stroke: var(--paper); stroke-width: 2; }
+.sc-today { stroke: var(--sc-muted); stroke-width: 1; stroke-dasharray: 2 3; }
+.sc-today-label { font-size: 11px; fill: var(--sc-muted); }
+.sc-cross { stroke: var(--ink-2); stroke-width: 1; }
+.sc-hit { fill: transparent; cursor: crosshair; }
+.sc-tip { position: absolute; top: 8px; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 18px rgba(15,23,42,.14); pointer-events: none; min-width: 170px; }
+.sc-tip-head { font-weight: 700; margin-bottom: 4px; }
+.sc-tip-row { display: flex; gap: 6px; }
+.sc-tip-row span { color: var(--sc-muted); }
+.cp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cp-table th, .cp-table td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; }
+.cp-table th:first-child, .cp-table td:first-child { text-align: left; }
+.cp-prog, .cp-add { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 6px 0; font-size: 13px; }
+.cp-prog input, .cp-add input { padding: 7px; border: 1px solid #dfe3e8; border-radius: 6px; font: inherit; }
+.cp-certs { font-size: 13px; padding-left: 18px; margin: 8px 0; }

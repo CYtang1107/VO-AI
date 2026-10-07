@@ -166,6 +166,16 @@ function upgradeDemo(db) {
         ["instructionStatus", "instructionNote", "caCertifiedStatus", "caRemark"].forEach(k => { vo[k] = sv[k]; });
         changed = true;
     });
+    /* the programme and certificates (js/costplan.js), moved by as many
+       days as this browser's demo was moved from the seed */
+    if (!demo.programme) {
+        const v1 = (demo.vos || []).find(v => v.id === "VO-SEED-1");
+        const sv1 = seed.vos.find(v => v.id === "VO-SEED-1");
+        const days = v1 && v1.dateIssued ? Math.round((Date.parse(v1.dateIssued) - Date.parse(sv1.dateIssued)) / 86400000) : 0;
+        demo.programme = shiftDates(seed.programme, days || 0);
+        demo.certificates = shiftDates(seed.certificates, days || 0);
+        changed = true;
+    }
     /* the instructions the design team issued (js/instruction.js) */
     seed.vos.forEach(sv => {
         const vo = (demo.vos || []).find(v => v.id === sv.id);
@@ -608,6 +618,14 @@ function seedDB() {
             passcode: null,
             /* a made-up demo location (Cheras, Kuala Lumpur) for the site map */
             site: { lat: 3.0857, lng: 101.7425, address: "Demo site, Cheras, Kuala Lumpur" },
+            /* the programme and the interim certificates, for the cost
+               overview's S-curve (js/costplan.js) */
+            programme: { start: "2026-03-02", end: "2027-08-31" },
+            certificates: [
+                { date: "2026-03-31", amount: 150000 }, { date: "2026-04-30", amount: 280000 },
+                { date: "2026-05-31", amount: 450000 }, { date: "2026-06-30", amount: 610000 },
+                { date: "2026-07-31", amount: 760000 }, { date: "2026-08-31", amount: 850000 }
+            ],
             bq: bq,
             documents: [
                 { id: "D1", name: "Contract Agreement - PAM 2018.pdf", size: 81079, url: DEMO_FILES.D1, category: "contract", uploadedBy: "Serena Wong", role: "consultant", at: "2026-06-01T09:10:00Z" },
