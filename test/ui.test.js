@@ -53,11 +53,10 @@ test("the sidebar renders no nav items and a select-a-project note until a proje
     assert.match(html, /Select a project to begin/);
 });
 
-test("the sidebar shows Dashboard, AI Analysis, VO Register, Documents and VO Reports once a project is chosen, but not Projects", () => {
+test("the sidebar shows Dashboard, VO Register, Documents and VO Reports once a project is chosen, but not Projects", () => {
     const html = renderSidebar("dashboard", { name: "serena.wong", role: "consultant" },
         { name: "ABC Residence" });
     assert.match(html, /Dashboard/);
-    assert.match(html, /AI Analysis/);
     assert.match(html, /VO Register/);
     assert.match(html, /Documents/);
     assert.match(html, /VO Reports/);
@@ -71,10 +70,11 @@ test("the sidebar places Documents right after VO Register", () => {
     assert.match(html, /VO Register<\/a><a[^>]*class="nav-item[^"]*"[^>]*>[\s\S]{0,20}Documents/);
 });
 
-test("the sidebar places AI Analysis right after Dashboard", () => {
+test("the AI Analysis page is gone: the sidebar goes from Dashboard to VO Register", () => {
     const html = renderSidebar("dashboard", { name: "serena.wong", role: "consultant" },
         { name: "ABC Residence" });
-    assert.match(html, /Dashboard<\/a><a[^>]*class="nav-item[^"]*"[^>]*>[\s\S]{0,20}AI Analysis/);
+    assert.doesNotMatch(html, /AI Analysis|analysis\.html/);
+    assert.match(html, /Dashboard<\/a><a[^>]*class="nav-item[^"]*"[^>]*>[\s\S]{0,20}VO Register/);
 });
 
 test("the sidebar names the current project, per the template rule", () => {

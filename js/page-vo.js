@@ -397,7 +397,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
     }).join("");
 }
 
-/* Same checklist as js/page-analysis.js's renderElementsBlock — the
+/* The element checklist (js/elements.js) — the
    detected element(s) and the other elements that commonly need
    re-measurement alongside them, each with the reason. A prompt to
    confirm, never an assertion. */

@@ -10,7 +10,6 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
    fallback for any caller that reads NAV without going through t(). */
 const NAV = [
     { id: "dashboard", href: "dashboard.html", icon: "⌂", label: "Dashboard",   labelKey: "nav.dashboard" },
-    { id: "analysis",  href: "analysis.html",  icon: "✦", label: "AI Analysis", labelKey: "nav.analysis" },
     { id: "register",  href: "register.html",  icon: "▤", label: "VO Register", labelKey: "nav.register" },
     { id: "documents", href: "documents.html", icon: "▤", label: "Documents",   labelKey: "nav.documents" },
     { id: "report",    href: "report.html",    icon: "▧", label: "VO Reports",  labelKey: "nav.report" }
