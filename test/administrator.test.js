@@ -13,29 +13,23 @@ test("the contract administrator owns the instruction and certification fields",
     assert.ok(ROLES.administrator && ROLES.administrator.label);
 });
 
-test("the five steps unlock in order: submit → confirm → value → certify → approve", () => {
-    const draft = vo();
-    assert.strictEqual(canEdit("instructionStatus", draft, "administrator"), false, "nothing to confirm before submission");
-    const submitted = vo({ submitted: true, evaluateStatus: "Pending" });
-    assert.strictEqual(canEdit("instructionStatus", submitted, "administrator"), true);
-    assert.strictEqual(canEdit("evaluateStatus", submitted, "consultant"), false, "the QS waits for the confirmed instruction");
-    const confirmed = Object.assign({}, submitted, { instructionStatus: "Confirmed" });
-    assert.strictEqual(canEdit("evaluateStatus", confirmed, "consultant"), true);
-    assert.strictEqual(canEdit("caCertifiedStatus", confirmed, "administrator"), false, "nothing to certify before the QS approves");
-    const approved = Object.assign({}, confirmed, { evaluateStatus: "Approved" });
-    assert.strictEqual(canEdit("caCertifiedStatus", approved, "administrator"), true);
-    assert.strictEqual(canEdit("certifiedStatus", approved, "client"), false, "the client waits for certification");
-    const certified = Object.assign({}, approved, { caCertifiedStatus: "Certified" });
-    assert.strictEqual(canEdit("certifiedStatus", certified, "client"), true);
-    assert.strictEqual(canEdit("instructionStatus", certified, "contractor"), false, "only the administrator confirms");
+test("the design team works the VO only while it waits for its approval", () => {
+    assert.strictEqual(canEdit("instructionStatus", vo(), "administrator"), false, "still being described");
+    const sent = vo({ sentToDesign: true });
+    ["instructionStatus", "issuedInstruction", "oldDrawing", "revisedDrawing", "designDocs"].forEach(f =>
+        assert.strictEqual(canEdit(f, sent, "administrator"), true, f));
+    assert.strictEqual(canEdit("revisedDrawing", sent, "contractor"), false, "the drawings are the design team's");
+    const approvedByDesign = vo({ sentToDesign: true, instructionStatus: "Confirmed" });
+    assert.strictEqual(canEdit("instructionStatus", approvedByDesign, "administrator"), false);
+    assert.strictEqual(canEdit("caCertifiedStatus", vo({ submitted: true, evaluateStatus: "Approved" }), "administrator"), false, "no certify step any more");
 });
 
-test("a VO saved before the role existed is not held back", () => {
-    const old = { submitted: true, evaluateStatus: "Approved" };   /* no administrator fields at all */
+test("a VO saved before this workflow lands in the right stage", () => {
+    const old = { submitted: true, evaluateStatus: "Approved" };   /* no design team fields at all */
     assert.strictEqual(instructionConfirmed(old), true);
     assert.strictEqual(caCertified(old), true);
-    assert.strictEqual(canEdit("evaluateStatus", old, "consultant"), true);
     assert.strictEqual(canEdit("certifiedStatus", old, "client"), true);
+    assert.strictEqual(canEdit("evaluateStatus", { submitted: true, evaluateStatus: "Pending" }, "consultant"), true);
     assert.strictEqual(instructionConfirmed({ submitted: false }), false);
 });
 

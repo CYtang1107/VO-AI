@@ -55,7 +55,12 @@ function isEngineerInstruction(type) {
 }
 
 /* checks: [{ id, clause, state: "ok" | "fail" | "missing" | "info", reason }] */
-function claimCheck(vo, project) {
+/* opts.stage "describe": the first check, on the description alone, before
+   the VO goes to the design team. Only whether it is a variation (and was
+   issued in time) can be judged; the instruction and the particulars come
+   later and are shown as what comes next, not as gaps. */
+function claimCheck(vo, project, opts) {
+    const early = !!(opts && opts.stage === "describe");
     const form = contractForm(project);
     const cl = CLAIM_CLAUSES[form];
     const ref = id => t("claim.clauseRef", { form: form, no: cl[id] });
@@ -74,8 +79,10 @@ function claimCheck(vo, project) {
     }
 
     /* 2. Does it rest on a written instruction? */
-    const no = String(vo.instructionNo || "").trim();
-    if (!no) {
+    const no = String(vo.instructionNo || (vo.issuedInstruction && vo.issuedInstruction.no) || "").trim();
+    if (early) {
+        checks.push({ id: "instruction", clause: ref("instruction"), state: "info", reason: t("claim.early.instruction") });
+    } else if (!no) {
         checks.push({ id: "instruction", clause: ref("instruction"), state: "missing",
                       reason: t(form === "PAM 2018" ? "claim.instruction.noneAI" : "claim.instruction.noneSO") });
     } else if (form === "PAM 2018" && isEngineerInstruction(vo.typeOfInstruction) && vo.instructionStatus === "Confirmed") {
@@ -97,10 +104,16 @@ function claimCheck(vo, project) {
                       reason: t("claim.timing.afterCpc", { date: project.practicalCompletion }) });
     }
 
+    if (early) {
+        checks.push({ id: "particulars", clause: ref("particulars"), state: "info", reason: t("claim.early.particulars") });
+        const v = checks.some(c => c.state === "fail") ? "notClaimable" : checks.some(c => c.state === "missing") ? "needsInfo" : "claimable";
+        return { form: form, verdict: v, checks: checks, early: true };
+    }
+
     /* 4. Has the contractor given the details and particulars the QS
        needs to measure and value it? */
     const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty));
-    const evidence = ["revisedDrawing", "supportingDocs"].reduce((n, f) => n + ((vo[f] || []).length), 0);
+    const evidence = ["revisedDrawing", "designDocs", "supportingDocs"].reduce((n, f) => n + ((vo[f] || []).length), 0);
     const offSite = typeof photoLocations === "function"
         ? photoLocations(project, vo).filter(r => r.verdict === "offSite") : [];
     const gaps = [];
@@ -136,7 +149,7 @@ function renderClaimCheck(result, opts) {
     const o = opts || {};
     return '<div class="claim-verdict claim-' + result.verdict + '">' +
             '<span class="status ' + CLAIM_PILL[result.verdict] + '">' + escapeHtml(t("claim.verdict." + result.verdict)) + "</span>" +
-            '<span class="claim-summary">' + escapeHtml(t("claim.summary." + result.verdict, { form: result.form })) + "</span>" +
+            '<span class="claim-summary">' + escapeHtml(t((result.early ? "claim.summaryEarly." : "claim.summary.") + result.verdict, { form: result.form })) + "</span>" +
         "</div>" +
         '<ul class="claim-checks">' + result.checks.map(c =>
             '<li class="claim-check claim-' + c.state + '">' +

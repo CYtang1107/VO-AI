@@ -30,7 +30,7 @@ test("putting right the contractor's own defective work is not a variation (cl. 
 });
 
 test("no written instruction, an Engineer's Instruction under PAM, or no measurement: needs information", () => {
-    let r = claimCheck(vo({ instructionNo: "" }), project());
+    let r = claimCheck(vo({ instructionNo: "", issuedInstruction: null }), project());
     assert.strictEqual(r.verdict, "needsInfo");
     assert.match(r.checks.find(c => c.id === "instruction").reason, /CAI/);
 
@@ -69,7 +69,7 @@ test("a PWD 203 project cites its own clauses (Rev. 2007): 24.2, 5.2, 27.1, 25.1
     const p = project();
     p.documents = [{ id: "D", name: "PWD Form 203 Rev. 2007.pdf" }];
     assert.strictEqual(contractForm(p), "PWD 203");
-    const r = claimCheck(vo({ instructionNo: "" }), p);
+    const r = claimCheck(vo({ instructionNo: "", issuedInstruction: null }), p);
     assert.deepStrictEqual(r.checks.map(c => c.clause),
         ["PWD 203 Clause 24.2", "PWD 203 Clause 5.2", "PWD 203 Clause 27.1", "PWD 203 Clause 25.1"]);
     assert.match(r.checks.find(c => c.id === "instruction").reason, /Superintending Officer.*7 days/);
@@ -81,13 +81,13 @@ test("a PWD 203A project cites clause 24", () => {
     const p = project();
     p.documents = [{ id: "D", name: "PWD 203A Conditions of Contract.pdf" }];
     assert.strictEqual(contractForm(p), "PWD 203A");
-    assert.ok(claimCheck(vo({ instructionNo: "" }), p).checks.every(c => c.clause === "PWD 203A Clause 24"));
+    assert.ok(claimCheck(vo({ instructionNo: "", issuedInstruction: null }), p).checks.every(c => c.clause === "PWD 203A Clause 24"));
     assert.strictEqual(contractForm({ documents: [{ name: "JKR contract.pdf" }] }), "PWD 203");
     assert.strictEqual(contractForm(project()), "PAM 2018");
 });
 
 test("the card shows the verdict, each check with its clause, and what was recorded at submission", () => {
-    const html = renderClaimCheck(claimCheck(vo({ instructionNo: "" }), project()), { recorded: { verdict: "claimable", at: "14 Jul 2026" } });
+    const html = renderClaimCheck(claimCheck(vo({ instructionNo: "", issuedInstruction: null }), project()), { recorded: { verdict: "claimable", at: "14 Jul 2026" } });
     assert.match(html, /Needs information/);
     assert.match(html, /PAM 2018 Clause 2\.2/);
     assert.match(html, /At submission the contract agent said: Claimable \(14 Jul 2026\)/);

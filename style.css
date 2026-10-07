@@ -3504,3 +3504,27 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .copilot-ai { border-color: var(--accent); }
 .evm-table tr.evm-group th { background: var(--paper-sunk); color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .04em; padding-top: 10px; }
 details[data-fold="evm-detail"] { margin-top: 8px; }
+
+/* the workflow card (js/page-vo.js renderWorkflow) */
+.wf-steps { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 4px; margin: 0 0 12px; padding: 0; counter-reset: wf; }
+.wf-step { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); padding-right: 10px; }
+.wf-step + .wf-step::before { content: ""; width: 18px; height: 2px; background: var(--rule); margin-right: 6px; }
+.wf-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rule); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; background: var(--paper); }
+.wf-step.done .wf-dot { background: var(--verdict-same-bg); border-color: var(--verdict-same); color: var(--verdict-same); }
+.wf-step.now .wf-dot { background: var(--accent); border-color: var(--accent); color: #fff; }
+.wf-step.now .wf-label { color: var(--accent); font-weight: 700; }
+.wf-now { font-size: 14px; margin: 0 0 12px; }
+.wf-card h4 { font-size: 15px; margin: 14px 0 10px; }
+.wf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.wf-note { padding: 10px 12px; border-radius: 8px; background: var(--paper-sunk); font-size: 14px; margin: 8px 0; }
+.wf-note-ok { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.wf-note-warn { background: #fde7bf; color: #92400e; }
+.wf-quote { border-left: 3px solid var(--accent); padding: 4px 12px; margin: 6px 0 12px; }
+.wf-quote p { margin: 4px 0; }
+.wf-todo { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }
+.wf-reject, .wf-info { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.wf-reject input, .wf-info input { flex: 1 1 240px; padding: 9px; border: 1px solid #dfe3e8; border-radius: 8px; font: inherit; }
+.wf-info label { width: 100%; font-size: 13px; font-weight: 700; }
+#wfInfoText { width: 100%; min-height: 80px; box-sizing: border-box; }
+.role-panels.record:not(.show-others) { display: none; }
+#assessmentSection[hidden], .card[hidden] { display: none !important; }

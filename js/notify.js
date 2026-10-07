@@ -27,28 +27,25 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t } = require("./i18n.js");
     var { rm, assessedTotal } = require("./calc.js");
     var { escapeHtml } = require("./ui.js");
+    var { voStage } = require("./permissions.js");
 }
 
 /* The step a VO waits on, and whose it is; null when it is finished (or
-   a draft, which is the contractor's own work in progress). Each step's
-   key includes the submission round, so a VO returned and submitted
-   again notifies again. */
+   a draft, which is the contractor's own work in progress). It follows
+   the VO's stage (voStage, js/permissions.js). Each step's key includes the
+   round (how many times the VO has been sent on), so a VO returned and sent
+   again, or asked for information again, notifies again. */
+var STEP_OF_STAGE = {
+    design: ["issue", "administrator"], designRejected: ["returned", "contractor"],
+    measure: ["measure", "contractor"], consultant: ["value", "consultant"],
+    info: ["info", "contractor"], rejected: ["rejected", "contractor"], client: ["approve", "client"]
+};
 function nextStep(vo) {
     if (!vo) return null;
-    const round = (vo.history || []).filter(h => /^Submitted to /.test(String(h.action || ""))).length;
-    const step = (id, role) => ({ id: id, role: role, key: vo.id + ":" + id + ":" + round });
-    const confirmed = vo.instructionStatus === undefined || vo.instructionStatus === null
-        ? vo.submitted === true : vo.instructionStatus === "Confirmed";
-    const caDone = vo.caCertifiedStatus === undefined || vo.caCertifiedStatus === null
-        ? vo.evaluateStatus === "Approved" : vo.caCertifiedStatus === "Certified";
-
-    if (!vo.submitted) return vo.instructionStatus === "Returned" ? step("returned", "contractor") : null;
-    if (vo.evaluateStatus === "Rejected") return step("rejected", "contractor");
-    if (!confirmed) return step("issue", "administrator");
-    if (vo.evaluateStatus !== "Approved") return step("value", "consultant");
-    if (!caDone) return step("certify", "administrator");
-    if (vo.certifiedStatus === "Pending" || !vo.certifiedStatus) return step("approve", "client");
-    return null;
+    const s = STEP_OF_STAGE[voStage(vo)];
+    if (!s) return null;
+    const round = (vo.history || []).filter(h => /^(Submitted to |Sent to design team|Further information sent back)/.test(String(h.action || ""))).length;
+    return { id: s[0], role: s[1], key: vo.id + ":" + s[0] + ":" + round };
 }
 
 /* Every VO of the project waiting for `role`, oldest first. */

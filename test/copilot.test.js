@@ -36,7 +36,7 @@ test("waiting: the consultant QS has VO-002 to value, linked to it", () => {
     const a = cp.answerFromData("waiting", ctx());
     assert.strictEqual(a.lines.length, 1);
     assert.strictEqual(a.lines[0].vo.no, "VO-002");
-    assert.match(a.lines[0].text, /^instruction EI-008 issued/, "the number is not repeated");
+    assert.match(a.lines[0].text, /^was submitted by the contractor/, "the number is not repeated");
     assert.match(cp.answerFromData("waiting", ctx({ role: "client" })).lines[0].text, /Nothing is waiting/);
 });
 

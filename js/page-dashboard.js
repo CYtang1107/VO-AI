@@ -4,7 +4,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, voValue, projectStats, today } = require("./calc.js");
     var { statusPill, escapeHtml, seedText } = require("./ui.js");
     var { deadlineSummary } = require("./deadlines.js");
-    var { instructionConfirmed, caCertified } = require("./permissions.js");
+    var { voStage } = require("./permissions.js");
     var { t } = require("./i18n.js");
 }
 
@@ -22,58 +22,30 @@ function deadlinePositionText(project, role, todayIso) {
     return bits.join(t("common.clauseSep")) + t("common.fullStop");
 }
 
-/* What does this role have to do next? */
+/* What does this role have to do next? Each VO whose stage is this
+   role's (voStage, js/permissions.js), with what to do; the contractor's
+   own drafts too. */
+var ACTION_STAGES = {
+    contractor: ["describe", "designRejected", "measure", "info", "rejected"],
+    administrator: ["design"],
+    consultant: ["consultant"],
+    client: ["client"]
+};
+
 function actionItems(project, role) {
     const vos = project.vos || [];
-
-    if (role === "contractor") {
-        return vos
-            .filter(v => !v.submitted || v.evaluateStatus === "Rejected")
-            .map(v => ({
-                vo: v,
-                text: v.evaluateStatus === "Rejected"
-                    ? t("dashboard.action.rejected")
-                    : t("dashboard.action.draft")
-            }));
-    }
-
-    if (role === "administrator") {
-        /* ① submitted, its instruction not yet confirmed; ② approved by
-           the consultant QS, not yet certified */
-        const toConfirm = vos
-            .filter(v => v.submitted && !instructionConfirmed(v))
-            .map(v => ({ vo: v, text: t("dashboard.action.awaitingConfirm") }));
-        const toCertify = vos
-            .filter(v => v.evaluateStatus === "Approved" && !caCertified(v))
-            .map(v => ({ vo: v, text: t("dashboard.action.awaitingCaCert") }));
-        return toConfirm.concat(toCertify);
-    }
-
+    const mine = ACTION_STAGES[role] || [];
+    const items = vos.filter(v => mine.indexOf(voStage(v)) !== -1)
+        .map(v => ({ vo: v, text: t("dashboard.action.stage." + voStage(v)) }));
     if (role === "consultant") {
-        const awaitingAssessment = vos
-            .filter(v => v.submitted && instructionConfirmed(v) &&
-                (v.evaluateStatus === "Pending" || v.evaluateStatus === "Under Review"))
-            .map(v => ({ vo: v, text: t("dashboard.action.awaitingAssessment") }));
-
-        /* The client asking the consultant for further information (the
-           mirror of the consultant's own info-request to the contractor)
-           has no contractual clock of its own — it belongs on this list
-           purely so the consultant notices it, not because it is overdue. */
-        const clientInfoRequests = vos
-            .filter(v => !!v.clientInfoRequestedAt)
-            .map(v => ({
-                vo: v,
-                text: v.clientInfoRequestNote
-                    ? t("dashboard.action.clientInfoRequested", { note: v.clientInfoRequestNote })
-                    : t("dashboard.action.clientInfoRequestedNoNote")
-            }));
-
-        return awaitingAssessment.concat(clientInfoRequests);
+        /* the client asking the consultant for further information: no
+           clock of its own, listed so the consultant notices it */
+        vos.filter(v => !!v.clientInfoRequestedAt).forEach(v => items.push({ vo: v,
+            text: v.clientInfoRequestNote
+                ? t("dashboard.action.clientInfoRequested", { note: v.clientInfoRequestNote })
+                : t("dashboard.action.clientInfoRequestedNoNote") }));
     }
-
-    return vos
-        .filter(v => v.evaluateStatus === "Approved" && caCertified(v) && v.certifiedStatus === "Pending")
-        .map(v => ({ vo: v, text: t("dashboard.action.awaitingCert") }));
+    return items;
 }
 
 function renderRecentRows(vos) {
