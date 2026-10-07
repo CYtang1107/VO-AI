@@ -60,3 +60,11 @@ test("the printed instruction names the clause, the drawings and how it will be 
     assert.match(html, /Clauses 11\.5 and 11\.6/);
     assert.match(ins.renderInstructionSheet(p.vos[2], p), /No instruction has been issued for VO-003/);
 });
+
+test("under PWD 203 the printed instruction cites clause 24, and valuation under clause 25", () => {
+    const p = project();
+    p.documents = [{ id: "D", name: "PWD Form 203 Rev. 2007.pdf" }];
+    const html = ins.renderInstructionSheet(p.vos[0], p);
+    assert.match(html, /Clause 24 of the PWD 203 Conditions/);
+    assert.match(html, /valued under Clause 25\./);
+});
