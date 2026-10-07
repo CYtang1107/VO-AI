@@ -53,8 +53,18 @@ function engineFacts(vo, project) {
     return facts;
 }
 
-function askContractAvailable() {
-    return typeof Cloud !== "undefined" && Cloud.active();
+/* The demo project's id: 「评审一键体验」 lets anyone ask its contract
+   without an account (the server limits how often, migration 0004). */
+var GUEST_PROJECT = "PRJ-CADANGAN";
+
+/* A guest question: the demo (no sign-in) on the demo project, with a
+   Supabase project configured for the site. */
+function askAsGuest(projectId) {
+    return typeof Cloud !== "undefined" && Cloud.enabled() && !Cloud.active() && projectId === GUEST_PROJECT;
+}
+
+function askContractAvailable(projectId) {
+    return (typeof Cloud !== "undefined" && Cloud.active()) || askAsGuest(projectId);
 }
 
 /* Three suggested questions per agent. */
@@ -87,7 +97,8 @@ function renderContractAnswer(state) {
             '</p><div class="finding"><span>' + escapeHtml(t("ask.failed", { reason: state.error })) + "</span></div></div>";
     }
     if (!state.answer) {
-        const key = state.reason === "amount-check" ? "ask.refused.amount"
+        const key = state.reason === "guest-limit" ? "ask.guestLimit"
+            : state.reason === "amount-check" ? "ask.refused.amount"
             : state.reason === "no-citation" ? "ask.refused.citation" : "ask.noClause";
         return '<div class="assistant-unmatched"><p class="assistant-answer-title">' + escapeHtml(t("ask.noAnswerTitle")) +
             '</p><div class="finding"><span>' + escapeHtml(t(key)) + "</span></div></div>";
@@ -104,11 +115,12 @@ function renderContractAnswer(state) {
         "</div>";
 }
 
-function renderContractPane(role, state) {
+function renderContractPane(role, state, guest) {
     const r = ["contractor", "administrator", "consultant", "client"].includes(role) ? role : "consultant";
     return '' +
         '<p class="ask-agent">' + escapeHtml(t("ask.agent." + r)) + "</p>" +
         '<p class="assistant-note">' + escapeHtml(t("ask.note")) + "</p>" +
+        (guest ? '<p class="assistant-note ask-guest-note">' + escapeHtml(t("ask.guestNote")) + "</p>" : "") +
         '<div class="assistant-suggestions">' +
         contractQuestions(r).map(q =>
             '<button type="button" class="assistant-suggestion-btn contract-question-btn" data-question="' +
@@ -122,14 +134,17 @@ function renderContractPane(role, state) {
 }
 
 /* Sends one question; resolves to the state renderContractAnswer draws. */
-async function askContract(project, vo, question) {
+async function askContract(project, vo, question, role) {
     const q = String(question || "").trim();
     if (!q) return null;
     try {
-        const reply = await Cloud.ask({
+        const body = {
             project_id: project.id, vo_id: vo ? vo.id : null, question: q,
             engine_facts: vo ? engineFacts(vo, project) : {}
-        });
+        };
+        /* the demo with no account: the role picked in the demo frames the answer */
+        if (askAsGuest(project.id)) { body.guest = true; body.role = role; }
+        const reply = await Cloud.ask(body);
         return Object.assign({ question: q }, reply);
     } catch (e) {
         return { question: q, error: e.message || String(e) };
@@ -137,5 +152,5 @@ async function askContract(project, vo, question) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { engineFacts, askContractAvailable, contractQuestions, answerHtml, renderContractAnswer, renderContractPane, askContract };
+    module.exports = { engineFacts, askContractAvailable, askAsGuest, contractQuestions, answerHtml, renderContractAnswer, renderContractPane, askContract };
 }

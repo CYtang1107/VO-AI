@@ -524,7 +524,7 @@ function renderAssistantPanel(context) {
         '<div class="ask-tabs" role="tablist">' + tabButton("vo", t("ask.tabVo")) + tabButton("contract", t("ask.tabContract")) + "</div>" +
         '<div data-ask-pane="vo"' + (tab === "vo" ? "" : " hidden") + ">" + helper + "</div>" +
         '<div data-ask-pane="contract"' + (tab === "contract" ? "" : " hidden") + ">" +
-        renderContractPane(context.role, context.contract.state) + "</div>";
+        renderContractPane(context.role, context.contract.state, typeof askAsGuest === "function" && askAsGuest(context.project && context.project.id)) + "</div>";
 }
 
 /* -----------------------------------------------------------
@@ -824,7 +824,7 @@ if (typeof document !== "undefined") {
 
             document.getElementById("assistantPanel").innerHTML =
                 renderAssistantPanel({ vo: v, project: fresh, role: role, session: session,
-                                       contract: askContractAvailable() ? contractAsk : null });
+                                       contract: askContractAvailable(project.id) ? contractAsk : null });
 
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
@@ -1165,7 +1165,7 @@ if (typeof document !== "undefined") {
             const v = fresh.vos.find(x => x.id === voId);
             contractAsk.state = { loading: true, question: q };
             showContractAnswer();
-            contractAsk.state = await askContract(fresh, v, q);
+            contractAsk.state = await askContract(fresh, v, q, role);
             showContractAnswer();
         }
 

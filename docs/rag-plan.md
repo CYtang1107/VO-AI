@@ -35,6 +35,11 @@ Branch `claude/eager-ramanujan-6i2lox`.
   from 0001: `save_vo` is an upsert, so the insert check refused the client (and anyone who may not create a VO)
   even when saving an existing VO; the client's certification never saved under a team account. Demo account
   `administrator@vo-ai.demo` (Lim Kok Wai). The full five-step flow was checked on the live database.
+- **「评审一键体验」 (7 Oct):** the demo (no account) can ask the demo project's contract. `ask-contract` accepts
+  `guest: true` for `PRJ-CADANGAN` only, reads it with the service role, and counts each question first
+  (`supabase/migrations/0004_guest_quota.sql`, applied): 20 a day per visitor (IP), 300 a day in total, Malaysia
+  time. The sign-in page's 「评审一键体验」 button opens the demo project as the consultant QS. Sharing between
+  people still needs team accounts.
 - **Sign-up:** open. Email confirmation is off (no mail server; the built-in mailer only reaches the project's own
   team, 2 emails an hour), and the site URL is GitHub Pages. A new account sees nothing until a consultant adds it.
   Similarity: a Chinese question finds 11.5/11.6 at about 0.5; an off-topic question scores about 0.15,

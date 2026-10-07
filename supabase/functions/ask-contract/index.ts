@@ -2,6 +2,8 @@
 // knowledge base, always citing the clauses it used (docs/rag-plan.md, step 3).
 //
 // POST { project_id, vo_id?, question, engine_facts? }
+//      { …, guest: true, role } without an account: the demo project only,
+//      20 questions a day per visitor and 300 for everyone (migration 0004)
 //   → { answer, citations: [{clause_no, title, form, doc_name, similarity, text}], role, model }
 //   → { answer: null, reason: "no-clause" | "no-citation" | "amount-check", citations: [] }
 //
@@ -22,11 +24,15 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
-    MIN_SIMILARITY, TOP_K, correction, citationsFor, groupChunks, questionLang,
+    ROLE_FRAMING, MIN_SIMILARITY, TOP_K, correction, citationsFor, groupChunks, questionLang,
     reviewAnswer, systemPrompt, userPrompt, validRequest
 } from "./rules.mjs";
 
 const DASHSCOPE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+// 「评审一键体验」: questions without an account, for the demo project only
+const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
+const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
+const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
 const EMBED_MODEL = "text-embedding-v4";
 // The first model that answers is used; a used-up free quota moves to the next.
 const CHAT_MODELS = (Deno.env.get("ASK_MODELS") || "qwen-plus-latest,qwen-flash")
@@ -94,15 +100,6 @@ Deno.serve(async (req) => {
     if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
     if (req.method !== "POST") return reply({ error: "POST only" }, 405);
 
-    const auth = req.headers.get("Authorization");
-    if (!auth) return reply({ error: "Sign in first." }, 401);
-    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: auth } },
-        auth: { persistSession: false },
-    });
-    const { data: userData } = await db.auth.getUser();
-    if (!userData?.user) return reply({ error: "Sign in first." }, 401);
-
     let body: Record<string, unknown>;
     try { body = await req.json(); } catch { return reply({ error: "Body must be JSON." }, 400); }
     const invalid = validRequest(body);
@@ -111,10 +108,40 @@ Deno.serve(async (req) => {
     const question = (body.question as string).trim();
     const engineFacts = (body.engine_facts && typeof body.engine_facts === "object") ? body.engine_facts : {};
 
-    // The role comes from the membership, never from the request.
-    const { data: role, error: roleError } = await db.rpc("member_role", { p_project: projectId });
-    if (roleError) return reply({ error: roleError.message }, 500);
-    if (!role) return reply({ error: "You are not a member of this project." }, 403);
+    // deno-lint-ignore no-explicit-any
+    let db: any;
+    let role: string;
+    if (body.guest === true) {
+        // 「评审一键体验」: the demo with no account. Only the demo project,
+        // read with the service role, and only within the daily limits
+        // (migration 0004). The role is the one picked in the demo.
+        if (projectId !== GUEST_PROJECT) return reply({ error: "Sign in first." }, 401);
+        db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+            auth: { persistSession: false },
+        });
+        const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+            req.headers.get("x-real-ip") || "unknown";
+        const { data: allowed, error: quotaError } = await db.rpc("guest_quota", {
+            p_ip: ip, p_ip_limit: GUEST_PER_VISITOR, p_day_limit: GUEST_PER_DAY,
+        });
+        if (quotaError) return reply({ error: quotaError.message }, 500);
+        if (!allowed) return reply({ answer: null, reason: "guest-limit", citations: [] }, 429);
+        role = ROLE_FRAMING[body.role as string] ? body.role as string : "consultant";
+    } else {
+        const auth = req.headers.get("Authorization");
+        if (!auth) return reply({ error: "Sign in first." }, 401);
+        db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+            global: { headers: { Authorization: auth } },
+            auth: { persistSession: false },
+        });
+        const { data: userData } = await db.auth.getUser();
+        if (!userData?.user) return reply({ error: "Sign in first." }, 401);
+        // The role comes from the membership, never from the request.
+        const { data: memberRole, error: roleError } = await db.rpc("member_role", { p_project: projectId });
+        if (roleError) return reply({ error: roleError.message }, 500);
+        if (!memberRole) return reply({ error: "You are not a member of this project." }, 403);
+        role = memberRole;
+    }
 
     try {
         const vector = await embed(question);
