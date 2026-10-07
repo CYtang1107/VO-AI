@@ -3356,3 +3356,7 @@ td.nowrap, .nowrap { white-space: nowrap; }
 @media (max-width: 560px) {
     .photo-check-thumb { width: 72px; height: 56px; }
 }
+
+/* site photos: on site or not (js/sitemap.js photoLocations) */
+.photo-loc-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.photo-loc-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

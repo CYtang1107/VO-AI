@@ -9,6 +9,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { matchClause } = require("./clauses.js");
     var { detectElements, relatedElements } = require("./elements.js");
     var { t, joinList } = require("./i18n.js");
+    var { photoLocations } = require("./sitemap.js");
 }
 
 /* Every element in js/elements.js is translated by id through
@@ -609,6 +610,16 @@ function analyse(vo, project) {
             element: elementName(el), related: list, note: elementNote(el)
         }));
     });
+
+    /* site photos taken away from the project's site (js/sitemap.js) */
+    const offSite = typeof photoLocations === "function"
+        ? photoLocations(project, vo).filter(r => r.verdict === "offSite") : [];
+    if (offSite.length) {
+        findings.push(t("analysis.finding.photoOffSite", {
+            n: offSite.length, names: joinList(offSite.map(r => r.name)),
+            m: Math.max.apply(null, offSite.map(r => r.metres))
+        }));
+    }
 
     return {
         classification: classification,

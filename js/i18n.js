@@ -1136,7 +1136,13 @@ var I18N_EN = {
     "toast.couldNotReadXlsx": "Could not read that .xlsx file — {msg}",
 
     /* ---------- language switch ---------- */
-    "lang.switchTo": "Switch language"
+    "lang.switchTo": "Switch language",
+    "photoLoc.onSite": "On site",
+    "photoLoc.offSite": "Off site",
+    "photoLoc.noLocation": "No location",
+    "photoLoc.noSite": "Site not set",
+    "photoLoc.metres": "{m} m from the site",
+    "analysis.finding.photoOffSite": "{n} site photo(s) were taken away from the project site ({names}, up to {m} m): check they show this site before relying on them."
 };
 
 var I18N_ZH = {
@@ -2232,7 +2238,13 @@ var I18N_ZH = {
     "toast.bqConfirmed": "工程量清单文件已确认——{n} 项准备导入。",
     "toast.couldNotReadXlsx": "无法读取该 .xlsx 文件 — {msg}",
 
-    "lang.switchTo": "切换语言"
+    "lang.switchTo": "切换语言",
+    "photoLoc.onSite": "在工地",
+    "photoLoc.offSite": "不在工地",
+    "photoLoc.noLocation": "无位置",
+    "photoLoc.noSite": "未设工地位置",
+    "photoLoc.metres": "离工地 {m} 米",
+    "analysis.finding.photoOffSite": "有 {n} 张现场照片不在本项目工地拍摄（{names}，最远 {m} 米）：请先确认照片确实是本工地，再作为依据。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

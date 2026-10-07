@@ -127,6 +127,11 @@ function metresBetween(a, b) {
     return Math.round(2 * 6371000 * Math.asin(Math.sqrt(h)));
 }
 
+/* How far from the site a photo may be and still count as taken on it:
+   a large site (a housing scheme, a road) easily spans a few hundred
+   metres, and a phone's GPS can be 50 m out. */
+var SITE_RADIUS_M = 500;
+
 /* The line under the map: how many photos are placed, and how far the
    farthest is from the site (a photo 5 km away is worth a second look). */
 function mapSummary(site, pins) {
@@ -137,10 +142,44 @@ function mapSummary(site, pins) {
         parts.push(t("map.photoCount", { n: pins.length }));
         if (site) {
             const far = Math.max.apply(null, pins.map(p => metresBetween(site, p)));
-            parts.push(t(far > 1000 ? "map.farWarning" : "map.farthest", { m: far }));
+            parts.push(t(far > SITE_RADIUS_M ? "map.farWarning" : "map.farthest", { m: far }));
         }
     }
     return parts.join(" · ");
+}
+
+/* Was each of a VO's site photos taken on this project's site? One
+   verdict per photo: "onSite" (within SITE_RADIUS_M), "offSite" (farther),
+   "noLocation" (the photo has no recorded place: GPS off, or a photo
+   uploaded from a computer) or "noSite" (the project's site is not set,
+   so there is nothing to compare with). Only photos: a drawing or a PDF
+   has no place. */
+function photoLocations(project, vo) {
+    const site = siteOf(project);
+    const out = [];
+    GEO_FIELDS.forEach(field => ((vo && vo[field]) || []).forEach(doc => {
+        if (!/\.(jpe?g|png|webp|heic|heif)$/i.test(String(doc.name || ""))) return;
+        const g = doc.geo && validLatLng(doc.geo.lat, doc.geo.lng) ? doc.geo : null;
+        const row = { docId: doc.id, name: doc.name, src: g ? (g.src || "") : "", metres: null, verdict: "noLocation" };
+        if (g && !site) row.verdict = "noSite";
+        else if (g) {
+            row.metres = metresBetween(site, g);
+            row.verdict = row.metres <= SITE_RADIUS_M ? "onSite" : "offSite";
+        }
+        out.push(row);
+    }));
+    return out;
+}
+
+/* The photo list under a VO's map: each photo with its verdict. */
+function renderPhotoLocations(rows) {
+    if (!rows.length) return "";
+    const pill = { onSite: "approved", offSite: "rejected", noLocation: "draft", noSite: "draft" };
+    return '<ul class="photo-loc-list">' + rows.map(r =>
+        "<li><span class=\"status " + pill[r.verdict] + '">' + escapeHtml(t("photoLoc." + r.verdict)) + "</span> " +
+        escapeHtml(r.name) + (r.metres !== null
+            ? ' <span class="rate-detail">' + escapeHtml(t("photoLoc.metres", { m: r.metres })) + "</span>" : "") +
+        "</li>").join("") + "</ul>";
 }
 
 /* ---------- browser ---------- */
@@ -205,6 +244,7 @@ async function drawSiteMap(host, project, opts) {
     host.innerHTML =
         '<div class="site-map" id="' + host.id + 'Canvas"></div>' +
         '<p class="assistant-note site-map-summary">' + escapeHtml(mapSummary(site, pins)) + "</p>" +
+        (o.voId ? renderPhotoLocations(photoLocations(project, (project.vos || []).find(v => v.id === o.voId))) : "") +
         (o.canSetSite ? '<div class="site-map-set">' +
             '<input type="text" class="site-search" placeholder="' + escapeHtml(t("map.searchPlaceholder")) + '">' +
             '<button type="button" class="secondary-button site-search-btn">' + escapeHtml(t("map.search")) + "</button>" +
@@ -357,5 +397,6 @@ async function drawSiteMap(host, project, opts) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { validLatLng, exifGps, photoGeo, siteOf, photoPins, metresBetween, mapSummary };
+    module.exports = { validLatLng, exifGps, photoGeo, siteOf, photoPins, metresBetween, mapSummary,
+        SITE_RADIUS_M, photoLocations, renderPhotoLocations };
 }
