@@ -3490,3 +3490,13 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .sc-range-btn { border: none; background: var(--paper); padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer; color: var(--ink-2); }
 .sc-range-btn + .sc-range-btn { border-left: 1px solid var(--rule); }
 .sc-range-btn.on { background: var(--accent); color: #fff; }
+
+/* the project Copilot (js/copilot.js) */
+.copilot-suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.copilot-history { display: grid; gap: 12px; margin-top: 14px; }
+.copilot-answer { border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; background: var(--paper); }
+.copilot-q { font-weight: 700; margin: 0 0 6px; }
+.copilot-title { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); margin: 0 0 6px; }
+.copilot-lines { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.5; }
+.copilot-vo { font-weight: 700; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.copilot-source { font-size: 12px; color: var(--ink-2); margin: 8px 0 0; }
