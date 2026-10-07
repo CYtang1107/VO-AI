@@ -3425,3 +3425,10 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .bu-rent-inputs input { width: 90px; padding: 5px; border: 1px solid #dfe3e8; border-radius: 6px; display: block; margin-top: 3px; }
 .bu-pl { font-size: 13px; margin: 6px 0; padding-left: 18px; }
 #buPriceListInput { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 8px; border: 1px solid #dfe3e8; font: inherit; margin-bottom: 8px; }
+
+/* suppliers and plant hire near the site (js/suppliers.js) */
+.supplier-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 8px; }
+.supplier-cols h5 { margin: 0 0 6px; font-size: 13px; }
+.supplier-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+.supplier-list li { padding: 8px 10px; background: var(--paper-sunk); border-radius: 8px; display: grid; gap: 3px; }
+.supplier-links { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }

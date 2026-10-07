@@ -28,6 +28,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t } = require("./i18n.js");
     var { rm } = require("./calc.js");
     var { escapeHtml, fold } = require("./ui.js");
+    var { renderSuppliers } = require("./suppliers.js");
 }
 
 /* Regions and their price level against the Klang Valley. */
@@ -263,6 +264,9 @@ function renderBuildUpCard(vo, project, opts) {
         "</div>" +
         (o.useAs ? '<button type="button" class="primary-button" id="buUseRate">' + escapeHtml(t("buildup.use." + o.useAs, { rate: rm(r.rate) })) + "</button>" : "") +
         rentBlock + priceBlock +
+        /* where to buy or hire it near the site (js/suppliers.js) */
+        (typeof renderSuppliers === "function"
+            ? fold("bu-suppliers", escapeHtml(t("suppliers.title")), '<div id="suppliersBody">' + renderSuppliers(project, o.suppliers || null) + "</div>") : "") +
         '<p class="assistant-note">' + escapeHtml(t("buildup.note")) + "</p>";
 }
 

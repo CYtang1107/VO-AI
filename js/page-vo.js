@@ -865,7 +865,7 @@ if (typeof document !== "undefined") {
         /* Cost planning: the built-up rate (js/buildup.js). The contractor
            builds up the rate they claim, the consultant QS the rate they
            assess; the build-up is kept on the measurement row. */
-        const bu = { rowIndex: null, rent: {} };
+        const bu = { rowIndex: null, rent: {}, suppliers: null };
         function buEditable(v) { return canEdit("measurement", v, role) || canEdit("assessment", v, role); }
         function drawBuildUp(v, fresh) {
             const host = document.getElementById("buildUpPanel");
@@ -878,7 +878,8 @@ if (typeof document !== "undefined") {
             }
             const useAs = canEdit("assessment", v, role) ? "assessed" : canEdit("measurement", v, role) ? "claimed" : null;
             host.innerHTML = renderBuildUpCard(v, fresh, { rowIndex: bu.rowIndex, stars: stars, editable: buEditable(v),
-                useAs: useAs, rent: bu.rent, canEditPriceList: role === "contractor" || role === "consultant" });
+                useAs: useAs, rent: bu.rent, suppliers: bu.suppliers,
+                canEditPriceList: role === "contractor" || role === "consultant" });
         }
         /* the row's build-up as shown (the drafted one until first edited) */
         function currentBuildUp(v) {
@@ -938,6 +939,15 @@ if (typeof document !== "undefined") {
                 });
                 toast(t("buildup.used", { rate: rm(rate), row: bu.rowIndex + 1 }));
                 draw();
+                return;
+            }
+            if (e.target.id === "findSuppliersBtn") {
+                bu.suppliers = { loading: true };
+                draw();
+                findSuppliers(getProject(project.id))
+                    .then(list => { bu.suppliers = { list: list }; })
+                    .catch(err => { bu.suppliers = { error: err.message || String(err) }; })
+                    .then(draw);
                 return;
             }
             if (e.target.id === "buPriceListSave") {
