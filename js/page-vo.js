@@ -742,6 +742,7 @@ if (typeof document !== "undefined") {
         function drawNow() {
             const fresh = getProject(project.id);
             const v = fresh.vos.find(x => x.id === voId);
+            if (typeof drawPhotoCheck === "function") drawPhotoCheck();
 
             document.getElementById("voTitle").textContent =
                 v.no + " — " + (seedText(v.description) || t("vo.untitled"));
@@ -1178,6 +1179,60 @@ if (typeof document !== "undefined") {
         document.getElementById("assistantPanel").addEventListener("keydown", e => {
             if (e.target.id !== "contractAskInput" || e.key !== "Enter") return;
             askTheContract(e.target.value);
+        });
+
+        /* 「AI 照片核对」 (js/photocheck.js): asked on demand, kept for this
+           browser session until the description or the photos change. */
+        const photoCheck = { key: null, state: null, thumbs: {} };
+        const PHOTO_CACHE = "voai.photocheck.";
+        function readPhotoCache(key) {
+            try { const s = sessionStorage.getItem(PHOTO_CACHE + key); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+        }
+        function writePhotoCache(key, state) {
+            try { sessionStorage.setItem(PHOTO_CACHE + key, JSON.stringify(state)); } catch (e) { /* storage off */ }
+        }
+        function drawPhotoCheck() {
+            const host = document.getElementById("photoCheckBody");
+            if (!host || typeof photoCheckAvailable !== "function") return;
+            const card = host.closest(".photo-check-card");
+            if (!photoCheckAvailable(project.id)) { card.hidden = true; return; }
+            const v = getProject(project.id).vos.find(x => x.id === voId);
+            const docs = photosToCheck(v), total = checkablePhotos(v).length;
+            const key = photoCheckKey(v, docs);
+            if (key !== photoCheck.key) { photoCheck.key = key; photoCheck.state = readPhotoCache(key); }
+            docs.forEach(d => {
+                if (!photoCheck.thumbs[d.id] && sampleUrl(d)) photoCheck.thumbs[d.id] = sampleUrl(d);
+            });
+            const loading = !!(photoCheck.state && photoCheck.state.loading);
+            const noDescription = !String(v.description || "").trim();
+            host.innerHTML =
+                '<p class="assistant-note">' + escapeHtml(t("photo.note")) + "</p>" +
+                (askAsGuest(project.id) ? '<p class="assistant-note ask-guest-note">' + escapeHtml(t("ask.guestNote")) + "</p>" : "") +
+                (docs.length ? '<div class="photo-check-actions"><button type="button" class="secondary-button" id="photoCheckBtn"' +
+                    (loading || noDescription ? " disabled" : "") + ">" +
+                    escapeHtml(t(photoCheck.state && photoCheck.state.results ? "photo.recheck" : "photo.check", { n: docs.length })) + "</button>" +
+                    (noDescription ? ' <span class="assistant-note">' + escapeHtml(t("photo.needDescription")) + "</span>" : "") + "</div>" : "") +
+                '<div id="photoCheckResult">' + renderPhotoCheck(photoCheck.state, docs, photoCheck.thumbs, total) + "</div>";
+        }
+        document.getElementById("photoCheckBody").addEventListener("click", async e => {
+            if (e.target.id !== "photoCheckBtn" || (photoCheck.state && photoCheck.state.loading)) return;
+            const v = getProject(project.id).vos.find(x => x.id === voId);
+            const docs = photosToCheck(v);
+            const key = photoCheckKey(v, docs);
+            photoCheck.state = { loading: true };
+            drawPhotoCheck();
+            let state;
+            try {
+                const blobs = await Promise.all(docs.map(d => photoBlob(d)));
+                docs.forEach((d, i) => { if (!photoCheck.thumbs[d.id]) photoCheck.thumbs[d.id] = URL.createObjectURL(blobs[i]); });
+                state = await askPhotos(project.id, "check", docs.map((d, i) => ({ id: d.id, blob: blobs[i] })), v.description);
+            } catch (err) {
+                state = { error: err.message || String(err) };
+            }
+            photoCheck.key = key;
+            photoCheck.state = state;
+            if (state && state.results) writePhotoCache(key, state);
+            drawPhotoCheck();
         });
 
         /* Where this VO's site photos were taken (js/sitemap.js); drawn
