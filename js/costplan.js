@@ -208,7 +208,7 @@ function renderSCurveSvg(curve, width, height) {
        given, fits the chart to the screen (the dashboard: the whole curve in
        view when the page opens) */
     const W = Math.max(300, Math.min(1800, Math.round(width || 760)));
-    const H = height ? Math.max(150, Math.min(460, Math.round(height)))
+    const H = height ? Math.max(130, Math.min(460, Math.round(height)))
         : Math.max(240, Math.min(440, Math.round(W * 0.4))), L = 70, R = 14, T = 16, B = 34;
     const pts = curve.points;
     const max = Math.max.apply(null, pts.map(p => Math.max(p.planned, p.forecast, p.actual || 0))) || 1;
@@ -302,7 +302,7 @@ function renderEarnedValue(e, opts) {
             t("evm.card.timeLine", { pct: (e.spi * 100).toFixed(0) }));
     const endCard = e.eac === null ? "" :
         card("evm.card.end", sign(e.vac), e.vac > 0 ? "evm.underrun" : e.vac < 0 ? "evm.overrun" : "evm.onBudget",
-            t(e.vac < 0 ? "evm.card.endOver" : "evm.card.endUnder", { eac: rm(e.eac), bac: rm(e.bac), amount: rm(Math.abs(e.vac)) }));
+            t(e.vac < 0 ? "evm.card.endOver" : e.vac > 0 ? "evm.card.endUnder" : "evm.card.endOn", { eac: rm(e.eac), bac: rm(e.bac), amount: rm(Math.abs(e.vac)) }));
     return '<h4 class="evm-title">' + escapeHtml(t("evm.title")) + "</h4>" +
         '<div class="evm-cards">' + costCard + timeCard + endCard + "</div>" +
         fold("evm-figures", escapeHtml(t("evm.allFigures")), table(

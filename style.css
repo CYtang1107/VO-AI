@@ -3591,7 +3591,8 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 /* With the cost overview (contractor, design team, client): S-curve | map
    on top, VO list | what needs you below, the rows lined up */
 @media (min-width: 1001px) {
-    .dash-has-cost .dash-grid { grid-template-areas: "cost map" "list attn"; align-items: stretch; }
+    .dash-has-cost .dash-grid { grid-template-areas: "cost map" "more more" "list attn"; align-items: stretch; }
+    .dash-has-cost .cost-more-slot { grid-area: more; }
     .dash-has-cost .dash-main, .dash-has-cost .dash-side { display: contents; }
     .dash-has-cost .cost-plan-card { grid-area: cost; }
     .dash-has-cost .recent-card { grid-area: list; }
@@ -3789,3 +3790,11 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 /* import and restore: quiet, so the projects stand out */
 .toolbar-quiet { font-size: 13px; color: var(--ink-2); padding: 6px 8px; cursor: pointer; text-decoration: none; }
 .toolbar-quiet:hover { text-decoration: underline; color: var(--accent); }
+
+/* the cost overview's "More", across the page under the curve and the map */
+.cost-more-slot { padding: 0; overflow: hidden; }
+.cost-more-slot[hidden] { display: none !important; }
+.cost-more-slot > .cp-more { margin: 0; }
+.cost-more-slot > .cp-more > summary { border-radius: 0; }
+.cost-more-slot > .cp-more > .fold-body { padding: 4px 18px 16px; }
+body:not(.dash-has-cost) .cost-more-slot { display: none !important; }

@@ -128,16 +128,33 @@ if (typeof document !== "undefined") {
             const top = costHost.getBoundingClientRect().top + window.scrollY;
             /* room under it for the status line, the five figures, the fold
                and the row below (the VO list and what needs you) */
-            return window.innerHeight - top - 190 - 168;
+            return window.innerHeight - top - 190 - 168 - 32;
         }
+        const moreSlot = document.getElementById("costMoreSlot");
+        const dashGrid = document.querySelector(".dash-grid");
+        /* with "More" open the page scrolls: the lower row keeps its height */
+        function noFit() {
+            const open = !!(moreSlot && moreSlot.querySelector("details.cp-more[open]"));
+            if (dashGrid) dashGrid.classList.toggle("no-fit", open);
+        }
+        if (moreSlot) moreSlot.addEventListener("toggle", () => { noFit(); if (typeof fitPanels === "function") fitPanels(); }, true);
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;
             const p = getProject(project.id) || project;
             keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, height: chartHeight(), range: costRange }); });
+            /* "More" opens across the page under the curve and the map,
+               so the map keeps its size */
+            if (moreSlot) {
+                const more = costHost.querySelector("details.cp-more");
+                moreSlot.innerHTML = "";
+                if (more) moreSlot.appendChild(more);
+                moreSlot.hidden = !more;
+                noFit();
+            }
             mountCostChart(costHost, viewCurve(sCurve(p, today()), costRange));
         }
         if (costHost) {
-            costHost.addEventListener("change", e => {
+            (dashGrid || costHost).addEventListener("change", e => {
                 /* the EAC situation, and a fresh estimate to complete */
                 if (costEditable && e.target.id === "evmMethod") {
                     updateProject(project.id, p => { p.eacMethod = e.target.value; });
@@ -156,7 +173,7 @@ if (typeof document !== "undefined") {
                 updateProject(project.id, p => { p.programme = { start: start, end: end }; });
                 drawCost();
             });
-            costHost.addEventListener("click", e => {
+            (dashGrid || costHost).addEventListener("click", e => {
                 const rangeBtn = e.target.closest(".sc-range-btn");
                 if (rangeBtn) {
                     costRange = rangeBtn.dataset.range;

@@ -1535,7 +1535,8 @@ var I18N_EN = {
     "vo.row.rematchTo": "↺ Match automatically: {code}",
     "projects.card.certified": "Certified {amount} · {pct} % of the forecast final cost",
     "projects.card.waiting": "{n} VO(s) waiting for you",
-    "projects.card.nothingWaiting": "Nothing waiting for you"
+    "projects.card.nothingWaiting": "Nothing waiting for you",
+    "evm.card.endOn": "Expected to cost {eac}: the same as the budget."
 };
 
 var I18N_ZH = {
@@ -3029,7 +3030,8 @@ var I18N_ZH = {
     "vo.row.rematchTo": "↺ 自动匹配为 {code}",
     "projects.card.certified": "已核证 {amount} · 占预计最终成本 {pct}%",
     "projects.card.waiting": "{n} 份变更单待您处理",
-    "projects.card.nothingWaiting": "目前没有待您处理的事项"
+    "projects.card.nothingWaiting": "目前没有待您处理的事项",
+    "evm.card.endOn": "预计完工成本 {eac}，与预算相同。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract
