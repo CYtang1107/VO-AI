@@ -329,6 +329,23 @@ function rowsFromInstruction(vo, bq, isWork, newId) {
     return { rows: rows.concat(added), added: added.length, replaced: (vo.measurement || []).length - rows.length };
 }
 
+/* A row with a description and no unit, not linked to a BQ item. */
+function needsUnit(r) {
+    return !!r && !r.bqItemId && !String(r.unit || "").trim() && !!String(r.description || "").trim() &&
+        typeof guessUnit === "function" && !!guessUnit(r.description);
+}
+/* Fills each such row's unit from its description; how many were filled. */
+function fillMissingUnits(rows) {
+    let n = 0;
+    (rows || []).forEach(r => {
+        if (!needsUnit(r)) return;
+        r.unit = guessUnit(r.description);
+        r.auto = Object.assign({}, r.auto, { unit: true });
+        n++;
+    });
+    return n;
+}
+
 function rowSummary(check, linkedItem, suggestion, row) {
     let text;
     if (check.state === "same") {
@@ -799,7 +816,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, rowsFromInstruction, wholeInstructionRow, renderPastRates, rowSummary, renderStdClause, rowActions,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, fillMissingUnits, rowsFromInstruction, wholeInstructionRow, renderPastRates, rowSummary, renderStdClause, rowActions,
         renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel,
         renderWorkflow, renderStepper
@@ -827,6 +844,14 @@ if (typeof document !== "undefined") {
         const vo = (project.vos || []).find(v => v.id === voId);
         if (!vo) { toast(t("vo.noLongerExists"), "error");
                    setTimeout(() => location.href = "register.html", 1200); return; }
+
+        /* rows made before units were filled in: the unit their description says */
+        if (canEdit("measurement", vo, role) && (vo.measurement || []).some(r => needsUnit(r))) {
+            updateVO(project.id, voId, v => {
+                const n = fillMissingUnits(v.measurement);
+                if (n) logHistory(v, session, "Filled in the unit of " + n + " row(s) from their description");
+            });
+        }
 
         function draw() { keepFolds(drawNow); }
 
