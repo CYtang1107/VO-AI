@@ -596,10 +596,6 @@ function costInputsBody(project, editable) {
         '<ul class="cp-certs">' + certs.map((c, i) => "<li>" + escapeHtml(t("costplan.certLine", { n: i + 1, date: c.date })) + " — <strong>" + rm(c.amount) + "</strong>" +
             (c.actual !== undefined && c.actual !== null && c.actual !== "" ? ' <span class="rate-detail">' + escapeHtml(t("costplan.actualLine", { amount: rm(Number(c.actual)) })) + "</span>" : "") +
             (editable ? ' <button type="button" class="link-button cp-cert-remove" data-date="' + escapeHtml(c.date) + '" data-amount="' + escapeHtml(String(c.amount)) + '">×</button>' : "") + "</li>").join("") + "</ul>" +
-        (editable ? '<div class="cp-add"><input type="date" id="cpCertDate" aria-label="' + escapeHtml(t("costplan.certDate")) + '">' +
-            '<input type="number" min="0" step="0.01" id="cpCertAmount" placeholder="' + escapeHtml(t("costplan.certAmount")) + '">' +
-            '<input type="number" min="0" step="0.01" id="cpCertActual" placeholder="' + escapeHtml(t("costplan.certActual")) + '">' +
-            '<button type="button" class="secondary-button" id="cpCertAdd">' + escapeHtml(t("costplan.certAdd")) + "</button></div>" : "") +
         '<p class="assistant-note">' + escapeHtml(t(editable ? "costplan.inputsNote" : "costplan.inputsReadOnly")) + "</p>";
 }
 

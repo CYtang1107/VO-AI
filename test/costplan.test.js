@@ -62,8 +62,8 @@ test("the card: tiles, the behind/ahead line, a legend for the three lines, a ta
     assert.match(html, /Planned \(baseline\)[\s\S]*Forecast \(at current performance\)[\s\S]*Certified \(actual\)/);
     assert.match(html, /class="sc-line sc-actual"/);
     assert.match(html, /Monthly performance data \(table\)/);
-    assert.match(html, /id="cpCertAdd"/);
-    assert.doesNotMatch(c.renderCostOverview(project(), "2026-09-12", { editable: false }), /cpCertAdd/);
+    assert.match(html, /id="cpStart"/, "the programme for those who keep it");
+    assert.doesNotMatch(html, /cpCertAdd/, "no form to add a certificate");
     assert.strictEqual(c.niceStep(3.1e6), 5e6);
 });
 
@@ -200,8 +200,7 @@ test("the S-curve page: one view at a time — the curve, how the project is doi
     html = at("table");
     assert.match(html, /class="cp-table"/);
     assert.strictEqual((html.match(/<tr><td>/g) || []).length, 18, "every month");
-    assert.match(at("inputs", true), /id="cpCertAdd"/);
-    assert.doesNotMatch(at("inputs", false), /cpCertAdd/);
+    assert.doesNotMatch(at("inputs", true), /cpCertAdd/, "no form to add a certificate");
     assert.match(at("inputs"), /Programme and payment certificates \(6\)/);
     assert.match(at("nonsense"), /class="cd-tab on" data-tab="curve"/);
 });
