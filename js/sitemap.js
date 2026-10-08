@@ -349,11 +349,13 @@ async function drawSiteMap(host, project, opts) {
     }
     const markers = groups.map((g, i) => {
         const m = byVo
-            ? L.marker([g.lat, g.lng], { title: g.voNo, icon: L.divIcon({ className: "vo-pin-icon", iconSize: null, iconAnchor: [8, 8], popupAnchor: [0, -6],
-                html: '<span class="vo-pin ' + escapeHtml(o.stageOf ? o.stageOf(g.voId) || "" : "") + '"><i></i>' + escapeHtml(g.voNo || "") +
-                      (g.pins.length > 1 ? " <b>" + g.pins.length + "</b>" : "") + "</span>" }) })
+            ? L.marker([g.lat, g.lng], { icon: L.divIcon({ className: "vo-pin-icon", iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -8],
+                html: '<span class="vo-pin ' + escapeHtml(o.stageOf ? o.stageOf(g.voId) || "" : "") + '">' + (g.pins.length > 1 ? g.pins.length : "") + "</span>" }) })
             : L.circleMarker([g.lat, g.lng], { radius: 8, color: "#fff", weight: 2, fillColor: "#2546c4", fillOpacity: 0.95 });
         m.addTo(map).bindPopup(popupHtml(g, i, escapeHtml(t("map.loadingPhoto"))), { maxWidth: 280 });
+        /* its number shows only when pointed at (a label on every pin crowds the map) */
+        if (byVo) m.bindTooltip(escapeHtml(g.voNo || "") + (g.pins.length > 1 ? " · " + escapeHtml(t("map.photosHere", { n: g.pins.length })) : ""),
+            { direction: "top", offset: [0, -10], className: "vo-pin-tip" });
         m.voId = g.voId;
         if (o.onPinVo) m.on("popupopen", () => o.onPinVo(g.voId));
         return m;
