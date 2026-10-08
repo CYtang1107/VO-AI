@@ -3930,3 +3930,12 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 20px; }
 .dash-stats-card .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: auto; }
 .dash-stats-card .card-body.stats-compact { grid-template-rows: 1fr 1fr; }
+
+/* the monthly figures: upload a cash-flow sheet, or type over a cell */
+.cd-cf-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin-bottom: 8px; }
+.cd-cf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cd-cf-actions select { padding: 6px 8px; border-radius: 8px; border: 1px solid #dfe3e8; font: inherit; font-size: 13px; }
+.cd-table .cd-cell input { width: 100%; max-width: 180px; text-align: right; padding: 2px 8px; border: 1px solid transparent; border-radius: 6px; font: inherit; background: transparent; }
+.cd-table .cd-cell input:hover, .cd-table .cd-cell input:focus { border-color: #cfd5df; background: #fff; }
+.cd-table .cd-cell { text-align: right; }
+.cd-table .cd-own, .cd-table .cd-own input { background: #fff8e1; }

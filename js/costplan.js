@@ -91,26 +91,147 @@ function sCurve(project, todayIso) {
     const certs = ((project.certificates) || []).filter(c => /^\d{4}-\d{2}-\d{2}/.test(c.date || "") && Number(c.amount) > 0)
         .sort((a, b) => a.date < b.date ? -1 : 1);
     const lastCert = certs.length ? certs[certs.length - 1].date : null;
+    /* the team's own monthly figures (uploaded from Excel or typed in,
+       project.cashflow.months, cumulative RM by "YYYY-MM") stand in for
+       the model's where given; a forecast not given follows the plan */
+    const cf = (project.cashflow && project.cashflow.months) || {};
+    const given = v => v !== undefined && v !== null && v !== "" && isFinite(Number(v));
+    const ratio = o.baseline ? o.forecast / o.baseline : 1;
     const points = months.map(date => {
         const x = (dayNo(date) - s) / (e - s);
         const certifiedTo = certs.filter(c => c.date <= date).reduce((a, c) => a + Number(c.amount), 0);
+        const own = cf[date.slice(0, 7)] || {};
+        const planned = given(own.planned) ? Math.round(Number(own.planned)) : Math.round(o.baseline * sFraction(x));
         return {
             date: date,
-            planned: Math.round(o.baseline * sFraction(x)),
-            forecast: Math.round(o.forecast * sFraction(x)),
+            planned: planned,
+            forecast: given(own.forecast) ? Math.round(Number(own.forecast))
+                : given(own.planned) ? Math.round(planned * ratio) : Math.round(o.forecast * sFraction(x)),
             /* actual only up to the month of the latest certificate */
-            actual: lastCert && date.slice(0, 7) <= lastCert.slice(0, 7) ? certifiedTo : null
+            actual: lastCert && date.slice(0, 7) <= lastCert.slice(0, 7) ? certifiedTo : null,
+            own: given(own.planned) || given(own.forecast)
         };
     });
     /* where things stand today: plan to date, and how far ahead or behind */
     const x = todayIso ? (dayNo(todayIso) - s) / (e - s) : null;
-    const plannedToday = x === null ? null : Math.round(o.baseline * sFraction(x));
+    let plannedToday = x === null ? null : Math.round(o.baseline * sFraction(x));
+    if (x !== null && points.some(p => p.own)) {
+        /* the team's own plan: between its month-ends, in a straight line */
+        const d = dayNo(todayIso);
+        let prevDay = s, prevVal = 0;
+        plannedToday = points[points.length - 1].planned;
+        for (const p of points) {
+            const pd = dayNo(p.date);
+            if (d <= pd) { plannedToday = Math.round(prevVal + (p.planned - prevVal) * Math.max(0, (d - prevDay) / ((pd - prevDay) || 1))); break; }
+            prevDay = pd; prevVal = p.planned;
+        }
+    }
     return {
         points: points, today: todayIso, todayX: x, plannedToday: plannedToday,
         certified: o.certified, behind: plannedToday === null ? null : plannedToday - o.certified,
         progressPct: o.baseline ? o.certified / o.baseline * 100 : 0,
         plannedPct: plannedToday === null || !o.baseline ? null : plannedToday / o.baseline * 100
     };
+}
+
+/* ---------- the monthly figures from a spreadsheet ----------
+   A cash-flow sheet (Excel or CSV) read into project.cashflow.months:
+   one column of months (2026-04, Apr 2026, Apr-26, 4/2026, 2026年4月,
+   4月 26, or an Excel date), and columns of money named for the plan
+   (plan / baseline / 计划 / 基准) and the forecast (forecast / 预测 /
+   预计). Without such names, the first column of money is the plan and
+   the second the forecast. A column that never falls is taken as
+   cumulative; otherwise as each month's amount, added up. */
+var MONTH_NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+function cfMonthKey(v) {
+    if (v === null || v === undefined) return null;
+    const str = String(v).trim();
+    if (!str) return null;
+    const ym = (y, m) => {
+        y = +y; m = +m;
+        if (y < 100) y += 2000;
+        return y >= 1990 && y <= 2100 && m >= 1 && m <= 12 ? y + "-" + String(m).padStart(2, "0") : null;
+    };
+    let m;
+    if (/^\d+(\.\d+)?$/.test(str)) {
+        /* an Excel date: days since 1899-12-30 */
+        const n = Number(str);
+        if (n < 20000 || n > 80000) return null;
+        const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(n) * 86400000);
+        return ym(d.getUTCFullYear(), d.getUTCMonth() + 1);
+    }
+    if ((m = str.match(/^(\d{4})[-\/.](\d{1,2})(?:[-\/.]\d{1,2})?/))) return ym(m[1], m[2]);
+    if ((m = str.match(/^(?:\d{1,2}[-\/.])?(\d{1,2})[-\/.](\d{4})$/))) return ym(m[2], m[1]);
+    if ((m = str.match(/^(\d{4})\s*年\s*(\d{1,2})\s*月/))) return ym(m[1], m[2]);
+    if ((m = str.match(/^(\d{1,2})\s*月\s*(\d{2,4})$/))) return ym(m[2], m[1]);
+    if ((m = str.match(/^([A-Za-z]{3})[A-Za-z]*[\s\-'’,.]*(\d{2,4})$/))) {
+        const i = MONTH_NAMES.indexOf(m[1].toLowerCase());
+        return i < 0 ? null : ym(m[2], i + 1);
+    }
+    return null;
+}
+
+function cfNumber(v) {
+    if (v === null || v === undefined) return null;
+    const str = String(v).trim().replace(/^(RM|MYR)\s*/i, "").replace(/,/g, "").replace(/\s+/g, "");
+    if (!/^-?\d+(\.\d+)?$/.test(str)) return null;
+    const n = Number(str);
+    return isFinite(n) ? n : null;
+}
+
+/* rows: the sheet as rows of cells. Returns { months, columns, mode,
+   matched } or { error }. */
+function readCashflowSheet(rows, forceMode) {
+    rows = (rows || []).map(r => (r || []).map(c => c === null || c === undefined ? "" : String(c)));
+    const width = Math.max(0, ...rows.map(r => r.length));
+    let monthCol = -1, best = 0;
+    for (let c = 0; c < width; c++) {
+        const n = rows.filter(r => cfMonthKey(r[c])).length;
+        if (n > best) { best = n; monthCol = c; }
+    }
+    if (best < 2) return { error: "noMonths" };
+    const dataRows = rows.filter(r => cfMonthKey(r[monthCol]));
+    const firstData = rows.findIndex(r => cfMonthKey(r[monthCol]));
+    const header = firstData > 0 ? rows[firstData - 1] : [];
+    const money = [];
+    for (let c = 0; c < width; c++) {
+        if (c === monthCol) continue;
+        const n = dataRows.filter(r => cfNumber(r[c]) !== null).length;
+        if (n >= Math.max(2, Math.ceil(dataRows.length / 2))) money.push(c);
+    }
+    if (!money.length) return { error: "noMoney" };
+    const name = c => String(header[c] || "").toLowerCase();
+    const role = {};
+    money.forEach(c => {
+        if (/actual|certif|实际|核证/.test(name(c))) role[c] = "skip";
+        else if (/forecast|预测|预计/.test(name(c))) role[c] = role.forecastCol === undefined ? (role.forecastCol = c, "forecast") : "skip";
+        else if (/plan|baseline|budget|计划|基准|预算/.test(name(c))) role[c] = role.plannedCol === undefined ? (role.plannedCol = c, "planned") : "skip";
+    });
+    money.filter(c => !role[c]).forEach(c => {
+        if (role.plannedCol === undefined) { role.plannedCol = c; role[c] = "planned"; }
+        else if (role.forecastCol === undefined) { role.forecastCol = c; role[c] = "forecast"; }
+    });
+    if (role.plannedCol === undefined && role.forecastCol === undefined) return { error: "noMoney" };
+    const months = {};
+    const mode = {};
+    [["planned", role.plannedCol], ["forecast", role.forecastCol]].forEach(pair => {
+        const k = pair[0], c = pair[1];
+        if (c === undefined) return;
+        const series = dataRows.map(r => ({ key: cfMonthKey(r[monthCol]), v: cfNumber(r[c]) })).filter(x => x.v !== null);
+        const cumulative = forceMode === "cumulative" ? true : forceMode === "monthly" ? false
+            : series.every((x, i) => i === 0 || x.v >= series[i - 1].v);
+        mode[k] = cumulative ? "cumulative" : "monthly";
+        let run = 0;
+        series.forEach(x => {
+            run = cumulative ? x.v : run + x.v;
+            months[x.key] = months[x.key] || {};
+            months[x.key][k] = Math.round(run * 100) / 100;
+        });
+    });
+    return { months: months, mode: mode, matched: Object.keys(months).length,
+             columns: { planned: role.plannedCol === undefined ? null : (header[role.plannedCol] || null),
+                        forecast: role.forecastCol === undefined ? null : (header[role.forecastCol] || null) } };
 }
 
 /* ---------- earned value ----------
@@ -461,11 +582,35 @@ function renderCostDetail(project, todayIso, opts) {
         body = renderEarnedValue(earnedValue(project, todayIso), { editable: editable })
             .replace('<details class="fold" data-fold="evm-figures">', '<details class="fold" data-fold="evm-figures" open>');
     } else if (tab === "table") {
-        body = '<div class="table-scroll cd-scroll" data-fit data-fit-gap="40"><table class="cp-table"><thead><tr><th>' + escapeHtml(t("costplan.col.month")) + "</th><th>" +
+        /* the monthly figures: the model's until the team uploads its own
+           cash-flow sheet or types over a cell (project.cashflow) */
+        const cf = project.cashflow || {};
+        const own = cf.months || {};
+        const cell = (p, k) => {
+            const key = p.date.slice(0, 7), mine = own[key] && own[key][k] !== undefined && own[key][k] !== "";
+            return editable
+                ? '<td class="cd-cell' + (mine ? " cd-own" : "") + '"><input type="text" inputmode="decimal" data-cf-key="' + key + '" data-cf-k="' + k + '" value="' +
+                    escapeHtml(Number(p[k]).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + '" aria-label="' +
+                    escapeHtml(shortMonth(p.date) + " " + t("costplan.series." + k)) + '"></td>'
+                : '<td class="cd-cell' + (mine ? " cd-own" : "") + '">' + rm(p[k]) + "</td>";
+        };
+        const source = cf.source ? t("costplan.cf.source", { name: cf.source.name || "—", date: cf.source.at || "" }) :
+            Object.keys(own).length ? t("costplan.cf.edited") : t("costplan.cf.model");
+        body = '<div class="cd-cf-bar">' +
+                '<span class="rate-detail">' + escapeHtml(source) + "</span>" +
+                (editable ? '<span class="cd-cf-actions">' +
+                    '<select id="cfMode" aria-label="' + escapeHtml(t("costplan.cf.modeLabel")) + '">' +
+                        ["auto", "cumulative", "monthly"].map(m => '<option value="' + m + '">' + escapeHtml(t("costplan.cf.mode." + m)) + "</option>").join("") + "</select>" +
+                    '<label class="doc-upload-btn">' + escapeHtml(t("costplan.cf.upload")) + '<input type="file" id="cfFile" accept=".xlsx,.csv" hidden></label>' +
+                    (Object.keys(own).length ? '<button type="button" class="link-button" id="cfReset">' + escapeHtml(t("costplan.cf.reset")) + "</button>" : "") +
+                "</span>" : "") +
+            "</div>" +
+            '<div class="table-scroll cd-scroll" data-fit data-fit-gap="40"><table class="cp-table"><thead><tr><th>' + escapeHtml(t("costplan.col.month")) + "</th><th>" +
             escapeHtml(t("costplan.series.planned")) + "</th><th>" + escapeHtml(t("costplan.series.forecast")) + "</th><th>" +
             escapeHtml(t("costplan.series.actual")) + "</th></tr></thead><tbody>" +
-            curve.points.map(p => "<tr><td>" + escapeHtml(shortMonth(p.date)) + "</td><td>" + rm(p.planned) + "</td><td>" + rm(p.forecast) +
-                "</td><td>" + (p.actual === null ? "—" : rm(p.actual)) + "</td></tr>").join("") + "</tbody></table></div>";
+            curve.points.map(p => "<tr><td>" + escapeHtml(shortMonth(p.date)) + "</td>" + cell(p, "planned") + cell(p, "forecast") +
+                "<td>" + (p.actual === null ? "—" : rm(p.actual)) + "</td></tr>").join("") + "</tbody></table></div>" +
+            '<p class="assistant-note">' + escapeHtml(t(editable ? "costplan.cf.note" : "costplan.cf.noteReadOnly")) + "</p>";
     } else {
         body = '<div class="cd-scroll" data-fit data-fit-gap="40">' + costInputsBody(project, editable) + "</div>";
     }
@@ -571,5 +716,5 @@ function mountCostChart(host, full) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep };
+    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep, readCashflowSheet, cfMonthKey };
 }
