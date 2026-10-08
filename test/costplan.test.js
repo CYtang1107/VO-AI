@@ -58,10 +58,10 @@ test("the demo as a browser first sees it: the programme moves with the VOs' dat
 test("the card: tiles, the behind/ahead line, a legend for the three lines, a table view, and inputs only for those who keep them", () => {
     const html = c.renderCostOverview(project(), "2026-09-12", { editable: true, width: 760 });
     assert.match(html, /Forecast final cost/);
-    assert.match(html, /Behind plan/);
+    assert.match(html, /Schedule delay:/);
     assert.match(html, /Planned \(baseline\)[\s\S]*Forecast \(with variations\)[\s\S]*Certified \(actual\)/);
     assert.match(html, /class="sc-line sc-actual"/);
-    assert.match(html, /Month by month \(table\)/);
+    assert.match(html, /Monthly performance data \(table\)/);
     assert.match(html, /id="cpCertAdd"/);
     assert.doesNotMatch(c.renderCostOverview(project(), "2026-09-12", { editable: false }), /cpCertAdd/);
     assert.strictEqual(c.niceStep(3.1e6), 5e6);
@@ -92,7 +92,7 @@ test("earned value of the demo: behind schedule and slightly over budget", () =>
     assert.strictEqual(e.cpi, 0.96);
     assert.ok(e.vac < 0, "an overrun is forecast");
     const html = c.renderEarnedValue(e);
-    assert.match(html, /Schedule performance index <abbr>SPI<\/abbr>[\s\S]*0\.86[\s\S]*behind schedule/);
+    assert.match(html, /Schedule performance index <abbr>SPI<\/abbr>[\s\S]*0\.86[\s\S]*Schedule delay/);
     assert.match(html, /BAC \/ CPI/);
 });
 
@@ -142,7 +142,7 @@ test("the EAC choice is shown with its formula; only those who keep the figures 
 test("a variance of exactly zero reads as on budget, not under budget", () => {
     const html = c.renderEarnedValue(c.earnedValue(Object.assign(project(), { eacMethod: "plan" }), "2026-09-12"), {});
     assert.match(html, /<abbr>VAC<\/abbr>[\s\S]*?RM 0\.00[\s\S]*?= on budget/);
-    assert.doesNotMatch(html, /expected to finish under budget/);
+    assert.doesNotMatch(html, /Forecast cost underrun/);
 });
 
 test("the EAC choice sits in a folded Advanced section that names the current choice", () => {
@@ -168,11 +168,11 @@ test("earned value opens with three plain-language cards; every figure is one cl
     const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), {});
     const shown = html.slice(0, html.indexOf('data-fold="evm-figures"'));
     assert.match(shown, /class="evm-cards"/);
-    ["Cost", "Schedule", "At completion"].forEach(k => assert.ok(shown.includes("<small>" + k + "</small>"), k + " card"));
-    assert.match(shown, /Every RM 1\.00 spent has done RM [\d.]+ of work\./);
+    ["Cost performance", "Schedule performance", "Forecast at completion"].forEach(k => assert.ok(shown.includes("<small>" + k + "</small>"), k + " card"));
+    assert.match(shown, /For every RM 1\.00 spent, the budgeted value of work completed is RM [\d.]+\./);
     assert.ok(!shown.includes("<abbr>"), "no abbreviation before the fold");
     const folded = html.slice(html.indexOf('data-fold="evm-figures"'));
-    const order = ["Cost baseline", "<abbr>BAC</abbr>", "Variance", "<abbr>CV</abbr>", "<abbr>SV</abbr>", "<abbr>VAC</abbr>", "Estimation", "<abbr>EAC</abbr>", "<abbr>ETC</abbr>",
+    const order = ["Cost baseline", "<abbr>BAC</abbr>", "Performance variance analysis", "<abbr>CV</abbr>", "<abbr>SV</abbr>", "<abbr>VAC</abbr>", "Cost forecast at completion", "<abbr>EAC</abbr>", "<abbr>ETC</abbr>",
                    "<abbr>PV</abbr>", "<abbr>EV</abbr>", "<abbr>AC</abbr>", "<abbr>SPI</abbr>", "<abbr>CPI</abbr>"];
     let at = -1;
     order.forEach(k => { const i = folded.indexOf(k); assert.ok(i > at, k + " in order"); at = i; });
@@ -185,7 +185,7 @@ test("the cost overview is for the contractor, the design team and the client; t
 
 test("the dashboard links to the S-curve page instead of folding everything under the curve", () => {
     const html = c.renderCostOverview(project(), "2026-09-12", { editable: true, detailHref: "costplan.html" });
-    assert.match(html, /<a class="cp-detail-link" href="costplan.html">See full details →<\/a>/);
+    assert.match(html, /<a class="cp-detail-link" href="costplan.html">Cost and schedule performance analysis →<\/a>/);
     assert.doesNotMatch(html, /data-fold="cp-more"/);
     assert.doesNotMatch(html, /cpCertAdd/);
 });
@@ -206,6 +206,6 @@ test("the S-curve page: one view at a time — the curve, how the project is doi
     assert.strictEqual((html.match(/<tr><td>/g) || []).length, 18, "every month");
     assert.match(at("inputs", true), /id="cpCertAdd"/);
     assert.doesNotMatch(at("inputs", false), /cpCertAdd/);
-    assert.match(at("inputs"), /Programme and certificates \(6\)/);
+    assert.match(at("inputs"), /Programme and payment certificates \(6\)/);
     assert.match(at("nonsense"), /class="cd-tab on" data-tab="curve"/);
 });
