@@ -15,6 +15,15 @@ test("the demo VOs: VO-001 done, VO-002 with the consultant QS, VO-003 being des
 test("the contractor describes (step 1), the contract agent checks (step 2), then it can be sent", () => {
     const v = draft();
     let html = renderWorkflow(v, project(), "contractor", { step: 1 });
+    /* the site before the work: a photo is required, a video optional */
+    assert.match(html, /data-media="beforeMedia" accept="image\/\*" capture="environment"/);
+    assert.match(html, /id="wfNext" disabled/);
+    assert.match(html, /Add at least one photo of the site before the work/);
+    v.beforeMedia = [{ id: "M0", name: "VID-0.mp4", kind: "video" }];
+    assert.match(renderWorkflow(v, project(), "contractor", { step: 1 }), /id="wfNext" disabled/, "a video alone is not enough");
+    v.beforeMedia.push({ id: "M1", name: "IMG-0.jpg", kind: "photo" });
+    html = renderWorkflow(v, project(), "contractor", { step: 1 });
+    assert.match(html, /id="wfNext">/);
     assert.match(html, /Step 1 · Describe the change/);
     assert.match(html, /data-field="description"/);
     assert.match(html, /data-field="contractorRemark"/);
@@ -31,7 +40,10 @@ test("the contractor describes (step 1), the contract agent checks (step 2), the
 test("sent: the design team adds drawings and documents, then approves or rejects", () => {
     const v = Object.assign(draft(), { sentToDesign: true });
     assert.strictEqual(voStage(v), "design");
+    v.beforeMedia = [{ id: "M1", name: "IMG-0.jpg", kind: "photo" }];
     const html = renderWorkflow(v, project(), "administrator", {});
+    assert.match(html, /data-media-field="beforeMedia"/, "the design team sees the site before the work");
+    assert.doesNotMatch(html, /class="media-picker"/, "but cannot change it");
     ["oldDrawing", "revisedDrawing", "designDocs"].forEach(f => assert.match(html, new RegExp('class="doc-picker" data-field="' + f + '"')));
     assert.match(html, /id="issueInstrBtn">Approve and issue the instruction/);
     assert.match(html, /id="wfReject"/);
@@ -46,8 +58,15 @@ test("approved: the contractor measures, attaches photos and submits to the cons
     const v = Object.assign(draft(), { instructionStatus: "Confirmed", issuedInstruction: { kind: "AI", no: "AI-027" } });
     assert.strictEqual(voStage(v), "measure");
     assert.strictEqual(canEdit("measurement", v, "contractor"), true);
-    const html = renderWorkflow(v, project(), "contractor", {});
+    let html = renderWorkflow(v, project(), "contractor", {});
     assert.match(html, /Approved \(Architect&#39;s Instruction \(AI\) AI-027\)/);
+    assert.match(html, /data-media="afterMedia" accept="image\/\*" capture="environment"/, "take a photo of the completed work");
+    assert.match(html, /data-media="afterMedia" accept="video\/\*"/, "a video may be added");
+    assert.match(html, /id="wfSubmitQs" disabled/, "not without a completed photo");
+    assert.match(html, /Add at least one photo of the completed work/);
+    assert.match(html, /AI check of the completed photos/);
+    v.afterMedia = [{ id: "M1", name: "IMG-1.jpg", kind: "photo" }, { id: "M2", name: "VID-1.mp4", kind: "video" }];
+    html = renderWorkflow(v, project(), "contractor", {});
     assert.match(html, /id="wfSubmitQs">Submit to the consultant QS/);
     assert.doesNotMatch(renderWorkflow(Object.assign(v, { measurement: [] }), project(), "contractor", {}), /id="wfSubmitQs">/,
         "a disabled button with no measured item");
@@ -57,6 +76,8 @@ test("the consultant QS assesses, submits to the client, or asks for information
     const v = JSON.parse(JSON.stringify(project().vos[1]));   /* VO-002 */
     let html = renderWorkflow(v, project(), "consultant", {});
     assert.match(html, /AI photo check/);
+    assert.match(html, /data-media-field="beforeMedia"[\s\S]*data-media-field="afterMedia"/, "before and after, side by side");
+    assert.match(html, /class="photo-check-host"/);
     assert.match(html, /id="wfSubmitClient"/);
     assert.match(html, /id="wfRequestInfo"/);
     Object.assign(v, { infoRequestedAt: "2026-10-01", infoRequestNote: "Show the sump base" });

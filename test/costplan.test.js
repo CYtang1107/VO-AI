@@ -294,3 +294,16 @@ test("the forecast runs from what is certified on to the estimate at completion,
     const n = c.sCurve(noAc, "2026-09-12");
     assert.strictEqual(n.points[n.points.length - 1].forecast, c.costOverview(noAc).forecast, "without actual costs: the plan with the VOs");
 });
+
+test("the delay in days: the day the plan reached what has been earned, and when it finishes at this pace", () => {
+    const { earnedSchedule, earnedValue } = require("../js/costplan.js");
+    const p = { programme: { start: "2026-01-01", end: "2026-12-31" }, contractSum: 1000000, vos: [],
+        certificates: [{ date: "2026-06-30", amount: 250000 }] };
+    const s = earnedSchedule(p, "2026-07-01", 250000);
+    assert.ok(s.delayDays > 0, "behind: " + s.delayDays);
+    assert.ok(s.esDate < "2026-07-01");
+    assert.ok(s.forecastEnd > "2026-12-31" && s.finishDelayDays > 0);
+    const on = earnedSchedule(p, "2026-07-02", earnedValue(p, "2026-07-02").pv);
+    assert.ok(Math.abs(on.delayDays) <= 1, "on plan: " + on.delayDays);
+    assert.strictEqual(earnedSchedule({ programme: null }, "2026-07-01", 1), null);
+});

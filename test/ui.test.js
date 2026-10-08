@@ -143,12 +143,12 @@ test("a demo document saved before urls existed still opens by its id", () => {
 test("the phone tab bar gives only the contractor the centre camera button to record on site", () => {
     const { renderBottomTabs } = require("../js/ui.js");
     const contractor = renderBottomTabs("dashboard", { role: "contractor" });
-    assert.ok(contractor.includes('href="capture.html"'));
+    assert.ok(contractor.includes('href="register.html?new=1"'));
     assert.ok(contractor.includes("has-capture"));
     assert.ok(/class="tab-item active"[^>]*href|href="dashboard.html" class="tab-item active"/.test(contractor));
     for (const role of ["consultant", "client"]) {
         const html = renderBottomTabs("register", { role: role });
-        assert.ok(!html.includes("capture.html"));
+        assert.ok(!html.includes("?new=1"));
         assert.ok(html.includes('href="register.html" class="tab-item active"'));
     }
 });

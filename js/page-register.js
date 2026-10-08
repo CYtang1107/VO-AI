@@ -174,16 +174,18 @@ if (typeof document !== "undefined") {
         if (ctx && document.getElementById("statCards")) {
             document.getElementById("statCards").innerHTML = renderStatCards(projectStats(ctx.project), ctx.session.role);
         }
-        /* Only the contractor raises a new VO: from the register, or from
-           site, photos first (capture.html). Moved here from the dashboard. */
+        /* Only the contractor raises a new VO. Its first step is the site
+           photos (js/media.js), which used to be their own page. The phone's
+           camera tab opens this page with ?new=1. */
         if (ctx && ctx.session.role === "contractor") {
             const newBtn = document.getElementById("newVoBtn");
-            document.getElementById("captureBtn").hidden = false;
             newBtn.hidden = false;
-            newBtn.addEventListener("click", () => {
+            const start = () => {
                 const vo = createVO(ctx.project.id, ctx.session);
-                window.location.href = "vo.html?id=" + encodeURIComponent(vo.id);
-            });
+                window.location.replace("vo.html?id=" + encodeURIComponent(vo.id));
+            };
+            newBtn.addEventListener("click", start);
+            if (/[?&]new=1\b/.test(location.search)) { start(); return; }
         }
         if (!ctx) return;
         const { session, project } = ctx;

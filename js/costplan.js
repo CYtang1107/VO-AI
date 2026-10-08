@@ -25,7 +25,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t, getLang } = require("./i18n.js");
-    var { rm, contractorTotal, assessedTotal } = require("./calc.js");
+    var { rm, contractorTotal, assessedTotal, prettyDate } = require("./calc.js");
     var { escapeHtml, fold } = require("./ui.js");
 }
 
@@ -291,6 +291,43 @@ function estimateAtCompletion(project, todayIso) {
     return { certs: certs, bac: bac, ev: ev, ac: ac, haveAc: haveAc, method: method, etcIn: etcIn, eac: eac, etc: etc };
 }
 
+/* Earned schedule: the day the plan reached what has been earned (EV).
+   Behind by (today − that day) days; at the same pace (SPI(t) = time
+   earned ÷ time gone), the programme's length ÷ SPI(t) is when it
+   finishes. null without a programme, or before it starts. */
+function earnedSchedule(project, todayIso, ev) {
+    const curve = sCurve(project, todayIso);
+    if (!curve || !todayIso) return null;
+    const p = project.programme, s = dayNo(p.start), e = dayNo(p.end), now = dayNo(todayIso);
+    if (now <= s) return null;
+    const own = curve.points.some(q => q.own);
+    const baseline = costOverview(project).baseline;
+    /* the plan on a day: the team's month-ends in straight lines, or the S-curve */
+    const planned = d => {
+        if (!own) return baseline * sFraction((d - s) / (e - s));
+        let prevDay = s, prevVal = 0;
+        for (const q of curve.points) {
+            const qd = dayNo(q.date);
+            if (d <= qd) return prevVal + (q.planned - prevVal) * Math.max(0, (d - prevDay) / ((qd - prevDay) || 1));
+            prevDay = qd; prevVal = q.planned;
+        }
+        return prevVal;
+    };
+    let lo = s, hi = e;
+    if (ev >= planned(e)) lo = hi = e;
+    else for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (planned(mid) < ev) lo = mid; else hi = mid; }
+    const es = Math.round(hi);
+    const at = now - s, earned = es - s;
+    const iso = d => new Date(d * 86400000).toISOString().slice(0, 10);
+    const spiT = at > 0 ? earned / at : null;
+    const length = e - s;
+    const finish = spiT ? Math.round(s + length / spiT) : null;
+    return {
+        esDate: iso(es), delayDays: Math.round(now - es), spiT: spiT === null ? null : Math.round(spiT * 100) / 100,
+        plannedEnd: p.end, forecastEnd: finish === null ? null : iso(finish), finishDelayDays: finish === null ? null : finish - e
+    };
+}
+
 function earnedValue(project, todayIso) {
     const curve = sCurve(project, todayIso);
     const est = estimateAtCompletion(project, todayIso);
@@ -306,6 +343,7 @@ function earnedValue(project, todayIso) {
         bac: bac, pv: pv, ev: ev, ac: ac, pctComplete: bac ? ev / bac * 100 : 0,
         sv: sv, spi: spi, cv: cv, cpi: cpi,
         method: method, eac: eac, etc: etc, vac: eac === null ? null : bac - eac,
+        schedule: earnedSchedule(project, todayIso, ev),
         missingAc: certs.length > 0 && !haveAc,
         missingEtc: method === "new" && etcIn === null
     };
@@ -454,6 +492,9 @@ function renderEarnedValue(e, opts) {
     const level = key => '<span class="evm-flag evm-level">= ' + escapeHtml(t(key)) + "</span>";
     const row = (abbr, formula, value, flag) => "<tr><th>" + escapeHtml(t("evm.name." + abbr)) + (zh ? "" : ' <abbr>' + abbr + "</abbr>") + "</th>" +
         '<td class="evm-formula">' + escapeHtml(evmFormula(formula)) + '</td><td class="num">' + value + "</td><td>" + (flag || "") + "</td></tr>";
+    /* a row with no abbreviation (the figures in days and dates) */
+    const namedRow = (nameKey, formula, value, flag) => "<tr><th>" + escapeHtml(t(nameKey)) + "</th>" +
+        '<td class="evm-formula">' + escapeHtml(evmFormula(formula)) + '</td><td class="num">' + escapeHtml(value) + "</td><td>" + (flag || "") + "</td></tr>";
     const group = key => '<tr class="evm-group"><th colspan="4">' + escapeHtml(t("evm.group." + key)) + "</th></tr>";
     const table = rows => '<div class="table-scroll"><table class="evm-table"><tbody>' + rows + "</tbody></table></div>";
     /* first, three cards in plain words: cost, schedule, at completion;
@@ -466,9 +507,17 @@ function renderEarnedValue(e, opts) {
         ? card("evm.card.cost", "none", "evm.card.costUnknown", t("evm.needAc"))
         : card("evm.card.cost", sign(e.cv), e.cv > 0 ? "evm.under" : e.cv < 0 ? "evm.over" : "evm.onBudget",
             t("evm.card.costLine", { rate: rm(e.cpi) }));
+    /* how many days behind (or ahead), and when it finishes at this pace */
+    const es = e.schedule;
+    const daysFlag = es && es.delayDays !== 0
+        ? t(es.delayDays > 0 ? "evm.behindDays" : "evm.aheadDays", { n: Math.abs(es.delayDays) }) : null;
+    const finishLine = es && es.forecastEnd ? " " + t(es.finishDelayDays > 0 ? "evm.card.finishLate" : es.finishDelayDays < 0 ? "evm.card.finishEarly" : "evm.card.finishOn",
+        { date: prettyDate(es.forecastEnd), end: prettyDate(es.plannedEnd), n: Math.abs(es.finishDelayDays) }) : "";
     const timeCard = e.spi === null ? "" :
-        card("evm.card.time", sign(e.sv), e.sv > 0 ? "evm.ahead" : e.sv < 0 ? "evm.behind" : "evm.onSchedule",
-            t("evm.card.timeLine", { pct: (e.spi * 100).toFixed(0) }));
+        '<div class="evm-card evm-' + sign(e.sv) + '"><small>' + escapeHtml(t("evm.card.time")) + "</small>" +
+        "<strong>" + escapeHtml(daysFlag || t(e.sv > 0 ? "evm.ahead" : e.sv < 0 ? "evm.behind" : "evm.onSchedule")) + "</strong><span>" +
+        escapeHtml(t("evm.card.timeLine", { pct: (e.spi * 100).toFixed(0) }) + finishLine) + "</span></div>";
+    const days = n => (n < 0 ? "−" : n > 0 ? "+" : "") + t("evm.days", { n: Math.abs(n) });
     const endCard = e.eac === null ? "" :
         card("evm.card.end", sign(e.vac), e.vac > 0 ? "evm.underrun" : e.vac < 0 ? "evm.overrun" : "evm.onBudget",
             t(e.vac < 0 ? "evm.card.endOver" : e.vac > 0 ? "evm.card.endUnder" : "evm.card.endOn", { eac: rm(e.eac), bac: rm(e.bac), amount: rm(Math.abs(e.vac)) }));
@@ -481,11 +530,18 @@ function renderEarnedValue(e, opts) {
             row("BAC", t("evm.f.BAC"), rm(e.bac)) +
             group("variance") +
             row("CV", "EV − AC", money(e.cv), e.cv === null ? "" : e.cv === 0 ? level("evm.onBudget") : verdict(e.cv > 0, "evm.under", "evm.over")) +
-            row("SV", "EV − PV", money(e.sv), e.sv === null ? "" : e.sv === 0 ? level("evm.onSchedule") : verdict(e.sv > 0, "evm.ahead", "evm.behind")) +
+            row("SV", "EV − PV", money(e.sv), e.sv === null ? "" : e.sv === 0 ? level("evm.onSchedule") :
+                '<span class="evm-flag ' + (e.sv > 0 ? "evm-good" : "evm-bad") + '">' + (e.sv > 0 ? "✓ " : "! ") + escapeHtml(daysFlag || t(e.sv > 0 ? "evm.ahead" : "evm.behind")) + "</span>") +
+            (es ? namedRow("evm.name.SVt", t("evm.f.SVt", { date: prettyDate(es.esDate) }), days(-es.delayDays),
+                es.delayDays === 0 ? level("evm.onSchedule") : verdict(es.delayDays < 0, "evm.ahead", "evm.behind")) : "") +
             row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : e.vac === 0 ? level("evm.onBudget") : verdict(e.vac > 0, "evm.underrun", "evm.overrun")) +
             group("estimate") +
             row("EAC", f[0], money(e.eac)) +
-            row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc))) + table(
+            row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc)) +
+            (es && es.forecastEnd ? namedRow("evm.name.finish", t("evm.f.finish", { end: prettyDate(es.plannedEnd), spi: es.spiT.toFixed(2) }),
+                prettyDate(es.forecastEnd), es.finishDelayDays === 0 ? level("evm.onSchedule") :
+                '<span class="evm-flag ' + (es.finishDelayDays < 0 ? "evm-good" : "evm-bad") + '">' + (es.finishDelayDays < 0 ? "✓ " : "! ") +
+                escapeHtml(t(es.finishDelayDays > 0 ? "evm.lateBy" : "evm.earlyBy", { n: Math.abs(es.finishDelayDays) })) + "</span>") : "")) + table(
             group("source") +
             row("PV", t("evm.f.PV"), money(e.pv)) +
             row("EV", t("evm.f.EV", { pct: e.pctComplete.toFixed(1) }), rm(e.ev)) +
@@ -751,5 +807,5 @@ function mountCostChart(host, full) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep, readCashflowSheet, cfMonthKey };
+    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, earnedSchedule, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep, readCashflowSheet, cfMonthKey };
 }

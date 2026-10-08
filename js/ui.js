@@ -173,8 +173,8 @@ function renderTopbar(title, crumb, session) {
 
 /* Phone layout: a bottom tab bar, the way site apps are laid out, so the
    main pages are one thumb-tap away. For the contractor, its centre is a
-   large camera button that opens capture.html — recording a variation
-   on site, photo first. Hidden above 700px by style.css. */
+   large camera button that starts a new VO, whose first step is the
+   site photos (js/media.js). Hidden above 700px by style.css. */
 var TAB_ICON = {
     dashboard: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     register:  '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
@@ -195,7 +195,7 @@ function renderBottomTabs(active, session) {
             tabIcon(id) + '<span>' + escapeHtml(t("tab." + id)) + '</span></a>';
     };
     const capture = session && session.role === "contractor"
-        ? '<a href="capture.html" class="tab-capture' + (active === "capture" ? ' active" aria-current="page' : '') + '">' +
+        ? '<a href="register.html?new=1" class="tab-capture">' +
               '<span class="tab-capture-ring">' + tabIcon("capture") + '</span>' +
               '<span>' + escapeHtml(t("tab.capture")) + '</span></a>'
         : "";

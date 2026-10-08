@@ -5,7 +5,7 @@
      consultant on the dashboard map (address search through OpenStreetMap's
      Nominatim, or a click on the map).
    - A site photo's place: doc.geo = {lat, lng, acc, src}, recorded when the
-     contractor takes it on the phone (js/page-capture.js): the photo's own
+     contractor takes it on the phone (js/media.js): the photo's own
      EXIF GPS when it has one, else the phone's position at that moment.
    - The map: on the dashboard (every VO's photos) and on a VO page (that
      VO's photos), each pin opening the photo.
@@ -27,7 +27,7 @@ var SAT_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imag
 var SAT_LABELS = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
 var SAT_ATTRIBUTION = "Imagery &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community";
 var MAP_VIEW_KEY = "voai.mapView.v1";
-var GEO_FIELDS = ["supportingDocs", "revisedDrawing", "oldDrawing", "contractDocs"];
+var GEO_FIELDS = ["beforeMedia", "afterMedia", "supportingDocs", "revisedDrawing", "oldDrawing", "contractDocs"];
 
 /* ---------- pure (tested in test/sitemap.test.js) ---------- */
 
@@ -349,11 +349,13 @@ async function drawSiteMap(host, project, opts) {
     }
     const markers = groups.map((g, i) => {
         const m = byVo
-            ? L.marker([g.lat, g.lng], { title: g.voNo, icon: L.divIcon({ className: "vo-pin-icon", iconSize: null, iconAnchor: [8, 8], popupAnchor: [0, -6],
-                html: '<span class="vo-pin ' + escapeHtml(o.stageOf ? o.stageOf(g.voId) || "" : "") + '"><i></i>' + escapeHtml(g.voNo || "") +
-                      (g.pins.length > 1 ? " <b>" + g.pins.length + "</b>" : "") + "</span>" }) })
+            ? L.marker([g.lat, g.lng], { icon: L.divIcon({ className: "vo-pin-icon", iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -8],
+                html: '<span class="vo-pin ' + escapeHtml(o.stageOf ? o.stageOf(g.voId) || "" : "") + '">' + (g.pins.length > 1 ? g.pins.length : "") + "</span>" }) })
             : L.circleMarker([g.lat, g.lng], { radius: 8, color: "#fff", weight: 2, fillColor: "#2546c4", fillOpacity: 0.95 });
         m.addTo(map).bindPopup(popupHtml(g, i, escapeHtml(t("map.loadingPhoto"))), { maxWidth: 280 });
+        /* its number shows only when pointed at (a label on every pin crowds the map) */
+        if (byVo) m.bindTooltip(escapeHtml(g.voNo || "") + (g.pins.length > 1 ? " · " + escapeHtml(t("map.photosHere", { n: g.pins.length })) : ""),
+            { direction: "top", offset: [0, -10], className: "vo-pin-tip" });
         m.voId = g.voId;
         if (o.onPinVo) m.on("popupopen", () => o.onPinVo(g.voId));
         return m;
