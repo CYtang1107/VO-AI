@@ -147,13 +147,21 @@ var CLAIM_PILL = { claimable: "approved", needsInfo: "pending", notClaimable: "r
 
 function renderClaimCheck(result, opts) {
     const o = opts || {};
-    return '<div class="claim-verdict claim-' + result.verdict + '">' +
-            '<span class="status ' + CLAIM_PILL[result.verdict] + '">' + escapeHtml(t("claim.verdict." + result.verdict)) + "</span>" +
-            '<span class="claim-summary">' + escapeHtml(t((result.early ? "claim.summaryEarly." : "claim.summary.") + result.verdict, { form: result.form })) + "</span>" +
+    /* a VO already approved or closed: the check is a record. Its verdict is
+       the one given when it was sent (or claimable, if it was not kept);
+       anything found missing since is only noted, not a new verdict. */
+    const settled = o.settled;
+    const verdict = settled && result.verdict !== "notClaimable"
+        ? (o.recorded && o.recorded.verdict === "notClaimable" ? "notClaimable" : "claimable") : result.verdict;
+    const state = s => settled && s === "missing" ? "info" : s;
+    const summary = settled ? t("claim.summary.settled." + settled) : t((result.early ? "claim.summaryEarly." : "claim.summary.") + verdict, { form: result.form });
+    return '<div class="claim-verdict claim-' + verdict + '">' +
+            '<span class="status ' + CLAIM_PILL[verdict] + '">' + escapeHtml(t("claim.verdict." + verdict)) + "</span>" +
+            '<span class="claim-summary">' + escapeHtml(summary) + "</span>" +
         "</div>" +
         '<ul class="claim-checks">' + result.checks.map(c =>
-            '<li class="claim-check claim-' + c.state + '">' +
-                '<span class="claim-icon" aria-hidden="true">' + CLAIM_ICON[c.state] + "</span>" +
+            '<li class="claim-check claim-' + state(c.state) + '">' +
+                '<span class="claim-icon" aria-hidden="true">' + CLAIM_ICON[state(c.state)] + "</span>" +
                 "<div><strong>" + escapeHtml(t("claim.check." + c.id)) + "</strong> " +
                 '<span class="claim-clause">' + escapeHtml(c.clause) + "</span>" +
                 '<p class="rate-detail">' + escapeHtml(c.reason) + "</p></div></li>").join("") +

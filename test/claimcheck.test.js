@@ -92,3 +92,15 @@ test("the card shows the verdict, each check with its clause, and what was recor
     assert.match(html, /PAM 2018 Clause 2\.2/);
     assert.match(html, /At submission the contract agent said: Claimable \(14 Jul 2026\)/);
 });
+
+test("an approved VO's check is a record: no new 'needs information', what is missing since is only noted", () => {
+    const { renderClaimCheck } = require("../js/claimcheck.js");
+    const result = { verdict: "needsInfo", form: "PAM 2018", checks: [{ id: "particulars", clause: "PAM 2018 Clause 11.5", state: "missing", reason: "Missing: 3 photo(s) not taken on site." }] };
+    const live = renderClaimCheck(result, {});
+    assert.match(live, /claim-needsInfo/);
+    const kept = renderClaimCheck(result, { settled: "approved", recorded: { verdict: "claimable", at: "1 Sep 2026" } });
+    assert.match(kept, /claim-verdict claim-claimable/);
+    assert.match(kept, /approved and closed/);
+    assert.match(kept, /claim-check claim-info/);
+    assert.doesNotMatch(kept, /claim-check claim-missing/);
+});

@@ -247,11 +247,20 @@ test("each measurement row shows its verdict in one line; the explanation folds 
     assert.ok(!/<details[^>]* open/.test(html), "folds start closed");
 });
 
-test("findings beyond the first three fold away", () => {
-    const { renderFindings } = require("../js/page-vo.js");
-    const five = renderFindings(["a", "b", "c", "d", "e"]);
-    assert.strictEqual((five.match(/class="finding"/g) || []).length, 5);
-    assert.ok(five.indexOf('data-fold="findings-more"') > five.indexOf("<span>c</span>"));
-    assert.ok(five.includes("2 more finding(s)"));
-    assert.ok(!renderFindings(["a", "b"]).includes("<details"));
+
+test("a row's next step sits on the row: match again when linked by hand; past rate, build-up and add-to-BQ for a new rate", () => {
+    const { rowActions } = require("../js/page-vo.js");
+    const star = { state: "star" }, same = { state: "same" };
+    const suggestion = { rate: 1080, matches: [{ unit: "no" }] };
+    const byHand = rowActions(0, { bqItemId: "BQ1" }, same, undefined, true, false, "D/1.2");
+    assert.match(byHand, /rematch-btn/);
+    assert.match(byHand, /D\/1\.2/);
+    assert.doesNotMatch(rowActions(0, { bqItemId: "BQ5" }, same, undefined, true, false, undefined), /rematch-btn/, "a hand link matching would also pick: no button");
+    assert.doesNotMatch(rowActions(0, { bqItemId: "BQ1", auto: { code: "B/4.1" } }, same, undefined, true, false), /rematch-btn/, "an automatic link needs no re-match");
+    const contractor = rowActions(1, { bqItemId: null }, star, suggestion, true, false);
+    assert.match(contractor, /use-past-btn[^>]*data-rate="1080"/);
+    assert.match(contractor, /goto-buildup-btn/);
+    assert.doesNotMatch(contractor, /add-bq-item-btn/, "only the consultant adds to the BQ");
+    assert.match(rowActions(1, { bqItemId: null }, star, suggestion, false, true), /add-bq-item-btn[^>]*data-rate="1080"/);
+    assert.strictEqual(rowActions(1, { bqItemId: null }, star, suggestion, false, false), "", "read-only: no buttons");
 });

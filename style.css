@@ -3558,7 +3558,7 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .wf-info label { width: 100%; font-size: 13px; font-weight: 700; }
 #wfInfoText { width: 100%; min-height: 80px; box-sizing: border-box; }
 .role-panels.record:not(.show-others) { display: none; }
-#assessmentSection[hidden], .card[hidden] { display: none !important; }
+.card[hidden] { display: none !important; }
 
 /* the VO register: site map and the VO counts on the left, the VO list on the right */
 .register-layout { display: grid; grid-template-columns: minmax(320px, 2fr) 3fr; gap: 20px; align-items: start; margin-bottom: 20px; }
@@ -3636,17 +3636,17 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     /* the register: the counts in one compact row under the map, the list scrolls */
     .register-layout { margin-bottom: 0; }
     .register-side { gap: 14px; }
-    .register-side .site-map { height: max(180px, calc(100vh - 385px)); }
+    .register-side .site-map { height: max(170px, calc(100vh - 402px)); }
     .register-summary-card .card-body.stats-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 10px; gap: 8px; }
     .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: 1 / -1; }
     .stats-compact .stat-card p { white-space: nowrap; }
     .stats-compact .stat-card small { display: none; }
-    .stats-compact .stat-icon { width: 18px; height: 18px; font-size: 9px; border-radius: 4px; }
-    .stats-compact .stat-card { padding: 8px 10px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; row-gap: 2px; }
+    .stats-compact .stat-icon { width: 24px; height: 24px; font-size: 11px; border-radius: 6px; }
+    .stats-compact .stat-card { padding: 10px 12px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 4px; }
     .stats-compact .stat-card > div:not(.stat-icon) { display: contents; }
     .stats-compact .stat-card h2 { grid-column: 1 / -1; }
-    .stats-compact .stat-card h2 { font-size: 15px; white-space: nowrap; margin: 0; }
-    .stats-compact .stat-card p { font-size: 11px; margin: 0 0 2px; }
+    .stats-compact .stat-card h2 { font-size: 22px; white-space: nowrap; margin: 0; }
+    .stats-compact .stat-card p { font-size: 14px; margin: 0; }
     .register-main .legend-bar { margin-bottom: 8px; padding: 6px 12px; }
     .register-filter-bar { padding: 10px 14px; gap: 8px 12px; }
     .register-scroll thead th { position: sticky; top: 0; z-index: 1; }
@@ -3752,3 +3752,12 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .evm-card.evm-bad strong { color: #b91c1c; }
 .evm-card.evm-level { border-left-color: var(--accent); }
 .evm-card strong::first-letter { text-transform: uppercase; }
+
+/* under the measurement table: what else a change like this usually needs measured */
+.measure-elements:empty { display: none; }
+.measure-elements { border-top: 1px solid var(--rule); padding-top: 12px; }
+
+/* a measurement row's next step, on the row: match again / past rate / build up / add to BQ */
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 6px; }
+.row-action { font-size: 13px; font-weight: 600; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); text-decoration: none; }
+.row-action:hover { border-color: var(--accent); }
