@@ -308,3 +308,8 @@ test("a short fragment of the instruction stays with its item; a typed or picked
     assert.strictEqual(p.bq.find(b => b.id === row.bqItemId).code, "B/5.1", "Chinese wording to the English BQ");
     assert.deepStrictEqual([row.unit, row.rate], ["m2", 34]);
 });
+test("a mix ratio in the instruction (1:3) stays in its item", () => {
+    const { instructionParts } = require("../js/analysis.js");
+    assert.deepStrictEqual(instructionParts("lay 200mm MS pipe, 20mm cement and sand (1:3) paving, 1：4 水泥砂浆找平"),
+        ["lay 200mm MS pipe", "20mm cement and sand (1:3) paving", "1:4 水泥砂浆找平"]);
+});

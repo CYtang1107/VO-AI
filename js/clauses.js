@@ -15,7 +15,7 @@ const CLAUSES = [
             "or quantity of the Works, including substitution of materials or goods. " +
             "Work instructed under this clause ranks for valuation.",
         evidence:
-            "The written Architect's Instruction, the superseded and revised drawings, " +
+            "The written Architect's Instruction, the original and revised drawings, " +
             "and a measurement showing what was omitted and what was added."
     },
     {

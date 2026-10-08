@@ -149,6 +149,14 @@ function upgradeDemo(db) {
        photos with where they were taken. Added only where missing — a site
        the consultant set, or a photo removed, is left as it is. */
     if (!demo.site) { demo.site = seed.site; changed = true; }
+    /* a demo site moved far from its photos (Batu Pahat, 187 km off, while
+       every photo is in Cheras) goes back to the demo site, once */
+    if (!demo.siteRestored) {
+        const s0 = demo.site;
+        if (s0 && (Math.abs(s0.lat - seed.site.lat) > 0.5 || Math.abs(s0.lng - seed.site.lng) > 0.5)) demo.site = seed.site;
+        demo.siteRestored = true;
+        changed = true;
+    }
     seed.vos.forEach(sv => {
         const vo = (demo.vos || []).find(v => v.id === sv.id);
         if (!vo) return;
@@ -647,7 +655,7 @@ var SEED_ZH = {
     "Extension of Time — Architect's Instruction": "延长工期——建筑师指示",
     "Variations and Provisional Sums": "变更与暂定金额",
     "A variation includes the alteration or modification of the design, quality or quantity of the Works, including substitution of materials or goods. Work instructed under this clause ranks for valuation.": "变更包括对工程的设计、质量或数量的更改或修改，包括材料或物品的替换。依本条发出指示的工程可获估价。",
-    "The written Architect's Instruction, the superseded and revised drawings, and a measurement showing what was omitted and what was added.": "书面建筑师指示、被取代及修订的图纸，以及列明删减与增加内容的计量。",
+    "The written Architect's Instruction, the original and revised drawings, and a measurement showing what was omitted and what was added.": "书面建筑师指示、原图纸及修订图纸，以及列明删减与增加内容的计量。",
     "Where the quantity executed differs from the quantity in the Contract Bills, the work is remeasured and valued at the Contract Bills rate. A substantial change in quantity may justify a rate review.": "实际完成数量与合同工程量清单不同时，工程须重新计量并按合同清单单价估价。数量大幅变动可作为调整单价的依据。",
     "The remeasurement, site records supporting the measured quantity, and the original Bills item for comparison.": "重新计量结果、支持计量数量的现场记录，以及供比较的原清单项目。",
     "Work of similar character executed under similar conditions is valued at the Contract Bills rates. Where the character or conditions differ, the Contract Bills rates form the basis of a fair valuation. Where there is no comparable rate, a fair market rate is agreed as a star rate.": "性质相似且在相似条件下施工的工程，按合同工程量清单单价估价；性质或条件不同时，以合同清单单价为合理估价的基础；没有可比单价时，按公平市场价商定为新增（星号）单价。",

@@ -664,7 +664,9 @@ function instructionWords(text) {
 }
 
 function instructionParts(text) {
-    const parts = String(text || "").split(/[,，;；。:：、\n]+/)
+    /* a mix ratio ("1:3") is not where the list breaks */
+    const parts = String(text || "").replace(/(\d)\s*[:：]\s*(?=\d)/g, "$1\u0001").split(/[,，;；。:：、\n]+/)
+        .map(p => p.replace(/\u0001/g, ":"))
         .map(p => p.trim()
             .replace(/^(and|also|then|plus|with)\s+/i, "")
             .replace(/^(a|an|the)\s+/i, "")

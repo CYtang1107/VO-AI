@@ -18,7 +18,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
    belongs to. */
 var VO_DOC_FIELDS = [
     { field: "revisedDrawing", label: "Revised drawing",    labelKey: "documents.field.revisedDrawing", bucket: "drawings" },
-    { field: "oldDrawing",     label: "Superseded drawing", labelKey: "documents.field.oldDrawing",      bucket: "drawings" },
+    { field: "oldDrawing",     label: "Original drawing", labelKey: "documents.field.oldDrawing",      bucket: "drawings" },
     { field: "designDocs",     label: "Design team document", labelKey: "documents.field.designDocs", bucket: "drawings" },
     { field: "supportingDocs", label: "Supporting document", labelKey: "documents.field.supportingDocs", bucket: "supporting" },
     { field: "contractDocs",   label: "Contract basis document", labelKey: "documents.field.contractDocs", bucket: "supporting" }

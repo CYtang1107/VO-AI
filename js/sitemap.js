@@ -119,6 +119,20 @@ function photoPins(project, voId) {
     return pins;
 }
 
+/* The register's map: a VO's photos taken close together (within
+   `metres`) make one pin, so each VO shows once, with its photo count.
+   Photos of one VO taken far apart stay separate pins. */
+function groupPins(pins, metres) {
+    const near = metres === undefined ? 40 : metres;
+    const groups = [];
+    pins.forEach(p => {
+        const g = groups.find(x => x.voId === p.voId && metresBetween(x, p) <= near);
+        if (g) g.pins.push(p);
+        else groups.push({ voId: p.voId, voNo: p.voNo, lat: p.lat, lng: p.lng, pins: [p] });
+    });
+    return groups;
+}
+
 /* Distance in metres between two points (haversine). */
 function metresBetween(a, b) {
     const rad = d => d * Math.PI / 180;
@@ -236,13 +250,19 @@ async function photoUrl(doc) {
     return typeof demoFileUrl === "function" ? demoFileUrl(doc) : "";
 }
 
-/* Draws the map into `host`. opts: {voId, canSetSite, onSiteSaved}. */
+/* Draws the map into `host`. opts: {voId, canSetSite, onSiteSaved}, and
+   on the register: stageOf(voId) (the pin's colour), infoOf(voId)
+   ({description, amount, step} for its popup) and onPinVo(voId) (a pin
+   was opened). Resolves to {focusVo(voId), filter(voIds)}, or null when
+   the map could not load. */
 async function drawSiteMap(host, project, opts) {
     const o = opts || {};
     const site = siteOf(project);
     const pins = photoPins(project, o.voId);
     host.innerHTML =
         '<div class="site-map" id="' + host.id + 'Canvas"></div>' +
+        (!o.voId && o.stageOf && pins.length ? '<div class="vo-pin-legend">' + ["stage-progress", "stage-done", "stage-rejected", "stage-draft"]
+            .map(k => '<span class="vo-pin-key ' + k + '">' + escapeHtml(t("register.stage." + k)) + "</span>").join("") + "</div>" : "") +
         '<p class="assistant-note site-map-summary">' + escapeHtml(mapSummary(site, pins)) + "</p>" +
         (o.voId ? renderPhotoLocations(photoLocations(project, (project.vos || []).find(v => v.id === o.voId))) : "") +
         (o.canSetSite ? '<div class="site-map-set">' +
@@ -251,7 +271,7 @@ async function drawSiteMap(host, project, opts) {
             '<span class="assistant-note">' + escapeHtml(t("map.clickToSet")) + "</span></div>" : "");
     let L;
     try { L = await loadLeaflet(); }
-    catch (e) { host.querySelector(".site-map").innerHTML = '<div class="empty-state">' + escapeHtml(t("map.offline")) + "</div>"; return; }
+    catch (e) { host.querySelector(".site-map").innerHTML = '<div class="empty-state">' + escapeHtml(t("map.offline")) + "</div>"; return null; }
 
     const map = L.map(host.querySelector(".site-map"), { scrollWheelZoom: true, wheelPxPerZoomLevel: 90 });
     /* street map or satellite photo, switched top right; the choice is
@@ -308,15 +328,35 @@ async function drawSiteMap(host, project, opts) {
     let siteMarker = site ? L.marker([site.lat, site.lng], { icon: siteIcon, title: t("map.site") })
         .bindPopup("<strong>" + escapeHtml(t("map.site")) + "</strong><br>" + escapeHtml(seedText(site.address) || "")).addTo(map) : null;
 
-    function popupHtml(p, i, inner) {
-        return '<div class="site-photo-pop"><strong>' + escapeHtml(p.voNo || "") + "</strong> " + escapeHtml(p.name) +
+    /* On a VO page: a pin a photo. On the register: a pin a VO (its photos
+       taken together), labelled with its number and coloured by where it
+       stands, the popup saying what it is, what it claims and where it is. */
+    const byVo = !o.voId;
+    const groups = byVo ? groupPins(pins) : pins.map(p => ({ voId: p.voId, voNo: p.voNo, lat: p.lat, lng: p.lng, pins: [p] }));
+    function popupHtml(g, i, inner) {
+        const p = g.pins[0];
+        const info = byVo && o.infoOf ? o.infoOf(g.voId) || {} : {};
+        const desc = String(info.description || "");
+        return '<div class="site-photo-pop"><strong>' + escapeHtml(p.voNo || "") + "</strong> " +
+            (byVo ? (info.step ? '<span class="vo-pin-step ' + escapeHtml(o.stageOf ? o.stageOf(g.voId) || "" : "") + '">' + escapeHtml(info.step) + "</span>" : "")
+                  : escapeHtml(p.name)) +
+            (byVo && desc ? '<div class="vo-pin-desc">' + escapeHtml(desc.length > 80 ? desc.slice(0, 78) + "…" : desc) + "</div>" : "") +
+            (byVo && info.amount ? '<div class="vo-pin-amount">' + escapeHtml(info.amount) + "</div>" : "") +
             '<div class="site-photo-img" data-pin="' + i + '">' + inner + "</div>" +
-            '<span class="assistant-note">' + escapeHtml(t(p.src === "exif" ? "map.fromExif" : "map.fromGps")) + "</span>" +
-            (o.voId ? "" : '<br><a href="vo.html?id=' + encodeURIComponent(p.voId) + '">' + escapeHtml(t("map.openVo")) + "</a>") + "</div>";
+            '<span class="assistant-note">' + (g.pins.length > 1 ? escapeHtml(t("map.photosHere", { n: g.pins.length })) + " · " : "") +
+                escapeHtml(t(p.src === "exif" ? "map.fromExif" : "map.fromGps")) + "</span>" +
+            (o.voId ? "" : '<br><a href="vo.html?id=' + encodeURIComponent(p.voId) + '">' + escapeHtml(t("map.openVo")) + " →</a>") + "</div>";
     }
-    pins.forEach((p, i) => {
-        L.circleMarker([p.lat, p.lng], { radius: 8, color: "#fff", weight: 2, fillColor: "#2546c4", fillOpacity: 0.95 })
-            .addTo(map).bindPopup(popupHtml(p, i, escapeHtml(t("map.loadingPhoto"))));
+    const markers = groups.map((g, i) => {
+        const m = byVo
+            ? L.marker([g.lat, g.lng], { title: g.voNo, icon: L.divIcon({ className: "vo-pin-icon", iconSize: null, iconAnchor: [8, 8], popupAnchor: [0, -6],
+                html: '<span class="vo-pin ' + escapeHtml(o.stageOf ? o.stageOf(g.voId) || "" : "") + '"><i></i>' + escapeHtml(g.voNo || "") +
+                      (g.pins.length > 1 ? " <b>" + g.pins.length + "</b>" : "") + "</span>" }) })
+            : L.circleMarker([g.lat, g.lng], { radius: 8, color: "#fff", weight: 2, fillColor: "#2546c4", fillOpacity: 0.95 });
+        m.addTo(map).bindPopup(popupHtml(g, i, escapeHtml(t("map.loadingPhoto"))), { maxWidth: 280 });
+        m.voId = g.voId;
+        if (o.onPinVo) m.on("popupopen", () => o.onPinVo(g.voId));
+        return m;
     });
     /* a pin's photo is fetched the first time its popup opens; the popup's
        content is then replaced (setContent), since Leaflet redraws a popup
@@ -330,15 +370,15 @@ async function drawSiteMap(host, project, opts) {
         if (loaded[i] === undefined) {
             loaded[i] = null;
             let url = "";
-            try { url = await photoUrl(pins[i].doc); } catch (e) { url = ""; }
+            try { url = await photoUrl(groups[i].pins[0].doc); } catch (e) { url = ""; }
             loaded[i] = url ? '<img src="' + url + '" alt="">' : escapeHtml(t("map.photoNotHere"));
-            ev.popup.setContent(popupHtml(pins[i], i, loaded[i]));
+            ev.popup.setContent(popupHtml(groups[i], i, loaded[i]));
             /* a photo that fails to load (not on the site yet, offline)
                says so instead of leaving an empty box */
             const img = ev.popup.getElement() && ev.popup.getElement().querySelector(".site-photo-img img");
             if (img) img.addEventListener("error", () => {
                 loaded[i] = escapeHtml(t("map.photoNotHere"));
-                ev.popup.setContent(popupHtml(pins[i], i, loaded[i]));
+                ev.popup.setContent(popupHtml(groups[i], i, loaded[i]));
             }, { once: true });
         }
     });
@@ -358,17 +398,36 @@ async function drawSiteMap(host, project, opts) {
 
     /* a click on the site or on a photo zooms in to it */
     if (siteMarker) siteMarker.on("click", () => map.flyTo(siteMarker.getLatLng(), 18, { duration: 0.8 }));
-    map.eachLayer(layer => {
-        if (!(layer instanceof L.CircleMarker)) return;
-        /* aim above the pin, so its photo popup fits on the map */
-        layer.on("click", () => {
-            const z = Math.max(map.getZoom(), 19);
-            const centre = map.unproject(map.project(layer.getLatLng(), z).subtract([0, 130]), z);
-            map.flyTo(centre, z, { duration: 0.8 });
-        });
-    });
+    /* aim above the pin, so its photo popup fits on the map */
+    function flyToPin(layer) {
+        const z = Math.max(map.getZoom(), 19);
+        const centre = map.unproject(map.project(layer.getLatLng(), z).subtract([0, 130]), z);
+        map.flyTo(centre, z, { duration: 0.8 });
+    }
+    markers.forEach(m => m.on("click", () => flyToPin(m)));
 
-    if (!o.canSetSite) return;
+    /* the register: a row's 📍 shows its VO here; its search and filters
+       show only the VOs they list */
+    const api = {
+        focusVo(voId) {
+            const mine = markers.filter(m => m.voId === voId && map.hasLayer(m));
+            if (!mine.length) return false;
+            if (mine.length > 1) map.fitBounds(mine.map(m => m.getLatLng()), { padding: [40, 40], maxZoom: 19 });
+            else flyToPin(mine[0]);
+            setTimeout(() => mine[0].openPopup(), mine.length > 1 ? 50 : 850);
+            return true;
+        },
+        filter(voIds) {
+            const keep = voIds ? new Set(voIds) : null;
+            markers.forEach(m => {
+                const show = !keep || keep.has(m.voId);
+                if (show && !map.hasLayer(m)) m.addTo(map);
+                if (!show && map.hasLayer(m)) map.removeLayer(m);
+            });
+        }
+    };
+
+    if (!o.canSetSite) return api;
     function setSite(lat, lng, address) {
         const next = { lat: round6(lat), lng: round6(lng), address: address || "" };
         if (siteMarker) siteMarker.setLatLng([next.lat, next.lng]);
@@ -380,7 +439,12 @@ async function drawSiteMap(host, project, opts) {
         o.onSiteSaved && o.onSiteSaved(next);
         host.querySelector(".site-map-summary").textContent = mapSummary(next, pins);
     }
-    map.on("click", ev => setSite(ev.latlng.lat, ev.latlng.lng, ""));
+    /* a click moves the site only when the consultant says so: a stray
+       click while looking at the pins must not move it */
+    map.on("click", ev => {
+        if (typeof confirm === "function" && !confirm(t("map.confirmMove"))) return;
+        setSite(ev.latlng.lat, ev.latlng.lng, "");
+    });
     async function search() {
         const q = host.querySelector(".site-search").value.trim();
         if (!q) return;
@@ -394,9 +458,10 @@ async function drawSiteMap(host, project, opts) {
     }
     host.querySelector(".site-search-btn").addEventListener("click", search);
     host.querySelector(".site-search").addEventListener("keydown", e => { if (e.key === "Enter") search(); });
+    return api;
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { validLatLng, exifGps, photoGeo, siteOf, photoPins, metresBetween, mapSummary,
+    module.exports = { validLatLng, exifGps, photoGeo, siteOf, photoPins, groupPins, metresBetween, mapSummary,
         SITE_RADIUS_M, photoLocations, renderPhotoLocations };
 }
