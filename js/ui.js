@@ -296,8 +296,9 @@ function requireProject() {
     const session = requireSession();
     if (!session) return null;
     const db = loadDB();
-    const project = db.projects.find(p => p.id === session.projectId);
-    if (!project) { window.location.href = "projects.html"; return null; }
+    const stored = db.projects.find(p => p.id === session.projectId);
+    if (!stored) { window.location.href = "projects.html"; return null; }
+    const project = typeof forViewer === "function" ? forViewer(stored, session) : stored;
     return { session: session, project: project };
 }
 
