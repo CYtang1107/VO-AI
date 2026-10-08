@@ -91,7 +91,9 @@ test("the consultant QS assesses, submits to the client, or asks for information
     assert.strictEqual(voStage(v), "info");
     html = renderWorkflow(v, project(), "contractor", {});
     assert.match(html, /Show the sump base/);
-    assert.match(html, /id="wfSendBack"/);
+    assert.match(html, /id="wfGoMeasure"/, "the reply, then on to the measurement");
+    assert.match(renderMeasureSubmit(v, "contractor", {}), /id="wfSendBack" disabled/, "sent back from the measurement tab, once written");
+    assert.match(renderMeasureSubmit(v, "contractor", { infoText: "Photo attached" }), /id="wfSendBack">/);
     v.infoResponse = { text: "Photo attached", at: "2026-10-02", forRequest: infoRequestKey(v) };
     assert.strictEqual(voStage(v), "consultant");
     assert.match(renderWorkflow(v, project(), "consultant", {}), /The contractor replied on .*Photo attached/);
