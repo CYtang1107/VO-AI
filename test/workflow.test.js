@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 
 const { voStage, canEdit, infoRequestKey } = require("../js/permissions.js");
-const { renderWorkflow } = require("../js/page-vo.js");
+const { renderWorkflow, renderMeasureSubmit } = require("../js/page-vo.js");
 const { seedDB } = require("../js/store.js");
 
 const project = () => seedDB().projects[0];
@@ -62,15 +62,21 @@ test("approved: the contractor measures, attaches photos and submits to the cons
     assert.match(html, /Approved · Architect&#39;s Instruction \(AI\) AI-027/);
     assert.match(html, /data-media="afterMedia" accept="image\/\*" capture="environment"/, "take a photo of the completed work");
     assert.match(html, /data-media="afterMedia" accept="video\/\*"/, "a video may be added");
-    assert.match(html, /id="wfSubmitQs" disabled/, "not without a completed photo");
-    assert.match(html, /<li class="todo">○ Completed photo \(0\)<\/li>/);
+    assert.match(html, /id="wfGoMeasure">Next: measure →/, "photos first, then on to the measurement");
+    assert.doesNotMatch(html, /wfSubmitQs/, "submitted from the measurement tab");
+    let bar = renderMeasureSubmit(v, "contractor");
+    assert.match(bar, /id="wfSubmitQs" disabled/, "not without a completed photo");
+    assert.match(bar, /<li class="todo">○ Completed photo \(0\)<\/li>/);
+    assert.match(bar, /id="wfGoPhotos"/);
     assert.doesNotMatch(html, /AI photo check/, "nothing to check yet");
     v.afterMedia = [{ id: "M1", name: "IMG-1.jpg", kind: "photo" }, { id: "M2", name: "VID-1.mp4", kind: "video" }];
     html = renderWorkflow(v, project(), "contractor", {});
     assert.match(html, /AI photo check/);
-    assert.match(html, /id="wfSubmitQs">Submit to the consultant QS/);
-    assert.doesNotMatch(renderWorkflow(Object.assign(v, { measurement: [] }), project(), "contractor", {}), /id="wfSubmitQs">/,
+    bar = renderMeasureSubmit(v, "contractor");
+    assert.match(bar, /id="wfSubmitQs">Submit to the consultant QS/);
+    assert.match(renderMeasureSubmit(Object.assign(v, { measurement: [] }), "contractor"), /id="wfSubmitQs" disabled/,
         "a disabled button with no measured item");
+    assert.strictEqual(renderMeasureSubmit(v, "consultant"), "", "only the contractor submits");
 });
 
 test("the consultant QS assesses, submits to the client, or asks for information; the contractor answers", () => {
