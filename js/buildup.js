@@ -289,8 +289,9 @@ function renderBuildUpCard(vo, project, opts) {
     if (!rows.length) return '<div class="empty-state">' + escapeHtml(t("buildup.noRows")) + "</div>";
     const i = Math.min(Math.max(0, o.rowIndex || 0), rows.length - 1);
     const row = rows[i];
-    const b = row.buildUp || suggestBuildUp(row, project) || { items: [], ohp: 15 };
-    const drafted = !row.buildUp && b.items.length > 0;
+    /* the author's own build-up (js/private.js), else a draft from the row */
+    const b = o.buildUp || suggestBuildUp(row, project) || { items: [], ohp: 15 };
+    const drafted = !o.buildUp && b.items.length > 0;
     const r = buildUpRate(b);
     const region = regionOf(project);
     const dis = o.editable ? "" : " disabled";
@@ -334,11 +335,9 @@ function renderBuildUpCard(vo, project, opts) {
         (o.canEditPriceList ? '<textarea id="buPriceListInput" rows="4" placeholder="' + escapeHtml(t("buildup.priceListPh")) + '"></textarea>' +
             '<button type="button" class="secondary-button" id="buPriceListSave">' + escapeHtml(t("buildup.priceListSave")) + "</button>" : ""));
 
-    return '<div class="bu-head">' +
-            '<label>' + escapeHtml(t("buildup.row")) + ' <select id="buRow">' + rows.map((x, k) =>
-                '<option value="' + k + '"' + (k === i ? " selected" : "") + ">" + (o.stars && o.stars.has(k) ? "★ " : "") +
-                escapeHtml((k + 1) + ". " + (seedText(x.description) || t("buildup.untitledRow")) + (x.unit ? " (" + x.unit + ")" : "")) + "</option>").join("") +
-            "</select></label>" +
+    return '<p class="bu-private">' + escapeHtml(t(o.privateNote || "buildup.private.contractor")) + "</p>" +
+        '<div class="bu-head">' +
+            (o.hideRow ? "" : rowPicker(rows, i, o.stars)) +
             '<span class="rate-detail">' + escapeHtml(t("buildup.region." + region.from, { region: t("buildup.regionName." + region.id), f: region.factor.toFixed(2) })) + "</span>" +
         "</div>" +
         (o.stars && o.stars.has(i) ? '<p class="assistant-note">' + escapeHtml(t("buildup.starNote")) + "</p>" : "") +
@@ -362,6 +361,38 @@ function renderBuildUpCard(vo, project, opts) {
         (typeof renderSuppliers === "function"
             ? fold("bu-suppliers", escapeHtml(t("suppliers.title")), '<div id="suppliersBody">' + renderSuppliers(project, o.suppliers || null) + "</div>") : "") +
         '<p class="assistant-note">' + escapeHtml(t("buildup.note")) + "</p>";
+}
+
+function rowPicker(rows, i, stars) {
+    return '<label>' + escapeHtml(t("buildup.row")) + ' <select id="buRow">' + rows.map((x, k) =>
+        '<option value="' + k + '"' + (k === i ? " selected" : "") + ">" + (stars && stars.has(k) ? "★ " : "") +
+        escapeHtml((k + 1) + ". " + (seedText(x.description) || t("buildup.untitledRow")) + (x.unit ? " (" + x.unit + ")" : "")) + "</option>").join("") +
+        "</select></label>";
+}
+
+/* What the rest of the team sees of the contractor's build-up for a row:
+   materials, labour, machinery and tools, profit and the rate — never its
+   lines (they stay with the contractor, js/private.js). */
+function renderBuildUpSummary(vo, opts) {
+    const o = opts || {};
+    const rows = (vo.measurement || []);
+    if (!rows.length) return '<div class="empty-state">' + escapeHtml(t("buildup.noRows")) + "</div>";
+    const i = Math.min(Math.max(0, o.rowIndex || 0), rows.length - 1);
+    const row = rows[i];
+    const sm = row.buildUpSummary;
+    const head = '<div class="bu-head">' + rowPicker(rows, i, o.stars) + "</div>";
+    if (!sm) return head + '<p class="assistant-note">' + escapeHtml(t("buildup.summary.none")) + "</p>";
+    const box = (label, v, cls) => '<div' + (cls ? ' class="' + cls + '"' : "") + "><small>" + escapeHtml(label) + "</small><strong>" + rm(v) + "</strong></div>";
+    const differs = Number(row.rate) > 0 && Math.abs(Number(row.rate) - Number(sm.rate)) > 0.005;
+    return head +
+        '<p class="rate-detail">' + escapeHtml(t("buildup.summary.title", { date: sm.at || "" })) + "</p>" +
+        '<div class="bu-totals bu-summary">' +
+            box(t("buildup.total.material"), sm.material) + box(t("buildup.total.labour"), sm.labour) + box(t("buildup.total.plant"), sm.plant) +
+            box(t("buildup.total.ohp") + " " + (Number(sm.profitPct) || 0) + " %", sm.profit) +
+            box(t("buildup.total.rate", { unit: row.unit || t("buildup.unit") }), sm.rate, "bu-rate") +
+        "</div>" +
+        (differs ? '<p class="assistant-note">' + escapeHtml(t("buildup.summary.differs", { rate: rm(Number(row.rate)) })) + "</p>" : "") +
+        '<p class="assistant-note">' + escapeHtml(t("buildup.summary.private")) + "</p>";
 }
 
 /* Rent or buy, for each plant item of the build-up that has a purchase
@@ -388,5 +419,5 @@ function renderRentOrBuy(plant, state) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, regionOf, priceListMatch, suggestBuildUp, buildUpRate, itemAmount, roundUp, thicknessOf, rentOrBuy, parsePriceList,
-        renderBuildUpCard, renderRentOrBuy };
+        renderBuildUpCard, renderBuildUpSummary, renderRentOrBuy };
 }

@@ -96,6 +96,31 @@ select pg_temp.expect_fail($$select public.save_project('PRJ-1', '{"name":"hacke
 select public.save_project('PRJ-NEW', '{"name":"Outsider own"}');
 select pg_temp.expect((select role from public.members where project_id = 'PRJ-NEW') = 'consultant', 'save_project creates a project with its creator as consultant');
 
+-- private build-ups and price lists (0007): only their owner, only while a member
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into public.private_notes (project_id, key, data) values ('PRJ-1', 'buildup/VO-1/M1', '{"items":[{"name":"Backhoe","price":475}]}');
+insert into public.private_notes (project_id, key, data) values ('PRJ-1', 'pricelist', '[{"name":"Tiler","unit":"day","price":150}]');
+select pg_temp.expect((select count(*) from public.private_notes) = 2, 'contractor sees own private notes');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect((select count(*) from public.private_notes) = 0, 'consultant cannot see the contractor''s build-up');
+update public.private_notes set data = '{}' where project_id = 'PRJ-1';
+delete from public.private_notes where project_id = 'PRJ-1';
+select pg_temp.expect_fail($$insert into public.private_notes (project_id, owner, key, data) values ('PRJ-1', '00000000-0000-0000-0000-00000000000c', 'pricelist', '[]')$$,
+                           'cannot write a note as someone else');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+select pg_temp.expect((select count(*) from public.private_notes) = 0, 'client cannot see the contractor''s build-up');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect_fail($$insert into public.private_notes (project_id, key, data) values ('PRJ-1', 'pricelist', '[]')$$, 'outsider cannot keep notes on a project');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect((select data->'items'->0->>'price' from public.private_notes where key = 'buildup/VO-1/M1') = '475',
+                      'others'' update and delete had no effect');
+-- a build-up's working sent in the shared VO is dropped; its summary stays
+select public.save_vo('PRJ-1', 'VO-1', '{"measurement":[{"id":"M1","rate":50,"buildUp":{"items":[1]},"buildUpSummary":{"rate":50,"labour":4.72}}]}');
+select pg_temp.expect(not ((select data->'measurement'->0 from public.vos where id = 'VO-1') ? 'buildUp'), 'build-up detail never stored in the shared VO');
+select pg_temp.expect((select data->'measurement'->0->'buildUpSummary'->>'rate' from public.vos where id = 'VO-1') = '50', 'summary is shared');
+select public.save_project('PRJ-1', '{"priceList":[{"name":"x"}]}');
+select pg_temp.expect(not ((select data from public.projects where id = 'PRJ-1') ? 'priceList'), 'price list never stored in the shared project');
+
 -- knowledge base: shared form readable by all signed-in users, a project's own only by members
 reset role;
 select pg_temp.as_user('');  -- the service role: no auth.uid()
