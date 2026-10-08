@@ -24,7 +24,7 @@
    the same. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
     var { rm, assessedTotal } = require("./calc.js");
     var { escapeHtml } = require("./ui.js");
     var { voStage } = require("./permissions.js");
@@ -60,7 +60,7 @@ function stepMessage(vo, step) {
     const ref = vo.issuedInstruction ? vo.issuedInstruction.no : (vo.instructionNo || "");
     const verdict = vo.claimCheck && vo.claimCheck.verdict ? t("claim.verdict." + vo.claimCheck.verdict) : "";
     return t("notify.msg." + step.id, {
-        no: vo.no, ref: ref || "—", amount: rm(assessedTotal(vo)),
+        no: voNoLabel(vo.no), ref: ref || "—", amount: rm(assessedTotal(vo)),
         verdict: verdict ? t("notify.verdict", { verdict: verdict }) : ""
     });
 }

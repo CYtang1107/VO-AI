@@ -634,10 +634,73 @@ function analyse(vo, project) {
     };
 }
 
+/* ---------- the instruction's items, matched to the BQ ----------
+   The architect's instruction (the VO's description) names the work:
+   "new doorway with timber flush door, cement sand screed to floor,
+   plaster and paint to walls, and a new uPVC drainage pipe…". Each part
+   becomes a measurement row: matched to the contract BQ item it names
+   (its unit and rate with it), or, when the BQ has none, kept as a
+   star-rate row when `isWork` says it is work that can be priced (the
+   built-up rate's recipes). Parts that are neither (who instructed it,
+   why) are left out. Chinese wording is read through a small glossary
+   of construction terms, so it matches an English BQ too. */
+var INSTRUCTION_GLOSSARY = [
+    [/瓷砖|地砖/, "ceramic floor tiles"], [/大理石/, "marble"], [/踢脚/, "skirting"],
+    [/批荡|抹灰|粉刷/, "plaster"], [/油漆|涂料|刷漆|喷漆/, "paint"], [/内墙/, "internal walls"], [/墙/, "walls"],
+    [/平板门/, "flush door"], [/实木|木/, "timber"], [/门/, "door"], [/五金/, "ironmongery"],
+    [/排水管/, "drainage pipe"], [/排水/, "drainage"], [/管/, "pipe"], [/沟槽|沟/, "trench"],
+    [/吊顶|天花/, "suspended ceiling"], [/石膏板/, "plasterboard"], [/龙骨/, "framing"],
+    [/集水井|沙井/, "sump"], [/混凝土/, "concrete"], [/钢筋/, "reinforcement"], [/开挖|挖/, "excavation"],
+    [/找平|水泥砂浆/, "cement sand screed"], [/地面|地板|楼面/, "floor"], [/客厅/, "living area"], [/窗/, "window"]
+];
+
+var INSTRUCTION_SMALL_WORDS = new Set(["in", "on", "at", "a", "an", "for", "by", "from", "into", "per", "as", "new", "existing", "all", "one", "two", "additional"]);
+
+function instructionWords(text) {
+    const extra = INSTRUCTION_GLOSSARY.filter(g => g[0].test(text || "")).map(g => g[1]).join(" ");
+    /* "laid" and "lay", "walls" and "wall": compared on their first four letters */
+    return Array.from(new Set(significantWords((text || "") + " " + extra)
+        .filter(w => !INSTRUCTION_SMALL_WORDS.has(w)).map(w => w.length > 4 ? w.slice(0, 4) : w)));
+}
+
+function instructionParts(text) {
+    return String(text || "").split(/[,，;；。:：、\n]+/)
+        .map(p => p.trim()
+            .replace(/^(and|also|then|plus|with)\s+/i, "")
+            .replace(/^(a|an|the)\s+/i, "")
+            .replace(/^(并|及|和|另|再|然后|以及)\s*/, "")
+            .replace(/[.。]+$/, "").trim())
+        .filter(p => p.length >= 3);
+}
+
+function instructionItems(text, bq, isWork) {
+    const used = new Set();
+    const items = [];
+    instructionParts(text).forEach(part => {
+        const words = new Set(instructionWords(part));
+        let best = null;
+        (bq || []).forEach(item => {
+            if (used.has(item.id)) return;
+            const cand = instructionWords(item.description);
+            if (!cand.length) return;
+            const overlap = cand.filter(w => words.has(w)).length;
+            const score = overlap / cand.length;
+            /* most of the BQ item's own words are in the part */
+            if (overlap >= 3 ? score < 0.4 : overlap < 2 || score < 0.5) return;
+            if (!best || score > best.score) best = { item: item, score: score };
+        });
+        if (best) { used.add(best.item.id); items.push({ description: part.charAt(0).toUpperCase() + part.slice(1), bqItem: best.item }); }
+        /* who instructed it and why ("as instructed by the Architect…")
+           is the instruction's preamble, not an item of work */
+        else if (!/instruct|as per|according to|指示|依照|根据|按照/i.test(part) && typeof isWork === "function" && isWork(part)) items.push({ description: part.charAt(0).toUpperCase() + part.slice(1), bqItem: null });
+    });
+    return items;
+}
+
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         RATE_TOLERANCE, checkRate, rateSummary, matchBqItem, suggestBqForChange, describesWork,
         classifyVariation, affectedWork, classificationBasis, analyse,
-        elementAnalysis
+        elementAnalysis, instructionItems, instructionParts
     };
 }

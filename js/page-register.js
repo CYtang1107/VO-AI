@@ -2,11 +2,11 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, voValue, today, projectStats } = require("./calc.js");
-    var { statusPill, escapeHtml, seedText } = require("./ui.js");
+    var { statusPill, escapeHtml, seedText, renderStatCards } = require("./ui.js");
     var { FIELD_OWNER } = require("./permissions.js");
     var { rateSummary } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
 }
 
 /* typeOfInstruction is a raw English data VALUE — never renamed; see
@@ -50,7 +50,7 @@ function rateFlags(vo, project) {
    prefers t(labelKey) so the header follows the current language. */
 const COLUMNS = [
     { field: "no", compact: true,                label: "VO NO.",           labelKey: "register.col.no",
-      render: v => "<strong>" + escapeHtml(v.no) + "</strong>" },
+      render: v => "<strong>" + escapeHtml(voNoLabel(v.no)) + "</strong>" },
     { field: "description", compact: true,       label: "DESCRIPTION",      labelKey: "register.col.description",
       render: v => escapeHtml(seedText(v.description) || "—") },
     { field: "dateIssued",        label: "DATE ISSUED",      labelKey: "register.col.dateIssued",
@@ -101,7 +101,7 @@ function filterVos(vos, filters) {
         if (evaluateStatus !== "all" && v.evaluateStatus !== evaluateStatus) return false;
         if (certifiedStatus !== "all" && v.certifiedStatus !== certifiedStatus) return false;
         if (query) {
-            const haystack = [v.no, v.description, seedText(v.description), v.instructionNo]
+            const haystack = [v.no, voNoLabel(v.no), v.description, seedText(v.description), v.instructionNo]
                 .map(s => String(s || "").toLowerCase())
                 .join(" \n ");
             if (!haystack.includes(query)) return false;
@@ -158,30 +158,6 @@ function renderRegisterBody(project, role, opts) {
             return "<td" + cls + stage + ' data-label="' + escapeHtml(t(c.labelKey)) + '">' +
                    c.render(v, project) + "</td>";
         }).join("") + "</tr>"
-    ).join("");
-}
-
-/* The register's four headline numbers: VOs, pending, approved, value
-   (moved here from the dashboard). */
-function renderStatCards(stats, role) {
-    const cards = [
-        { icon: "▧", cls: "blue",   label: t("dashboard.stat.total"),     value: stats.total,
-          note: t("dashboard.stat.totalNote", { n: stats.draft }) },
-        { icon: "◷", cls: "orange", label: t("dashboard.stat.pending"), value: stats.pending,
-          note: stats.pending > 0 ? t("dashboard.stat.pendingNoteWarn") : t("dashboard.stat.pendingNoteOk"), warn: stats.pending > 0 },
-        { icon: "✓", cls: "green",  label: t("dashboard.stat.approved"),       value: stats.approved,
-          note: t("dashboard.stat.approvedNote", { n: stats.certified }) },
-        { icon: "RM", cls: "purple", label: t("dashboard.stat.value"), value: rm(stats.value),
-          note: t("dashboard.stat.valueNote", { n: stats.timeImpact }) }
-    ];
-
-    return cards.map(c =>
-        '<div class="stat-card">' +
-            '<div class="stat-icon ' + c.cls + '">' + c.icon + "</div>" +
-            "<div><p>" + c.label + "</p><h2>" + c.value + "</h2>" +
-            '<small' + (c.warn ? ' class="warning"' : "") + ">" + escapeHtml(c.note) +
-            "</small></div>" +
-        "</div>"
     ).join("");
 }
 

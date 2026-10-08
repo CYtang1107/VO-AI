@@ -9,7 +9,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { prettyDate } = require("./calc.js");
     var { escapeHtml, fileLink, seedText, statusPill } = require("./ui.js");
     var { versionCount } = require("./documents.js");
-    var { t, getLang } = require("./i18n.js");
+    var { t, getLang, voNoLabel } = require("./i18n.js");
 }
 
 /* The four VO-level document fields, in the order they appear on the VO
@@ -68,7 +68,7 @@ function collectDocuments(project) {
                     id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored, url: d.url,
                     uploadedBy: d.uploadedBy, at: d.at,
                     source: "vo", kind: f.field, bucket: f.bucket,
-                    voId: vo.id, voNo: vo.no, voDescription: seedText(vo.description), voStatus: vo.evaluateStatus,
+                    voId: vo.id, voNo: voNoLabel(vo.no), voDescription: seedText(vo.description), voStatus: vo.evaluateStatus,
                     revisionCount: versionCount(d) - 1,
                     revisions: d.revisions || []
                 });
@@ -298,7 +298,7 @@ if (typeof document !== "undefined") {
         }
 
         const voOptions = ((project.vos) || []).map(v =>
-            '<option value="' + escapeHtml(v.id) + '">' + escapeHtml(v.no) + "</option>").join("");
+            '<option value="' + escapeHtml(v.id) + '">' + escapeHtml(voNoLabel(v.no)) + "</option>").join("");
         document.getElementById("voFilter").innerHTML =
             '<option value="all">' + escapeHtml(t("documents.allVos")) + '</option>' + voOptions;
 

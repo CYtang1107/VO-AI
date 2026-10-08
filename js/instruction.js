@@ -15,7 +15,7 @@
    Pure functions; the VO page and the report page render them. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
     var { prettyDate } = require("./calc.js");
     var { escapeHtml, seedText, logoMark } = require("./ui.js");
     var { contractForm } = require("./claimcheck.js");
@@ -55,7 +55,7 @@ function instructionProblem(project, vo, kind, no) {
     if (!new RegExp("^" + kind + "[-\\s]?\\d+$", "i").test(n)) return t("instr.badNo", { kind: kind });
     const taken = ((project && project.vos) || []).find(v => v.id !== vo.id &&
         v.issuedInstruction && String(v.issuedInstruction.no).toUpperCase() === n.toUpperCase());
-    return taken ? t("instr.taken", { no: n, vo: taken.no }) : "";
+    return taken ? t("instr.taken", { no: n, vo: voNoLabel(taken.no) }) : "";
 }
 
 /* The design team's step ①, when it may still issue: one button. The
@@ -82,7 +82,7 @@ function renderIssued(vo) {
    instructs, the drawings it refers to, and how it will be valued. */
 function renderInstructionSheet(vo, project) {
     const i = vo.issuedInstruction;
-    if (!i) return '<div class="empty-state">' + escapeHtml(t("instr.notIssued", { no: vo.no })) + "</div>";
+    if (!i) return '<div class="empty-state">' + escapeHtml(t("instr.notIssued", { no: voNoLabel(vo.no) })) + "</div>";
     const form = contractForm(project);
     const drawings = (vo.revisedDrawing || []).map(d => d.name);
     const issuer = t(i.kind === "EI" ? "instr.issuerEI" : "instr.issuerAI");
@@ -109,7 +109,7 @@ function renderInstructionSheet(vo, project) {
         "</section>" +
         '<section class="report-sec"><h3>' + escapeHtml(t("instr.sec.valuation")) + "</h3>" +
             "<p>" + escapeHtml(t(form === "PAM 2018" ? "instr.valuationPam" : "instr.valuationPwd",
-                { vo: vo.no, clause: form === "PWD 203" ? "25" : "24" })) + "</p>" +
+                { vo: voNoLabel(vo.no), clause: form === "PWD 203" ? "25" : "24" })) + "</p>" +
         "</section>" +
         '<div class="signatures instr-signatures">' +
             "<div><span></span><small>" + escapeHtml(issuer) + (i.by ? " — " + escapeHtml(i.by) : "") + "</small></div>" +

@@ -271,3 +271,28 @@ test("a document field is one standard row: its name, an upload button for whoev
     assert.match(html, /<input type="file" multiple class="doc-picker" data-field="supportingDocs" hidden>/);
     assert.doesNotMatch(renderDocList(vo3, "supportingDocs", "Supporting documents", "client"), /doc-upload-btn/);
 });
+
+test("the architect's instruction becomes measurement rows: each item matched to its BQ item, work the BQ lacks as a star row", () => {
+    const { rowsFromInstruction, wholeInstructionRow } = require("../js/page-vo.js");
+    const bu = require("../js/buildup.js");
+    const db = seedDB();
+    const p = db.projects[0];
+    const isWork = part => !!bu.suggestBuildUp({ description: part, unit: "" }, p);
+    let n = 0;
+    const vo = { id: "VO-X", description: "Convert ground floor store room into a guest bathroom as instructed by the Architect: new doorway with timber flush door, cement sand screed to floor, plaster and paint to walls, and a new uPVC drainage pipe to the existing manhole.", measurement: [] };
+    const r = rowsFromInstruction(vo, p.bq, isWork, () => "M" + (++n));
+    const code = id => (p.bq.find(b => b.id === id) || {}).code || null;
+    assert.deepStrictEqual(r.rows.map(x => [x.description, code(x.bqItemId)]), [
+        ["New doorway with timber flush door", "C/2.3"], ["Cement sand screed to floor", null],
+        ["Plaster and paint to walls", "B/5.1"], ["New uPVC drainage pipe to the existing manhole", "D/1.2"]]);
+    const door = r.rows[0];
+    assert.deepStrictEqual([door.unit, door.rate, door.qty, door.auto.code], ["no", 640, 0, "C/2.3"], "the BQ's unit and rate; the quantity to measure");
+    vo.measurement = r.rows;
+    assert.strictEqual(rowsFromInstruction(vo, p.bq, isWork, () => "M" + (++n)).added, 0, "never repeated");
+    const zh = { description: "依建筑师指示将一楼储物间改为客用浴室：新开门洞并安装实木平板门、地面水泥砂浆找平、内墙批荡及油漆、新增 uPVC 排水管接至现有沙井。" };
+    zh.measurement = [{ id: "S1", description: zh.description, unit: "nr", qty: 1, rate: 0, bqItemId: null }];
+    assert.ok(wholeInstructionRow(zh, zh.measurement[0]), "a site record's copy of the whole instruction");
+    const z = rowsFromInstruction(zh, p.bq, isWork, () => "M" + (++n));
+    assert.strictEqual(z.replaced, 1);
+    assert.deepStrictEqual(z.rows.map(x => code(x.bqItemId)), ["C/2.3", null, "B/5.1", "D/1.2"], "Chinese wording matches the English BQ");
+});

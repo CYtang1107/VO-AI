@@ -222,3 +222,60 @@ test("zooming the S-curve: a stretch of months, the money axis fitted to it so t
     assert.strictEqual(ticks(c.renderSCurveSvg(z, 1000, 300))[0], "RM 0", "unzoomed axis starts at RM 0");
     assert.notStrictEqual(ticks(c.renderSCurveSvg(z, 1000, 300, { fitY: true }))[0], "RM 0", "zoomed axis starts near the lowest value in view");
 });
+
+test("a cash-flow sheet: the months column and the plan and forecast columns are found; cumulative or monthly", () => {
+    const r = c.readCashflowSheet([["Cash flow forecast"], ["Month", "Planned (RM)", "Forecast (RM)", "Actual"],
+        ["Apr-26", "131,581", "131,726", ""], ["May-26", "475426", "475949", ""], ["Jun-26", "RM 984,931", "986014", ""]]);
+    assert.deepStrictEqual(r.months["2026-06"], { planned: 984931, forecast: 986014 });
+    assert.deepStrictEqual(r.mode, { planned: "cumulative", forecast: "cumulative" });
+    const m = c.readCashflowSheet([["月份", "计划"], ["2026年4月", "100"], ["2026年5月", "300"], ["2026年6月", "200"]]);
+    assert.deepStrictEqual([m.months["2026-04"].planned, m.months["2026-06"].planned, m.mode.planned], [100, 600, "monthly"], "monthly amounts are added up");
+    assert.strictEqual(c.readCashflowSheet([["Month", "Plan"], ["2026-04", "100"], ["2026-05", "200"]], "monthly").months["2026-05"].planned, 300, "the person may say they are monthly");
+    assert.deepStrictEqual(["2026-04", "Apr 2026", "4/2026", "4月 26", "2026年4月", "30/04/2026", "46142"].map(c.cfMonthKey),
+        ["2026-04", "2026-04", "2026-04", "2026-04", "2026-04", "2026-04", "2026-04"]);
+    assert.strictEqual(c.readCashflowSheet([["a"], ["b"]]).error, "noMonths");
+});
+
+test("the team's own monthly figures stand in for the model's, and the planned value today follows them", () => {
+    const p = project();
+    const before = c.sCurve(p, "2026-09-12");
+    p.cashflow = { months: { "2026-08": { planned: 2000000 }, "2026-09": { planned: 4000000, forecast: 4100000 } } };
+    const after = c.sCurve(p, "2026-09-12");
+    const pt = k => after.points.find(x => x.date.slice(0, 7) === k);
+    assert.strictEqual(pt("2026-09").planned, 4000000);
+    assert.strictEqual(pt("2026-09").forecast, 4100000);
+    assert.ok(pt("2026-08").forecast > 2000000, "a forecast not given follows the plan, with the VOs");
+    assert.strictEqual(pt("2026-07").planned, before.points.find(x => x.date.slice(0, 7) === "2026-07").planned, "other months: the model");
+    assert.ok(after.plannedToday > 2000000 && after.plannedToday < 4000000, "PV today between August and September");
+    const html = c.renderCostDetail(p, "2026-09-12", { tab: "table", editable: true });
+    assert.match(html, /id="cfFile"/);
+    assert.match(html, /class="cd-cell cd-own"><input type="text" inputmode="decimal" data-cf-key="2026-09" data-cf-k="planned" value="4,000,000.00"/);
+    assert.doesNotMatch(c.renderCostDetail(p, "2026-09-12", { tab: "table", editable: false }), /cfFile|data-cf-key/);
+});
+
+test("in Chinese the performance figures go by their Chinese names, formulas too — no English abbreviations", () => {
+    const store = {};
+    const had = globalThis.localStorage;
+    globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    require("../js/i18n.js").setLang("zh");
+    try {
+        const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), { editable: true });
+        const text = html.replace(/<[^>]+>/g, " ");
+        assert.doesNotMatch(text, /\b(BAC|PV|EV|AC|CV|SV|CPI|SPI|EAC|ETC|VAC)\b/);
+        assert.match(html, /<td class="evm-formula">挣值 − 计划值<\/td>/);
+        assert.match(html, /<td class="evm-formula">完工预算 ÷ 成本绩效指数<\/td>/);
+    } finally { globalThis.localStorage = had; }
+});
+
+test("a VO's number reads 变更单-001 in Chinese and VO-001 in English; the stored number is unchanged", () => {
+    const i18n = require("../js/i18n.js");
+    assert.strictEqual(i18n.voNoLabel("VO-001"), "VO-001");
+    const store = {}, had = globalThis.localStorage;
+    globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    try {
+        i18n.setLang("zh");
+        assert.strictEqual(i18n.voNoLabel("VO-001"), "变更单-001");
+        assert.strictEqual(i18n.voNoLabel("VO-012/1"), "变更单-012/1");
+        assert.strictEqual(i18n.voNoLabel("B/4.1"), "B/4.1", "a BQ code stays as it is");
+    } finally { globalThis.localStorage = had; }
+});

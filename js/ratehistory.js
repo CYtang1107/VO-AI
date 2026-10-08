@@ -16,6 +16,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { uid } = require("./store.js");
+    var { voNoLabel } = require("./i18n.js");
 }
 
 /* Demo sample: three completed projects. Not real tenders. */
@@ -118,7 +119,7 @@ function pastRateSources(db, currentProjectId) {
             /* an agreed rate: no BQ item, and the consultant set one */
             if (row.bqItemId || !(Number(row.assessedRate) > 0)) return;
             sources.push({
-                project: p.name, year: year, code: vo.no, description: row.description,
+                project: p.name, year: year, code: voNoLabel(vo.no), description: row.description,
                 unit: row.unit, rate: Number(row.assessedRate), basis: "agreed"
             });
         }));
@@ -208,7 +209,7 @@ function newBqItemFromRow(row, vo, project, rate, suggestion, todayIso) {
         unit: row.unit,
         rate: Number(rate),
         origin: {
-            voNo: vo.no,
+            voNo: voNoLabel(vo.no),
             at: todayIso,
             suggestedRate: suggestion ? suggestion.rate : null,
             basedOn: suggestion

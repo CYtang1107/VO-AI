@@ -5,7 +5,7 @@
    viewer's timezone can never shift a due date by a day. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
 }
 
 /* ---------- the three periods, as named constants ----------
@@ -203,7 +203,7 @@ function deadlineSummary(project, role, todayIso) {
     vos.forEach(vo => {
         deadlinesFor(vo, todayIso, project).forEach(d => {
             if (d.owner !== role) return;
-            items.push(Object.assign({ voId: vo.id, voNo: vo.no }, d));
+            items.push(Object.assign({ voId: vo.id, voNo: voNoLabel(vo.no) }, d));
         });
     });
     items.sort((a, b) => {
