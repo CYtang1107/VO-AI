@@ -316,7 +316,8 @@ function demoFileUrl(doc) {
 }
 
 function fileLink(doc) {
-    const name = escapeHtml(doc && doc.name);
+    /* the demo's own files have Chinese names in Chinese (SEED_ZH) */
+    const name = escapeHtml(doc && seedText(doc.name));
     const openTitle = escapeHtml(t("file.openTitle"));
     const url = doc ? demoFileUrl(doc) : "";
     if (url) {
@@ -325,7 +326,7 @@ function fileLink(doc) {
     }
     if (doc && doc.stored) {
         return '<a href="#" class="file-name file-open" data-file-id="' + escapeHtml(doc.id) +
-            '" data-file-name="' + name + '" title="' + openTitle + '">' + name + "</a>";
+            '" data-file-name="' + escapeHtml(doc.name) + '" title="' + openTitle + '">' + name + "</a>";
     }
     return '<span class="file-name">' + name + "</span>" +
         '<span class="file-no-content" title="' + escapeHtml(t("file.nameOnlyTitle")) + '">' +
