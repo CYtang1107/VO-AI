@@ -18,7 +18,7 @@ test("the contractor describes (step 1), the contract agent checks (step 2), the
     /* the site before the work: a photo is required, a video optional */
     assert.match(html, /data-media="beforeMedia" accept="image\/\*" capture="environment"/);
     assert.match(html, /id="wfNext" disabled/);
-    assert.match(html, /Add at least one photo of the site before the work/);
+    assert.match(html, /<li class="todo">○ Before photo \(0\)<\/li>/);
     v.beforeMedia = [{ id: "M0", name: "VID-0.mp4", kind: "video" }];
     assert.match(renderWorkflow(v, project(), "contractor", { step: 1 }), /id="wfNext" disabled/, "a video alone is not enough");
     v.beforeMedia.push({ id: "M1", name: "IMG-0.jpg", kind: "photo" });
@@ -59,14 +59,15 @@ test("approved: the contractor measures, attaches photos and submits to the cons
     assert.strictEqual(voStage(v), "measure");
     assert.strictEqual(canEdit("measurement", v, "contractor"), true);
     let html = renderWorkflow(v, project(), "contractor", {});
-    assert.match(html, /Approved \(Architect&#39;s Instruction \(AI\) AI-027\)/);
+    assert.match(html, /Approved · Architect&#39;s Instruction \(AI\) AI-027/);
     assert.match(html, /data-media="afterMedia" accept="image\/\*" capture="environment"/, "take a photo of the completed work");
     assert.match(html, /data-media="afterMedia" accept="video\/\*"/, "a video may be added");
     assert.match(html, /id="wfSubmitQs" disabled/, "not without a completed photo");
-    assert.match(html, /Add at least one photo of the completed work/);
-    assert.match(html, /AI check of the completed photos/);
+    assert.match(html, /<li class="todo">○ Completed photo \(0\)<\/li>/);
+    assert.doesNotMatch(html, /AI photo check/, "nothing to check yet");
     v.afterMedia = [{ id: "M1", name: "IMG-1.jpg", kind: "photo" }, { id: "M2", name: "VID-1.mp4", kind: "video" }];
     html = renderWorkflow(v, project(), "contractor", {});
+    assert.match(html, /AI photo check/);
     assert.match(html, /id="wfSubmitQs">Submit to the consultant QS/);
     assert.doesNotMatch(renderWorkflow(Object.assign(v, { measurement: [] }), project(), "contractor", {}), /id="wfSubmitQs">/,
         "a disabled button with no measured item");

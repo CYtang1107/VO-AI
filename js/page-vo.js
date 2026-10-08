@@ -11,9 +11,9 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t, voNoLabel } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
     var { renderIssueForm, renderIssued, instructionProblem, proposedInstruction, nextInstructionNo } = require("./instruction.js");
-    var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine } = require("./buildup.js");
+    var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine, guessUnit } = require("./buildup.js");
     var { buildUpKey, buildUpSummary } = require("./private.js");
-    var { renderMediaField, describeMissing, submitMissing } = require("./media.js");
+    var { renderMediaField, describeMissing, submitMissing, isPhotoDoc } = require("./media.js");
 }
 
 /* An <option> VALUE is always the raw English data value (evaluateStatus,
@@ -288,6 +288,9 @@ function autoFillRow(row, bq, pastSources) {
             auto.rate = "past";
             if (!String(row.unit || "").trim()) { row.unit = past.matches[0].unit; auto.unit = true; }
         } else if (prevAuto.rate) row.rate = 0;
+        /* no unit yet: the one the description says (a pipe by the m, concrete by the m³) */
+        const guessed = !String(row.unit || "").trim() && typeof guessUnit === "function" ? guessUnit(row.description) : "";
+        if (guessed) { row.unit = guessed; auto.unit = true; }
     }
     if (Object.keys(auto).length) row.auto = auto; else delete row.auto;
     return JSON.stringify([row.bqItemId, row.unit, row.rate, row.auto]) !== before;
@@ -316,6 +319,11 @@ function rowsFromInstruction(vo, bq, isWork, newId) {
                 unit: it.bqItem ? it.bqItem.unit : "", qty: 0, rate: it.bqItem ? Number(it.bqItem.rate) || 0 : 0,
                 assessedQty: "", assessedRate: "", fromInstruction: true };
             if (it.bqItem) row.auto = { code: it.bqItem.code, basis: t("vo.row.fromInstructionBasis"), unit: true, rate: "bq" };
+            else {
+                /* a new item: its unit from what it is */
+                const u = typeof guessUnit === "function" ? guessUnit(it.description) : "";
+                if (u) { row.unit = u; row.auto = { unit: true }; }
+            }
             return row;
         });
     return { rows: rows.concat(added), added: added.length, replaced: (vo.measurement || []).length - rows.length };
@@ -452,7 +460,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
            its own line under the item, instead of wrapping down a narrow
            last column and stretching every cell of the row. */
         '<tr class="rate-detail-row" data-row="' + i + '">' +
-            '<td colspan="8">' + rowActions(i, row, check, suggestion, conEdit, assEdit, rematchTo) + fold("row-" + (row.id || i),
+            '<td colspan="8"><div class="row-under">' + rowActions(i, row, check, suggestion, conEdit, assEdit, rematchTo) + fold("row-" + (row.id || i),
                 '<span class="row-verdict row-verdict-' + check.state + '">' + escapeHtml(rowSummary(check, linkedItem, suggestion, row)) + "</span>",
                 '<div class="rate-detail rate-detail-' + check.state + '">' + escapeHtml(check.detail) + "</div>" + autoBlock +
                 (row.auto && row.auto.code ? '<div class="rate-detail auto-fill-note">' +
@@ -460,7 +468,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
                 renderBqOrigin(linkedItem) +
                 (suggestion !== undefined ? renderPastRates(i, suggestion, assEdit) : ""),
                 "row-fold") +
-            "</td>" +
+            "</div></td>" +
         "</tr>";
     }).join("");
 }
@@ -513,9 +521,10 @@ function wfNote(text, kind) {
     return '<div class="wf-note' + (kind ? " wf-note-" + kind : "") + '">' + escapeHtml(text) + "</div>";
 }
 
-/* what still stops a step, as a short list under its button */
-function wfMissing(keys) {
-    return keys.length ? '<ul class="wf-missing">' + keys.map(k => "<li>" + escapeHtml(t(k)) + "</li>").join("") + "</ul>" : "";
+/* what a step needs, ticked off, beside its button: [done, label] */
+function wfChecklist(items) {
+    return '<ul class="wf-checklist">' + items.map(([done, label]) =>
+        '<li class="' + (done ? "done" : "todo") + '">' + (done ? "✓" : "○") + " " + escapeHtml(label) + "</li>").join("") + "</ul>";
 }
 /* the AI's check of the completed photos (drawn in by the page) */
 var WF_PHOTO_CHECK = '<div class="wf-photo-check"><h5>' + "%T%" + '</h5><div class="photo-check-host"></div></div>';
@@ -535,11 +544,13 @@ function renderWorkflow(vo, project, role, ui) {
         if (!ui.step || ui.step === 1) {
             /* the site before the work: at least one photo (js/media.js) */
             const missing = describeMissing(vo);
+            const before = (vo.beforeMedia || []).filter(isPhotoDoc).length;
             body += "<h4>" + escapeHtml(t("wf.c.step1")) + "</h4>" +
                 renderMediaField(vo, "beforeMedia", { editable: true, required: true, geoState: ui && ui.geo }) +
                 field({ field: "description", label: t("vo.field.description"), type: "textarea", value: seedText(vo.description), vo: vo, role: role }) +
                 field({ field: "contractorRemark", label: t("vo.field.contractorRemark"), type: "textarea", value: seedText(vo.contractorRemark), vo: vo, role: role }) +
-                '<div class="wf-actions">' + wfButton("wfNext", "wf.next", "primary", missing.length > 0) + "</div>" + wfMissing(missing);
+                '<div class="wf-actions">' + wfButton("wfNext", "wf.next", "primary", missing.length > 0) +
+                wfChecklist([[before > 0, t("wf.check.before", { n: before })], [!!String(vo.description || "").trim(), t("wf.check.description")]]) + "</div>";
         } else {
             const check = claimCheck(vo, project, { stage: "describe" });
             body += "<h4>" + escapeHtml(t("wf.c.step2")) + "</h4>" +
@@ -566,14 +577,14 @@ function renderWorkflow(vo, project, role, ui) {
     } else if (role === "contractor" && (stage === "measure" || stage === "rejected")) {
         if (stage === "rejected") body += wfNote(t("wf.c.rejectedByQs", { note: vo.consultantRemark || t("wf.noNote") }), "warn");
         else body += wfNote(t("wf.c.approved", { instr: instr || "—" }), "ok");
+        const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty)).length;
+        const after = (vo.afterMedia || []).filter(isPhotoDoc).length;
         body += "<h4>" + escapeHtml(t("wf.c.measureTitle")) + "</h4>" +
-            '<ol class="wf-todo"><li>' + escapeHtml(t("wf.c.todo1")) + "</li><li>" + escapeHtml(t("wf.c.todo2")) + "</li><li>" +
-            escapeHtml(t("wf.c.todo3")) + "</li></ol>" +
             /* the work done: at least one photo, checked by the AI against the description */
-            renderMediaField(vo, "afterMedia", { editable: true, required: true, geoState: ui && ui.geo }) + wfPhotoCheck() +
+            renderMediaField(vo, "afterMedia", { editable: true, required: true, geoState: ui && ui.geo }) + (after ? wfPhotoCheck() : "") +
             renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
-            '<div class="wf-actions">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", submitMissing(vo).length > 0) + "</div>" +
-            wfMissing(submitMissing(vo));
+            '<div class="wf-actions">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", submitMissing(vo).length > 0) +
+            wfChecklist([[rows > 0, t("wf.check.rows", { n: rows })], [after > 0, t("wf.check.after", { n: after })]]) + "</div>";
     } else if (role === "contractor" && stage === "info") {
         body += wfNote(t("wf.c.infoAsked", { date: prettyDate(vo.infoRequestedAt), note: vo.infoRequestNote || t("wf.noNote") }), "warn") +
             '<div class="field owned"><label>' + escapeHtml(t("vo.field.infoResponse")) + '</label><textarea id="wfInfoText"></textarea></div>' +
@@ -955,7 +966,7 @@ if (typeof document !== "undefined") {
             SiteGeo.start(state => {
                 wf.geo = state;
                 if (wfHost) wfHost.querySelectorAll(".media-actions .capture-geo").forEach(el => {
-                    el.className = "capture-geo " + state; el.textContent = t("capture.geo." + state);
+                    el.className = "capture-geo " + state; el.textContent = t("media.geo." + state); el.title = t("capture.geo." + state);
                 });
             });
         }
@@ -1090,7 +1101,7 @@ if (typeof document !== "undefined") {
             const useAs = canEdit("assessment", v, role) ? "assessed" : canEdit("measurement", v, role) ? "claimed" : null;
             const full = () => renderBuildUpCard(v, buProject(), { rowIndex: bu.rowIndex, stars: stars, editable: buEditable(v),
                 buildUp: (v.measurement || []).length ? getPrivate(project.id, buKey(v)) : null,
-                hideRow: role !== "contractor", privateNote: "buildup.private." + role,
+                hideRow: role !== "contractor",
                 useAs: useAs, rent: bu.rent, suppliers: bu.suppliers, canEditPriceList: buOwn });
             if (role === "contractor") host.innerHTML = full();
             else {
@@ -1610,17 +1621,18 @@ if (typeof document !== "undefined") {
             });
             const loading = !!(photoCheck.state && photoCheck.state.loading);
             const noDescription = !String(v.description || "").trim();
-            host.innerHTML =
-                '<p class="assistant-note">' + escapeHtml(t("photo.note")) + "</p>" +
-                (askAsGuest(project.id) ? '<p class="assistant-note ask-guest-note">' + escapeHtml(t("ask.guestNote")) + "</p>" : "") +
+            const notes = '<p class="assistant-note">' + escapeHtml(t("photo.note")) + "</p>" +
+                (askAsGuest(project.id) ? '<p class="assistant-note ask-guest-note">' + escapeHtml(t("ask.guestNote")) + "</p>" : "");
+            const main =
                 (docs.length ? '<div class="photo-check-actions"><button type="button" class="secondary-button photo-check-btn"' +
                     (loading || noDescription ? " disabled" : "") + ">" +
                     escapeHtml(t(photoCheck.state && photoCheck.state.results ? "photo.recheck" : "photo.check", { n: docs.length })) + "</button>" +
                     (noDescription ? ' <span class="assistant-note">' + escapeHtml(t("photo.needDescription")) + "</span>" : "") + "</div>" : "") +
                 '<div class="photo-check-result">' + renderPhotoCheck(photoCheck.state, docs, photoCheck.thumbs, total) + "</div>";
-            /* the same check inside the step: the contractor's before they
-               submit, the consultant's while they assess */
-            inSteps.forEach(h => { h.innerHTML = host.innerHTML; });
+            host.innerHTML = notes + main;
+            /* the same check inside the step (without the notes): the
+               contractor's before they submit, the consultant's while they assess */
+            inSteps.forEach(h => { h.innerHTML = main; });
         }
         document.addEventListener("click", e => {
             if (e.target.closest(".photo-check-btn")) runPhotoCheck(false);
