@@ -59,7 +59,7 @@ test("the card: tiles, the behind/ahead line, a legend for the three lines, a ta
     const html = c.renderCostOverview(project(), "2026-09-12", { editable: true, width: 760 });
     assert.match(html, /Forecast final cost/);
     assert.match(html, /Schedule delay:/);
-    assert.match(html, /Planned \(baseline\)[\s\S]*Forecast \(with variations\)[\s\S]*Certified \(actual\)/);
+    assert.match(html, /Planned \(baseline\)[\s\S]*Forecast \(at current performance\)[\s\S]*Certified \(actual\)/);
     assert.match(html, /class="sc-line sc-actual"/);
     assert.match(html, /Monthly performance data \(table\)/);
     assert.match(html, /id="cpCertAdd"/);
@@ -278,4 +278,19 @@ test("a VO's number reads 变更单-001 in Chinese and VO-001 in English; the st
         assert.strictEqual(i18n.voNoLabel("VO-012/1"), "变更单-012/1");
         assert.strictEqual(i18n.voNoLabel("B/4.1"), "B/4.1", "a BQ code stays as it is");
     } finally { globalThis.localStorage = had; }
+});
+
+test("the forecast runs from what is certified on to the estimate at completion, so it parts from the plan", () => {
+    const p = project();
+    const curve = c.sCurve(p, "2026-09-12");
+    const last = curve.points[curve.points.length - 1];
+    const aug = curve.points.find(x => x.date === "2026-08-31");
+    assert.strictEqual(aug.forecast, aug.actual, "to the last certificate: what was certified");
+    assert.ok(aug.forecast < aug.planned, "behind plan today");
+    assert.strictEqual(last.forecast, c.earnedValue(p, "2026-09-12").eac, "at completion: the EAC");
+    assert.ok(last.forecast - last.planned > 500000, "an overrun at completion that shows on the chart");
+    const noAc = project();
+    noAc.certificates.forEach(x => { delete x.actual; });
+    const n = c.sCurve(noAc, "2026-09-12");
+    assert.strictEqual(n.points[n.points.length - 1].forecast, c.costOverview(noAc).forecast, "without actual costs: the plan with the VOs");
 });
