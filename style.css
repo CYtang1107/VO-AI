@@ -3670,8 +3670,9 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     #demoLogin > * { grid-column: 2; }
     #demoLogin > .lead:first-child, #demoLogin > .judge-btn, #demoLogin > .judge-hint, #demoLogin > #demoNote { grid-column: 1; }
     #demoLogin > .lead:last-child, #demoLogin > .passcode-panel { grid-column: 1; margin-top: 6px !important; }
-    /* a team account: just the email, the password and sign in */
-    #teamLogin:not([hidden]) { max-width: 440px; width: 100%; justify-self: center; }
+    /* a team account: just the email, the password and sign in, in a narrow card */
+    .login-card:has(#teamLogin:not([hidden])) { display: block; max-width: 480px; }
+    .login-card:has(#teamLogin:not([hidden])) > .login-mode { margin: 4px 0 16px; }
     .login-card .lead { margin-bottom: 12px; }
     .login-card .field { margin-bottom: 10px; }
     .login-card .judge-btn { padding: 14px; font-size: 15px; }
