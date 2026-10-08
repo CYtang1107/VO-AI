@@ -1534,7 +1534,9 @@ var I18N_EN = {
     "evm.card.endOver": "Expected to cost {eac}: {amount} over the {bac} budget.",
     "evm.card.endUnder": "Expected to cost {eac}: {amount} under the {bac} budget.",
     "evm.allFigures": "All the figures (BAC, CV, SV, EAC, CPI and others)",
-    "evm.group.source": "Where they come from"
+    "evm.group.source": "Where they come from",
+    "claim.summary.settled.approved": "This VO has been approved and closed: the check below is kept as a record.",
+    "claim.summary.settled.rejected": "This VO has been rejected and closed: the check below is kept as a record."
 };
 
 var I18N_ZH = {
@@ -3027,7 +3029,9 @@ var I18N_ZH = {
     "evm.card.endOver": "预计完工成本 {eac}，比预算 {bac} 超出 {amount}。",
     "evm.card.endUnder": "预计完工成本 {eac}，比预算 {bac} 节省 {amount}。",
     "evm.allFigures": "全部数字（BAC、CV、SV、EAC、CPI 等）",
-    "evm.group.source": "数字来源"
+    "evm.group.source": "数字来源",
+    "claim.summary.settled.approved": "此变更单已批准结案，以下检查仅作记录。",
+    "claim.summary.settled.rejected": "此变更单已拒绝结案，以下检查仅作记录。"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

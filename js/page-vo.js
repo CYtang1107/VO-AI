@@ -869,7 +869,8 @@ if (typeof document !== "undefined") {
 
             document.getElementById("claimCheckPanel").innerHTML =
                 renderClaimCheck(claimCheck(v, fresh), { recorded: v.claimCheck && v.claimCheck.verdict
-                    ? { verdict: v.claimCheck.verdict, at: prettyDate(v.claimCheck.at) } : null });
+                    ? { verdict: v.claimCheck.verdict, at: prettyDate(v.claimCheck.at) } : null,
+                    settled: voStage(v) === "done" ? "approved" : voStage(v) === "closed" ? "rejected" : null });
 
             document.getElementById("deadlinesPanel").innerHTML =
                 renderDeadlinesPanel(v, today(), fresh);
