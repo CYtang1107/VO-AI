@@ -3827,11 +3827,11 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .cd-table .cp-table { width: 100%; }
 .cd-table .cp-table th { position: sticky; top: 0; background: var(--paper-sunk); }
 @media (min-width: 1001px) {
-    .cd-health { display: grid; grid-template-columns: minmax(280px, 2fr) 3fr; column-gap: 20px; align-items: start; }
-    .cd-health > * { grid-column: 1; }
-    .cd-health > details[data-fold="evm-figures"] { grid-column: 2; grid-row: 1 / span 8; margin-top: 0; }
-    .cd-health > details[data-fold="evm-figures"] > .fold-body { max-height: calc(100vh - 290px); overflow: auto; }
-    .cd-health .evm-cards { grid-template-columns: 1fr; }
+    /* the three cards in one row; every figure below at full width, in two tables */
+    .cd-health .evm-title { margin: 0 0 8px; }
+    .cd-health .evm-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 12px; }
+    .cd-health .evm-card { padding: 10px 14px; }
+    .cd-health > details[data-fold="evm-figures"] > .fold-body { padding-top: 8px; }
 }
 .cd-inputs .cp-certs { columns: 2; column-gap: 32px; }
 @media (max-width: 760px) { .cd-inputs .cp-certs { columns: 1; } }
@@ -3992,3 +3992,30 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 @media (min-width: 1001px) {
     .dash-grid, .dash-has-cost .dash-grid { grid-template-columns: minmax(0, 1fr) minmax(250px, 24%); }
 }
+
+/* earned value: the results and the figures they come from, side by side */
+.evm-tables { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.evm-tables .table-scroll { margin: 0; }
+.evm-tables .evm-table th { white-space: nowrap; }
+.evm-tables .evm-table td.evm-formula { font-size: 12px; }
+@media (max-width: 1000px) { .evm-tables { grid-template-columns: 1fr; } }
+@media (min-width: 1001px) {
+    .cd-health .evm-title { display: none; }          /* the tab says it */
+    .cd-health .evm-cards { gap: 10px; margin: 0 0 10px; }
+    .cd-health .evm-card { padding: 8px 12px; }
+    .cd-health .evm-card strong { font-size: 16px; margin: 2px 0; }
+    .cd-health .evm-card span { font-size: 12.5px; line-height: 1.4; }
+    .cd-health .evm-table th, .cd-health .evm-table td { padding-top: 5px; padding-bottom: 5px; }
+    .cd-health .evm-table tr.evm-group th { padding-top: 5px; padding-bottom: 5px; }
+    .cd-health > details[data-fold="evm-figures"] > .fold-body { padding-top: 6px; padding-bottom: 4px; }
+    .cd-health .assistant-note { margin: 6px 0 0; font-size: 12px; }
+}
+.evm-tables .table-scroll { overflow: visible; }
+.evm-tables .evm-table { width: 100%; table-layout: auto; }
+.evm-tables .evm-flag { white-space: nowrap; }
+.evm-tables .evm-table td.num { white-space: nowrap; }
+@media (min-width: 1001px) and (max-height: 700px) {
+    .cd-health > details[data-fold="evm-figures"] > .fold-body { max-height: calc(100vh - 370px); overflow: auto; }
+}
+.evm-tables .evm-table td.evm-formula { white-space: normal; word-break: break-word; }
+.evm-tables > .table-scroll:last-child .evm-table td.evm-formula { max-width: 220px; }

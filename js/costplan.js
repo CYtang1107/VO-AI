@@ -474,7 +474,9 @@ function renderEarnedValue(e, opts) {
             t(e.vac < 0 ? "evm.card.endOver" : e.vac > 0 ? "evm.card.endUnder" : "evm.card.endOn", { eac: rm(e.eac), bac: rm(e.bac), amount: rm(Math.abs(e.vac)) }));
     return '<h4 class="evm-title">' + escapeHtml(t("evm.title")) + "</h4>" +
         '<div class="evm-cards">' + costCard + timeCard + endCard + "</div>" +
-        fold("evm-figures", escapeHtml(t("evm.allFigures")), table(
+        /* two tables side by side: the results (baseline, variances,
+           estimates), and the figures they come from */
+        fold("evm-figures", escapeHtml(t("evm.allFigures")), '<div class="evm-tables">' + table(
             group("baseline") +
             row("BAC", t("evm.f.BAC"), rm(e.bac)) +
             group("variance") +
@@ -483,13 +485,13 @@ function renderEarnedValue(e, opts) {
             row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : e.vac === 0 ? level("evm.onBudget") : verdict(e.vac > 0, "evm.underrun", "evm.overrun")) +
             group("estimate") +
             row("EAC", f[0], money(e.eac)) +
-            row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc)) +
+            row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc))) + table(
             group("source") +
             row("PV", t("evm.f.PV"), money(e.pv)) +
             row("EV", t("evm.f.EV", { pct: e.pctComplete.toFixed(1) }), rm(e.ev)) +
             row("AC", t("evm.f.AC"), money(e.ac)) +
             row("SPI", "EV / PV", e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? "" : e.spi === 1 ? level("evm.onSchedule") : verdict(e.spi > 1, "evm.ahead", "evm.behind")) +
-            row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : e.cpi === 1 ? level("evm.onBudget") : verdict(e.cpi > 1, "evm.under", "evm.over"))) +
+            row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : e.cpi === 1 ? level("evm.onBudget") : verdict(e.cpi > 1, "evm.under", "evm.over"))) + "</div>" +
             '<p class="assistant-note">' + escapeHtml(t("evm.note")) + "</p>") +
         /* the EAC situation: an advanced choice, folded away (BAC / CPI by default) */
         fold("evm-advanced", escapeHtml(t("evm.advanced", { method: t("evm.method." + e.method) })),
