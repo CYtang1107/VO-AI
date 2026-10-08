@@ -32,7 +32,7 @@ function nextInstructionNo(project, kind) {
     const re = new RegExp("^" + kind + "[-\\s]?(\\d+)$", "i");
     let max = 0;
     ((project && project.vos) || []).forEach(v => {
-        [v.instructionNo, v.issuedInstruction && v.issuedInstruction.no].forEach(no => {
+        [v.instructionNo, v.issuedInstruction && v.issuedInstruction.no].concat((v.instructionHistory || []).map(h => h.no)).forEach(no => {
             const m = re.exec(String(no || "").trim());
             if (m) max = Math.max(max, Number(m[1]));
         });

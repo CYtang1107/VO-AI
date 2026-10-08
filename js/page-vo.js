@@ -597,7 +597,10 @@ function renderWorkflow(vo, project, role, ui) {
         }
     } else if (role === "contractor" && stage === "design") {
         body += wfNote(t("wf.c.waitingDesign"));
+        if (vo.clientChangeRequest) body += wfNote(t("wf.c.clientChange", { note: vo.clientChangeRequest.note }), "warn");
     } else if (role === "administrator" && stage === "design") {
+        if (vo.clientChangeRequest) body += wfNote(t("wf.a.clientChange", { note: vo.clientChangeRequest.note, date: prettyDate(vo.clientChangeRequest.at),
+            no: vo.clientChangeRequest.previous || "—" }), "warn");
         const recorded = vo.claimCheck && vo.claimCheck.verdict ? t("claim.recorded", { verdict: t("claim.verdict." + vo.claimCheck.verdict), date: prettyDate(vo.claimCheck.at) }) : "";
         body += "<h4>" + escapeHtml(t("wf.a.title")) + "</h4>" +
             '<div class="wf-quote"><strong>' + escapeHtml(t("vo.field.description")) + "</strong><p>" + escapeHtml(seedText(vo.description) || "—") + "</p>" +
@@ -613,6 +616,7 @@ function renderWorkflow(vo, project, role, ui) {
     } else if (role === "contractor" && (stage === "measure" || stage === "rejected")) {
         if (stage === "rejected") body += wfNote(t("wf.c.rejectedByQs", { note: vo.consultantRemark || t("wf.noNote") }), "warn");
         else body += wfNote(t("wf.c.approved", { instr: instr || "—" }), "ok");
+        if (vo.clientChangeRequest && vo.clientChangeRequest.previous) body += wfNote(t("wf.c.revised", { note: vo.clientChangeRequest.note, prev: vo.clientChangeRequest.previous }), "warn");
         const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty)).length;
         const after = (vo.afterMedia || []).filter(isPhotoDoc).length;
         body += "<h4>" + escapeHtml(t("wf.c.measureTitle")) + "</h4>" +
@@ -650,7 +654,10 @@ function renderWorkflow(vo, project, role, ui) {
             '<div class="media-pair">' + renderMediaField(vo, "beforeMedia", {}) + renderMediaField(vo, "afterMedia", {}) + "</div>" +
             field({ field: "finalPrice", label: t("vo.field.finalPrice"), type: "number", value: vo.finalPrice, vo: vo, role: role, hint: t("vo.field.finalPriceHint") }) +
             field({ field: "clientRemark", label: t("vo.field.clientRemark"), type: "textarea", value: seedText(vo.clientRemark), vo: vo, role: role }) +
-            '<div class="wf-actions">' + wfButton("wfClientApprove", "wf.k.approve", "primary") + wfButton("wfClientReject", "wf.k.reject", "secondary danger") + "</div>";
+            '<div class="wf-actions">' + wfButton("wfClientApprove", "wf.k.approve", "primary") + wfButton("wfClientReject", "wf.k.reject", "secondary danger") + "</div>" +
+            /* a change to the design: back to the design team's instruction (step 3) */
+            '<div class="wf-reject"><input type="text" id="wfClientChangeNote" placeholder="' + escapeHtml(t("wf.k.changePh")) + '">' +
+            wfButton("wfClientChange", "wf.k.change", "secondary") + "</div>";
     } else if (vo.issuedInstruction && (stage === "done" || stage === "client" || stage === "consultant" || stage === "measure")) {
         body += wfNote(t("wf.issuedLine", { instr: instr }));
     }
@@ -1640,6 +1647,32 @@ if (typeof document !== "undefined") {
             if (id === "wfQsReject") {
                 if (!String(cur.consultantRemark || "").trim()) { toast(t("wf.q.rejectNeedsRemark"), "error"); return; }
                 step(v => { v.evaluateStatus = "Rejected"; }, "Assessment completed — Rejected", t("wf.toast.qsRejected"));
+                return;
+            }
+            if (id === "wfClientChange") {
+                const note = document.getElementById("wfClientChangeNote").value.trim();
+                if (!note) { toast(t("wf.k.changeNeedsNote"), "error"); return; }
+                /* not step(): the VO leaves the client's view (it comes back
+                   once the QS passes it on again), so the page cannot redraw it */
+                const before = JSON.parse(JSON.stringify(voNow()));
+                const after = updateVO(project.id, voId, v => {
+                    /* the instruction already issued is kept on record; the
+                       design team issues a revised one, with a new number */
+                    const prev = v.issuedInstruction ? v.issuedInstruction.no : (v.instructionNo || "");
+                    if (v.issuedInstruction) v.instructionHistory = (v.instructionHistory || []).concat([Object.assign({}, v.issuedInstruction, { supersededAt: today() })]);
+                    v.clientChangeRequest = { note: note, at: today(), by: session.name, previous: prev };
+                    delete v.issuedInstruction;
+                    v.instructionNo = "";
+                    v.instructionStatus = "Pending";
+                    v.sentToDesign = true;
+                    v.submitted = false;
+                    v.evaluateStatus = "Pending";
+                    logHistory(v, session, "Client asked for a design change: " + note + " — back to the design team");
+                });
+                /* the stored VO (the client's own view no longer holds it) */
+                if (after && typeof announceStep === "function") announceStep(project.id, before, after.vos.find(x => x.id === voId));
+                toast(t("wf.toast.clientChange"));
+                setTimeout(() => { location.href = "register.html"; }, 900);
                 return;
             }
             if (id === "wfClientApprove" || id === "wfClientReject") {

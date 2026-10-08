@@ -111,3 +111,21 @@ test("submitted to the client: the client approves or rejects, with no design-te
     assert.match(html, /id="wfClientReject"/);
     assert.strictEqual(voStage(Object.assign(v, { certifiedStatus: "Rejected" })), "closed");
 });
+
+test("the client asks for a design change: back to the design team, who issue a revised instruction with a new number", () => {
+    const { nextInstructionNo } = require("../js/instruction.js");
+    const v = Object.assign(JSON.parse(JSON.stringify(project().vos[1])), { evaluateStatus: "Approved" });
+    assert.strictEqual(voStage(v), "client");
+    assert.match(renderWorkflow(v, project(), "client", {}), /id="wfClientChange">Ask for a design change/);
+    /* what the button does (js/page-vo.js) */
+    const prev = v.issuedInstruction ? v.issuedInstruction.no : v.instructionNo;
+    if (v.issuedInstruction) v.instructionHistory = [Object.assign({}, v.issuedInstruction)];
+    Object.assign(v, { clientChangeRequest: { note: "Use a larger sump", at: "2026-10-08", previous: prev },
+        instructionNo: "", instructionStatus: "Pending", sentToDesign: true, submitted: false, evaluateStatus: "Pending" });
+    delete v.issuedInstruction;
+    assert.strictEqual(voStage(v), "design");
+    assert.match(renderWorkflow(v, project(), "administrator", {}), /The client asked for a design change on .*Use a larger sump/);
+    assert.match(renderWorkflow(v, project(), "contractor", {}), /The client asked for a design change: Use a larger sump/);
+    const p = Object.assign(project(), { vos: [v] });
+    assert.notStrictEqual(nextInstructionNo(p, "EI"), prev, "the revised instruction gets a new number");
+});
