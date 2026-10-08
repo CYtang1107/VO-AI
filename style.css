@@ -3259,6 +3259,26 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .vo-locate { margin-left: 6px; font-size: 14px; text-decoration: none; padding: 0 2px; }
 tr.vo-row.vo-row-active td { background: #fff4d6 !important; }
 .capture-geo { font-size: 12px; margin: 10px 0 0; color: var(--ink-3); }
+/* a VO's before / completed photos and videos (js/media.js) */
+.media-field { margin-bottom: 16px; }
+.media-field.media-missing { border-left: 3px solid #d97706; padding-left: 10px; }
+.media-req { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #fdecc8; color: #8a4b00; font-size: 11px; font-weight: 700; }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 8px 0; }
+.media-thumb { position: relative; margin: 0; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--paper-sunk); }
+.media-thumb img, .media-thumb video { display: block; width: 100%; height: 100px; object-fit: cover; background: #222; }
+.media-thumb figcaption { padding: 4px 6px; font-size: 11px; color: var(--ink-2); word-break: break-all; }
+.media-thumb figcaption small { display: block; color: var(--ink-3); }
+.media-thumb.media-unavailable img { visibility: hidden; }
+.media-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; cursor: pointer; }
+.media-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.media-actions .capture-geo { margin: 0; }
+.media-btn { cursor: pointer; }
+.media-thumb a.file-open::before { content: none; }
+.media-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .media-pair { grid-template-columns: 1fr; } }
+.wf-missing { margin: 6px 0 0; padding-left: 18px; color: #8a4b00; font-size: 13px; }
+.wf-photo-check { margin: 4px 0 16px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--paper-sunk); }
+.wf-photo-check h5 { margin: 0 0 6px; font-size: 14px; }
 .capture-geo.ok { color: var(--verdict-same); }
 .capture-geo.denied, .capture-geo.unavailable { color: #b45309; }
 .capture-thumb-geo { position: absolute; left: 4px; bottom: 4px; font-size: 14px; text-shadow: 0 0 3px #fff; }

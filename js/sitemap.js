@@ -5,7 +5,7 @@
      consultant on the dashboard map (address search through OpenStreetMap's
      Nominatim, or a click on the map).
    - A site photo's place: doc.geo = {lat, lng, acc, src}, recorded when the
-     contractor takes it on the phone (js/page-capture.js): the photo's own
+     contractor takes it on the phone (js/media.js): the photo's own
      EXIF GPS when it has one, else the phone's position at that moment.
    - The map: on the dashboard (every VO's photos) and on a VO page (that
      VO's photos), each pin opening the photo.
@@ -27,7 +27,7 @@ var SAT_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imag
 var SAT_LABELS = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
 var SAT_ATTRIBUTION = "Imagery &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community";
 var MAP_VIEW_KEY = "voai.mapView.v1";
-var GEO_FIELDS = ["supportingDocs", "revisedDrawing", "oldDrawing", "contractDocs"];
+var GEO_FIELDS = ["beforeMedia", "afterMedia", "supportingDocs", "revisedDrawing", "oldDrawing", "contractDocs"];
 
 /* ---------- pure (tested in test/sitemap.test.js) ---------- */
 

@@ -2,7 +2,8 @@
    Recording a variation on site: the contractor takes photos and keys in
    the essentials from a phone, and it is saved straight away as a draft
    VO. These are the pure parts (naming the photos, checking the record,
-   writing it onto a VO); the page itself is js/page-capture.js. */
+   writing it onto a VO). Photos are now taken in a new VO's first step
+   (js/media.js); these remain for VOs recorded the earlier way. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { uid } = require("./store.js");

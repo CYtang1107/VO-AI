@@ -35,7 +35,11 @@ function sampleUrl(doc) {
 /* The VO's photos the browser can read: a demo sample file, or a file
    stored in this browser or the team's storage. */
 function checkablePhotos(vo) {
-    return (vo && vo.supportingDocs || []).filter(d => isPhotoName(d.name) && (d.stored || sampleUrl(d)));
+    const readable = list => (list || []).filter(d => isPhotoName(d.name) && d.kind !== "video" && (d.stored || sampleUrl(d)));
+    /* the completed work's photos (js/media.js) when there are any: what
+       the description says was done; else the supporting photos */
+    const after = readable(vo && vo.afterMedia);
+    return after.length ? after : readable(vo && vo.supportingDocs);
 }
 
 /* Which photos one check sends: the first four. */

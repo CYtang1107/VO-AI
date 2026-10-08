@@ -13,6 +13,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { renderIssueForm, renderIssued, instructionProblem, proposedInstruction, nextInstructionNo } = require("./instruction.js");
     var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine } = require("./buildup.js");
     var { buildUpKey, buildUpSummary } = require("./private.js");
+    var { renderMediaField, describeMissing, submitMissing } = require("./media.js");
 }
 
 /* An <option> VALUE is always the raw English data value (evaluateStatus,
@@ -512,6 +513,14 @@ function wfNote(text, kind) {
     return '<div class="wf-note' + (kind ? " wf-note-" + kind : "") + '">' + escapeHtml(text) + "</div>";
 }
 
+/* what still stops a step, as a short list under its button */
+function wfMissing(keys) {
+    return keys.length ? '<ul class="wf-missing">' + keys.map(k => "<li>" + escapeHtml(t(k)) + "</li>").join("") + "</ul>" : "";
+}
+/* the AI's check of the completed photos (drawn in by the page) */
+var WF_PHOTO_CHECK = '<div class="wf-photo-check"><h5>' + "%T%" + '</h5><div class="photo-check-host"></div></div>';
+function wfPhotoCheck() { return WF_PHOTO_CHECK.replace("%T%", escapeHtml(t("media.aiTitle"))); }
+
 function renderWorkflow(vo, project, role, ui) {
     const stage = voStage(vo);
     const head = renderStepper(stage, ui) +
@@ -524,10 +533,13 @@ function renderWorkflow(vo, project, role, ui) {
             body += wfNote(t("wf.c.rejectedByDesign", { note: vo.instructionNote || t("wf.noNote") }), "warn");
         }
         if (!ui.step || ui.step === 1) {
+            /* the site before the work: at least one photo (js/media.js) */
+            const missing = describeMissing(vo);
             body += "<h4>" + escapeHtml(t("wf.c.step1")) + "</h4>" +
+                renderMediaField(vo, "beforeMedia", { editable: true, required: true, geoState: ui && ui.geo }) +
                 field({ field: "description", label: t("vo.field.description"), type: "textarea", value: seedText(vo.description), vo: vo, role: role }) +
                 field({ field: "contractorRemark", label: t("vo.field.contractorRemark"), type: "textarea", value: seedText(vo.contractorRemark), vo: vo, role: role }) +
-                '<div class="wf-actions">' + wfButton("wfNext", "wf.next", "primary", !String(vo.description || "").trim()) + "</div>";
+                '<div class="wf-actions">' + wfButton("wfNext", "wf.next", "primary", missing.length > 0) + "</div>" + wfMissing(missing);
         } else {
             const check = claimCheck(vo, project, { stage: "describe" });
             body += "<h4>" + escapeHtml(t("wf.c.step2")) + "</h4>" +
@@ -544,6 +556,7 @@ function renderWorkflow(vo, project, role, ui) {
             '<div class="wf-quote"><strong>' + escapeHtml(t("vo.field.description")) + "</strong><p>" + escapeHtml(seedText(vo.description) || "—") + "</p>" +
             (vo.contractorRemark ? "<p class=\"rate-detail\">" + escapeHtml(seedText(vo.contractorRemark)) + "</p>" : "") +
             (recorded ? '<p class="rate-detail">' + escapeHtml(recorded) + "</p>" : "") + "</div>" +
+            renderMediaField(vo, "beforeMedia", {}) +
             renderDocList(vo, "oldDrawing", t("documents.field.oldDrawing"), role) +
             renderDocList(vo, "revisedDrawing", t("documents.field.revisedDrawing"), role) +
             renderDocList(vo, "designDocs", t("documents.field.designDocs"), role) +
@@ -553,16 +566,18 @@ function renderWorkflow(vo, project, role, ui) {
     } else if (role === "contractor" && (stage === "measure" || stage === "rejected")) {
         if (stage === "rejected") body += wfNote(t("wf.c.rejectedByQs", { note: vo.consultantRemark || t("wf.noNote") }), "warn");
         else body += wfNote(t("wf.c.approved", { instr: instr || "—" }), "ok");
-        const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty));
         body += "<h4>" + escapeHtml(t("wf.c.measureTitle")) + "</h4>" +
             '<ol class="wf-todo"><li>' + escapeHtml(t("wf.c.todo1")) + "</li><li>" + escapeHtml(t("wf.c.todo2")) + "</li><li>" +
             escapeHtml(t("wf.c.todo3")) + "</li></ol>" +
+            /* the work done: at least one photo, checked by the AI against the description */
+            renderMediaField(vo, "afterMedia", { editable: true, required: true, geoState: ui && ui.geo }) + wfPhotoCheck() +
             renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
-            '<div class="wf-actions">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", !rows.length) +
-            (rows.length ? "" : '<span class="hint">' + escapeHtml(t("wf.c.needRow")) + "</span>") + "</div>";
+            '<div class="wf-actions">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", submitMissing(vo).length > 0) + "</div>" +
+            wfMissing(submitMissing(vo));
     } else if (role === "contractor" && stage === "info") {
         body += wfNote(t("wf.c.infoAsked", { date: prettyDate(vo.infoRequestedAt), note: vo.infoRequestNote || t("wf.noNote") }), "warn") +
             '<div class="field owned"><label>' + escapeHtml(t("vo.field.infoResponse")) + '</label><textarea id="wfInfoText"></textarea></div>' +
+            renderMediaField(vo, "afterMedia", { editable: true, geoState: ui && ui.geo }) +
             renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
             '<div class="wf-actions">' + wfButton("wfSendBack", "wf.c.sendBack", "primary") + "</div>";
     } else if (role === "consultant" && stage === "consultant") {
@@ -570,6 +585,8 @@ function renderWorkflow(vo, project, role, ui) {
         body += "<h4>" + escapeHtml(t("wf.q.title")) + "</h4>" +
             '<ol class="wf-todo"><li>' + escapeHtml(t("wf.q.todo1")) + "</li><li>" + escapeHtml(t("wf.q.todo2")) + "</li><li>" + escapeHtml(t("wf.q.todo3")) + "</li></ol>" +
             (answered ? wfNote(t("wf.q.answered", { date: prettyDate(vo.infoResponse.at), text: vo.infoResponse.text || "—" }), "ok") : "") +
+            /* before and after, and what the AI saw in the completed photos */
+            '<div class="media-pair">' + renderMediaField(vo, "beforeMedia", {}) + renderMediaField(vo, "afterMedia", {}) + "</div>" + wfPhotoCheck() +
             field({ field: "assessmentNote", label: t("vo.field.assessmentNote"), type: "textarea", value: seedText(vo.assessmentNote), vo: vo, role: role }) +
             field({ field: "timeImpact", label: t("vo.field.timeImpact"), type: "number", value: vo.timeImpact, vo: vo, role: role }) +
             field({ field: "consultantRemark", label: t("vo.field.consultantRemark"), type: "textarea", value: seedText(vo.consultantRemark), vo: vo, role: role }) +
@@ -581,6 +598,7 @@ function renderWorkflow(vo, project, role, ui) {
     } else if (role === "client" && stage === "client") {
         body += "<h4>" + escapeHtml(t("wf.k.title")) + "</h4>" +
             wfNote(t("wf.k.summary", { amount: rm(assessedTotal(vo)), note: vo.consultantRemark || t("wf.noNote") }), "ok") +
+            '<div class="media-pair">' + renderMediaField(vo, "beforeMedia", {}) + renderMediaField(vo, "afterMedia", {}) + "</div>" +
             field({ field: "finalPrice", label: t("vo.field.finalPrice"), type: "number", value: vo.finalPrice, vo: vo, role: role, hint: t("vo.field.finalPriceHint") }) +
             field({ field: "clientRemark", label: t("vo.field.clientRemark"), type: "textarea", value: seedText(vo.clientRemark), vo: vo, role: role }) +
             '<div class="wf-actions">' + wfButton("wfClientApprove", "wf.k.approve", "primary") + wfButton("wfClientReject", "wf.k.reject", "secondary danger") + "</div>";
@@ -928,8 +946,62 @@ if (typeof document !== "undefined") {
         }
 
         /* ---------- the workflow card (renderWorkflow) ---------- */
-        const wf = { step: 1 };
+        const wf = { step: 1, geo: null };
         const wfHost = document.getElementById("workflowBody");
+        /* the contractor's photos are placed where they are taken: the
+           phone's position is watched while they may take them */
+        if (role === "contractor" && typeof SiteGeo !== "undefined" &&
+            ["describe", "designRejected", "measure", "rejected", "info"].indexOf(voStage(project.vos.find(x => x.id === voId) || {})) !== -1) {
+            SiteGeo.start(state => {
+                wf.geo = state;
+                if (wfHost) wfHost.querySelectorAll(".media-actions .capture-geo").forEach(el => {
+                    el.className = "capture-geo " + state; el.textContent = t("capture.geo." + state);
+                });
+            });
+        }
+        /* a photo or video taken, chosen or removed (js/media.js) */
+        if (wfHost) wfHost.addEventListener("change", async e => {
+            const picker = e.target.closest(".media-picker");
+            if (!picker) return;
+            e.stopPropagation();
+            const field = picker.dataset.media;
+            const files = Array.from(picker.files || []);
+            picker.value = "";
+            if (!files.length) return;
+            const d = new Date(), pad = n => String(n).padStart(2, "0");
+            const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+            const ready = await prepareMedia(files, stamp);
+            if (ready.tooBig.length) toast(t("media.tooBig", { names: ready.tooBig.join(", "), mb: VIDEO_MAX_MB }), "warn");
+            if (!ready.items.length) return;
+            const stored = await Promise.all(ready.items.map(it => FileStore.put(it.id, it.file)));
+            updateVO(project.id, voId, v => {
+                v[field] = v[field] || [];
+                ready.items.forEach((it, k) => {
+                    const doc = Object.assign({}, it.doc, { uploadedBy: session.name, at: today() });
+                    if (!doc.geo) delete doc.geo;
+                    if (stored[k]) doc.stored = true;
+                    v[field].push(doc);
+                });
+                logHistory(v, session, "Added " + ready.items.length + " " + (field === "beforeMedia" ? "before-work" : "completed-work") + " photo/video file(s)");
+            });
+            toast(stored.every(Boolean) ? t("media.added", { n: ready.items.length }) : t("file.notStored"), stored.every(Boolean) ? undefined : "error");
+            draw();
+            /* the completed photos: the AI checks them against the description straight away */
+            if (field === "afterMedia" && ready.items.some(it => it.doc.kind === "photo")) runPhotoCheck(true);
+        });
+        if (wfHost) wfHost.addEventListener("click", e => {
+            const rem = e.target.closest(".media-remove");
+            if (!rem) return;
+            const field = rem.dataset.media, docId = rem.dataset.docId;
+            updateVO(project.id, voId, v => {
+                const doc = (v[field] || []).find(x => x.id === docId);
+                if (doc && typeof FileStore !== "undefined") FileStore.remove([doc.id]);
+                v[field] = (v[field] || []).filter(x => x.id !== docId);
+                logHistory(v, session, "Removed " + (doc ? doc.name : "a file") + " from " + field);
+            });
+            toast(t("toast.documentRemoved"));
+            draw();
+        });
         if (role === "consultant") {
             const pc = document.querySelector(".photo-check-card"), wc = document.querySelector(".wf-card");
             if (pc && wc) wc.after(pc);
@@ -972,6 +1044,8 @@ if (typeof document !== "undefined") {
         function drawWorkflow(v, fresh) {
             const stage = voStage(v);
             if (wfHost) wfHost.innerHTML = renderWorkflow(v, fresh, role, wf);
+            if (wfHost && typeof fillMediaThumbs === "function") fillMediaThumbs(wfHost);
+            if (typeof drawPhotoCheck === "function") drawPhotoCheck();
             const late = LATE.indexOf(stage) !== -1;
             show(document.getElementById("measurementCard"), late);
             show(document.getElementById("buildUpCard"), late);
@@ -1428,11 +1502,11 @@ if (typeof document !== "undefined") {
                 if (note) toast(note);
                 draw();
             };
-            if (id === "wfNext") { wf.step = 2; draw(); return; }
+            if (id === "wfNext") { if (describeMissing(cur).length) return; wf.step = 2; draw(); return; }
             if (id === "wfBack") { wf.step = 1; draw(); return; }
             if (id === "wfSend") {
                 const check = claimCheck(cur, fresh, { stage: "describe" });
-                if (check.verdict !== "claimable") return;
+                if (check.verdict !== "claimable" || describeMissing(cur).length) return;
                 step(v => { v.sentToDesign = true; v.claimCheck = { verdict: check.verdict, at: today(), form: check.form }; },
                      ["Contract agent: " + check.verdict, "Sent to design team"], t("wf.toast.sent"));
                 wf.step = 1;
@@ -1459,6 +1533,7 @@ if (typeof document !== "undefined") {
                 return;
             }
             if (id === "wfSubmitQs") {
+                if (submitMissing(cur).length) return;
                 step(v => { v.submitted = true; v.evaluateStatus = "Pending"; }, "Submitted to consultant", t("wf.toast.submittedQs"));
                 return;
             }
@@ -1503,7 +1578,9 @@ if (typeof document !== "undefined") {
         const photoCheck = { key: null, state: null, thumbs: {} };
         const PHOTO_CACHE = "voai.photocheck.";
         function readPhotoCache(key) {
-            try { const s = sessionStorage.getItem(PHOTO_CACHE + key); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+            try { const s = sessionStorage.getItem(PHOTO_CACHE + key); if (s) return JSON.parse(s); } catch (e) { /* storage off */ }
+            const v = getProject(project.id).vos.find(x => x.id === voId);
+            return v && v.photoCheck && v.photoCheck.key === key ? { results: v.photoCheck.results } : null;
         }
         function writePhotoCache(key, state) {
             try { sessionStorage.setItem(PHOTO_CACHE + key, JSON.stringify(state)); } catch (e) { /* storage off */ }
@@ -1512,7 +1589,12 @@ if (typeof document !== "undefined") {
             const host = document.getElementById("photoCheckBody");
             if (!host || typeof photoCheckAvailable !== "function") return;
             const card = host.closest(".photo-check-card");
-            if (!photoCheckAvailable(project.id)) { card.hidden = true; card.dataset.off = "1"; return; }
+            const inSteps = Array.from(document.querySelectorAll(".photo-check-host"));
+            if (!photoCheckAvailable(project.id)) {
+                card.hidden = true; card.dataset.off = "1";
+                inSteps.forEach(h => { h.innerHTML = '<p class="assistant-note">' + escapeHtml(t("media.aiOff")) + "</p>"; });
+                return;
+            }
             const v = getProject(project.id).vos.find(x => x.id === voId);
             const docs = photosToCheck(v), total = checkablePhotos(v).length;
             const key = photoCheckKey(v, docs);
@@ -1525,16 +1607,26 @@ if (typeof document !== "undefined") {
             host.innerHTML =
                 '<p class="assistant-note">' + escapeHtml(t("photo.note")) + "</p>" +
                 (askAsGuest(project.id) ? '<p class="assistant-note ask-guest-note">' + escapeHtml(t("ask.guestNote")) + "</p>" : "") +
-                (docs.length ? '<div class="photo-check-actions"><button type="button" class="secondary-button" id="photoCheckBtn"' +
+                (docs.length ? '<div class="photo-check-actions"><button type="button" class="secondary-button photo-check-btn"' +
                     (loading || noDescription ? " disabled" : "") + ">" +
                     escapeHtml(t(photoCheck.state && photoCheck.state.results ? "photo.recheck" : "photo.check", { n: docs.length })) + "</button>" +
                     (noDescription ? ' <span class="assistant-note">' + escapeHtml(t("photo.needDescription")) + "</span>" : "") + "</div>" : "") +
-                '<div id="photoCheckResult">' + renderPhotoCheck(photoCheck.state, docs, photoCheck.thumbs, total) + "</div>";
+                '<div class="photo-check-result">' + renderPhotoCheck(photoCheck.state, docs, photoCheck.thumbs, total) + "</div>";
+            /* the same check inside the step: the contractor's before they
+               submit, the consultant's while they assess */
+            inSteps.forEach(h => { h.innerHTML = host.innerHTML; });
         }
-        document.getElementById("photoCheckBody").addEventListener("click", async e => {
-            if (e.target.id !== "photoCheckBtn" || (photoCheck.state && photoCheck.state.loading)) return;
+        document.addEventListener("click", e => {
+            if (e.target.closest(".photo-check-btn")) runPhotoCheck(false);
+        });
+        /* auto: only when this set of photos has not been checked yet */
+        async function runPhotoCheck(auto) {
+            if ((photoCheck.state && photoCheck.state.loading) || typeof photoCheckAvailable !== "function" || !photoCheckAvailable(project.id)) return;
             const v = getProject(project.id).vos.find(x => x.id === voId);
+            if (!String(v.description || "").trim()) return;
             const docs = photosToCheck(v);
+            if (!docs.length) return;
+            if (auto && readPhotoCache(photoCheckKey(v, docs))) { drawPhotoCheck(); return; }
             const key = photoCheckKey(v, docs);
             photoCheck.state = { loading: true };
             drawPhotoCheck();
@@ -1548,9 +1640,13 @@ if (typeof document !== "undefined") {
             }
             photoCheck.key = key;
             photoCheck.state = state;
-            if (state && state.results) writePhotoCache(key, state);
+            if (state && state.results) {
+                writePhotoCache(key, state);
+                /* kept on the VO, so the consultant and the client see what the AI found */
+                updateVO(project.id, voId, x => { x.photoCheck = { key: key, results: state.results, at: today() }; });
+            }
             drawPhotoCheck();
-        });
+        }
 
         /* Where this VO's site photos were taken (js/sitemap.js); drawn
            once, for the consultant and the client who check the work (not
