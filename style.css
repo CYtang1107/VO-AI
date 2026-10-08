@@ -3277,6 +3277,8 @@ tr.vo-row.vo-row-active td { background: #fff4d6 !important; }
 .media-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 760px) { .media-pair { grid-template-columns: 1fr; } }
 .wf-actions .primary-button:disabled { opacity: .45; cursor: not-allowed; }
+.measure-submit-card { padding: 14px 20px; }
+.measure-submit-card .measure-submit-bar { margin: 0; }
 .wf-checklist { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
 .wf-checklist li { padding: 3px 10px; border-radius: 999px; background: #fdf1dc; color: #8a4b00; }
 .wf-checklist li.done { background: #dff3e6; color: var(--verdict-same); }

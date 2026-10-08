@@ -543,6 +543,18 @@ function wfChecklist(items) {
     return '<ul class="wf-checklist">' + items.map(([done, label]) =>
         '<li class="' + (done ? "done" : "todo") + '">' + (done ? "✓" : "○") + " " + escapeHtml(label) + "</li>").join("") + "</ul>";
 }
+/* The bottom of the measurement tab, for the contractor measuring: what
+   the submission still needs, and submitting it to the consultant QS. */
+function renderMeasureSubmit(vo, role) {
+    const stage = voStage(vo);
+    if (role !== "contractor" || (stage !== "measure" && stage !== "rejected")) return "";
+    const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty)).length;
+    const after = (vo.afterMedia || []).filter(isPhotoDoc).length;
+    return '<div class="wf-actions measure-submit-bar">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", submitMissing(vo).length > 0) +
+        wfChecklist([[rows > 0, t("wf.check.rows", { n: rows })], [after > 0, t("wf.check.after", { n: after })]]) +
+        (after ? "" : '<button type="button" class="link-button" id="wfGoPhotos">' + escapeHtml(t("wf.c.goPhotos")) + "</button>") + "</div>";
+}
+
 /* the AI's check of the completed photos (drawn in by the page) */
 var WF_PHOTO_CHECK = '<div class="wf-photo-check"><h5>' + "%T%" + '</h5><div class="photo-check-host"></div></div>';
 function wfPhotoCheck() { return WF_PHOTO_CHECK.replace("%T%", escapeHtml(t("media.aiTitle"))); }
@@ -600,8 +612,9 @@ function renderWorkflow(vo, project, role, ui) {
             /* the work done: at least one photo, checked by the AI against the description */
             renderMediaField(vo, "afterMedia", { editable: true, required: true, geoState: ui && ui.geo }) + (after ? wfPhotoCheck() : "") +
             renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
-            '<div class="wf-actions">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", submitMissing(vo).length > 0) +
-            wfChecklist([[rows > 0, t("wf.check.rows", { n: rows })], [after > 0, t("wf.check.after", { n: after })]]) + "</div>";
+            /* then the measurement, in its tab, where it is submitted */
+            '<div class="wf-actions">' + wfButton("wfGoMeasure", "wf.c.goMeasure", "primary") +
+            wfChecklist([[after > 0, t("wf.check.after", { n: after })]]) + "</div>";
     } else if (role === "contractor" && stage === "info") {
         body += wfNote(t("wf.c.infoAsked", { date: prettyDate(vo.infoRequestedAt), note: vo.infoRequestNote || t("wf.noNote") }), "warn") +
             '<div class="field owned"><label>' + escapeHtml(t("vo.field.infoResponse")) + '</label><textarea id="wfInfoText"></textarea></div>' +
@@ -819,7 +832,7 @@ if (typeof module !== "undefined" && module.exports) {
         field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, fillMissingUnits, rowsFromInstruction, wholeInstructionRow, renderPastRates, rowSummary, renderStdClause, rowActions,
         renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel,
-        renderWorkflow, renderStepper
+        renderWorkflow, renderStepper, renderMeasureSubmit
     };
 }
 
@@ -1080,6 +1093,8 @@ if (typeof document !== "undefined") {
         function drawWorkflow(v, fresh) {
             const stage = voStage(v);
             if (wfHost) wfHost.innerHTML = renderWorkflow(v, fresh, role, wf);
+            const ms = document.getElementById("measureSubmit");
+            if (ms) { ms.innerHTML = renderMeasureSubmit(v, role); ms.hidden = !ms.innerHTML; }
             if (wfHost && typeof fillMediaThumbs === "function") fillMediaThumbs(wfHost);
             if (typeof drawPhotoCheck === "function") drawPhotoCheck();
             const late = LATE.indexOf(stage) !== -1;
@@ -1534,8 +1549,15 @@ if (typeof document !== "undefined") {
 
         /* the workflow card's buttons: each moves the VO to its next stage,
            logs it, and (with a team account) emails whoever's turn it is */
-        wfHost.addEventListener("click", e => {
+        function openTab(id) {
+            vt.tab = id; drawTabs(vt.stage);
+            const first = tabCards(id).find(el => !el.hidden);
+            if (first) first.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        const onWfClick = e => {
             const id = e.target.id;
+            if (id === "wfGoMeasure") { openTab("measure"); return; }
+            if (id === "wfGoPhotos") { openTab("step"); return; }
             if (!id || !/^wf|^issueInstrBtn$/.test(id)) return;
             const fresh = getProject(project.id);
             const cur = fresh.vos.find(x => x.id === voId);
@@ -1609,7 +1631,10 @@ if (typeof document !== "undefined") {
                     if (ok && (v.finalPrice === null || v.finalPrice === undefined || v.finalPrice === "")) v.finalPrice = assessedTotal(v);
                 }, "Certified — " + (ok ? "Approved" : "Rejected"), t(ok ? "wf.toast.clientApproved" : "wf.toast.clientRejected"));
             }
-        });
+        };
+        wfHost.addEventListener("click", onWfClick);
+        const measureSubmit = document.getElementById("measureSubmit");
+        if (measureSubmit) measureSubmit.addEventListener("click", onWfClick);
 
         document.getElementById("reportBtn").addEventListener("click", () => {
             location.href = "report.html?id=" + encodeURIComponent(voId);
