@@ -149,6 +149,14 @@ function upgradeDemo(db) {
        photos with where they were taken. Added only where missing — a site
        the consultant set, or a photo removed, is left as it is. */
     if (!demo.site) { demo.site = seed.site; changed = true; }
+    /* a demo site moved far from its photos (Batu Pahat, 187 km off, while
+       every photo is in Cheras) goes back to the demo site, once */
+    if (!demo.siteRestored) {
+        const s0 = demo.site;
+        if (s0 && (Math.abs(s0.lat - seed.site.lat) > 0.5 || Math.abs(s0.lng - seed.site.lng) > 0.5)) demo.site = seed.site;
+        demo.siteRestored = true;
+        changed = true;
+    }
     seed.vos.forEach(sv => {
         const vo = (demo.vos || []).find(v => v.id === sv.id);
         if (!vo) return;

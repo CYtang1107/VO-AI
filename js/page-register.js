@@ -232,14 +232,30 @@ if (typeof document !== "undefined") {
 
         /* The site map (js/sitemap.js), as on the dashboard */
         const mapHost = document.getElementById("siteMapBody");
+        let mapApi = null;
+        /* the VOs with a photo on the map: their rows get a 📍 */
+        const onMap = new Set(typeof photoPins === "function" ? photoPins(project).map(p => p.voId) : []);
         if (mapHost && typeof drawSiteMap === "function") {
+            const voById = id => allVos.find(v => v.id === id);
             drawSiteMap(mapHost, getProject(project.id) || project, {
                 canSetSite: session.role === "consultant",
                 onSiteSaved: site => {
                     updateProject(project.id, p => { p.site = site; });
                     toast(t("map.siteSaved"));
+                },
+                stageOf: id => voById(id) ? voStage(voById(id)) : "",
+                infoOf: id => {
+                    const v = voById(id);
+                    return v ? { description: seedText(v.description) || "", amount: t("map.claimed", { amount: rm(contractorTotal(v)) }),
+                                 step: t("register.stage." + voStage(v)) } : null;
+                },
+                /* a pin opened: its row is marked in the list */
+                onPinVo: id => {
+                    document.querySelectorAll(".vo-row.vo-row-active").forEach(r => r.classList.remove("vo-row-active"));
+                    const row = document.querySelector('.vo-row[data-vo="' + CSS.escape(id) + '"]');
+                    if (row) { row.classList.add("vo-row-active"); row.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
                 }
-            });
+            }).then(api => { mapApi = api; if (mapApi) mapApi.filter(filterVos(allVos, currentFilters()).map(v => v.id)); });
         }
 
         document.getElementById("ownedLegend").textContent =
@@ -256,6 +272,22 @@ if (typeof document !== "undefined") {
                 row.addEventListener("click", () => {
                     window.location.href = "vo.html?id=" + encodeURIComponent(row.dataset.vo);
                 });
+                /* 📍: show this VO on the site map (the row itself opens the VO) */
+                if (!onMap.has(row.dataset.vo)) return;
+                const cell = row.querySelector("td");
+                const pin = document.createElement("button");
+                pin.type = "button";
+                pin.className = "link-button vo-locate";
+                pin.textContent = "📍";
+                pin.title = t("map.showOnMap");
+                pin.setAttribute("aria-label", t("map.showOnMap"));
+                pin.addEventListener("click", e => {
+                    e.stopPropagation();
+                    if (!mapApi) return;
+                    mapHost.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                    mapApi.focusVo(row.dataset.vo);
+                });
+                if (cell) cell.appendChild(pin);
             });
         }
 
@@ -280,6 +312,7 @@ if (typeof document !== "undefined") {
             document.getElementById("registerBody").innerHTML =
                 renderRegisterBody(project, session.role, { vos: filtered, filtered: active });
             wireRows();
+            if (mapApi) mapApi.filter(filtered.map(v => v.id));
 
             if (countEl) {
                 countEl.textContent = t("register.resultCount", { n: filtered.length, total: allVos.length });
