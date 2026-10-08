@@ -24,14 +24,15 @@ test("the report carries the VO identity and instruction reference", () => {
 test("the report itemises every measurement row with its rate verdict", () => {
     const html = renderReport(vo1, project);
     assert.match(html, /Omit ceramic floor tiles/);
-    assert.match(html, /contract BQ rate governs/i);
     assert.strictEqual((html.match(/rate-flag/g) || []).length, 3);
 });
 
-test("the report shows claimed, assessed and certified values", () => {
-    const html = renderReport(vo1, project);
-    assert.match(html, /RM 62,808\.00/);   /* contractor claimed */
-    assert.match(html, /RM 55,856\.00/);   /* certified final price */
+test("the report has no totals strip (claimed, assessed, variance, certified)", () => {
+    ["contractor", "consultant", "client", undefined].forEach(role => {
+        const html = renderReport(vo1, project, role);
+        assert.doesNotMatch(html, /report-totals/);
+        assert.doesNotMatch(html, /Certified value/);
+    });
 });
 
 test("the report lists supporting documents", () => {
@@ -42,17 +43,6 @@ test("the report lists supporting documents", () => {
 
 test("the report always carries the professional review disclaimer", () => {
     assert.match(renderReport(vo1, project), /Professional Review Required/);
-});
-
-test("the certified value is only shown for a VO that is actually certified", () => {
-    const html2 = renderReport(vo2, project);
-    const totalsBlock = html2.slice(html2.indexOf("Certified value"), html2.indexOf("Certified value") + 200);
-    assert.ok(!/RM [\d,]+\.\d{2}/.test(totalsBlock),
-        "an uncertified VO must not show a ringgit figure under Certified value");
-    assert.match(totalsBlock, /—/);
-
-    const html1 = renderReport(vo1, project);
-    assert.match(html1, /RM 55,856\.00/);
 });
 
 test("a report for an empty VO renders without throwing", () => {
@@ -74,14 +64,12 @@ test("sections appear in the required sequence", () => {
     const html = renderReport(vo1, project);
     const order = [
         "1. Instruction",
-        "2. Classification and affected elements",
-        "3. Revised drawing",
-        "4. Old drawing",
-        "5. Measurement and valuation",
-        "6. Supporting documents",
-        "7. Findings",
-        "8. Time impact",
-        "9. Status and signatures"
+        "2. Revised drawing",
+        "3. Old drawing",
+        "4. Measurement and valuation",
+        "5. Supporting documents",
+        "6. Time impact",
+        "7. Status and signatures"
     ];
     const positions = order.map(s => html.indexOf(s));
     positions.forEach((pos, i) => {
@@ -95,11 +83,11 @@ test("sections appear in the required sequence", () => {
 
 test("revised drawing, old drawing and supporting documents each get their own section with the attachment date", () => {
     const html = renderReport(vo1, project);
-    const revisedIdx = html.indexOf("3. Revised drawing");
-    const oldIdx = html.indexOf("4. Old drawing");
-    const measurementIdx = html.indexOf("5. Measurement");
-    const supportingIdx = html.indexOf("6. Supporting documents");
-    const findingsIdx = html.indexOf("7. Findings");
+    const revisedIdx = html.indexOf("2. Revised drawing");
+    const oldIdx = html.indexOf("3. Old drawing");
+    const measurementIdx = html.indexOf("4. Measurement");
+    const supportingIdx = html.indexOf("5. Supporting documents");
+    const findingsIdx = html.indexOf("6. Time impact");
 
     const revisedBlock = html.slice(revisedIdx, oldIdx);
     assert.match(revisedBlock, /A-201 Rev C - Floor Finishes\.pdf/);
@@ -130,15 +118,12 @@ test("a VO with no attachments still renders each document section without malfo
 test("the contractor's report shows claimed measurement in full, without the rate cross-check working", () => {
     const html = renderReport(vo1, project, "contractor");
     assert.match(html, /Omit ceramic floor tiles/);
-    assert.match(html, /RM 62,808\.00/);
     assert.doesNotMatch(html, /rate-flag/);
     assert.doesNotMatch(html, /RATE CROSS-CHECK/);
 });
 
-test("the contractor's report shows the consultant's assessment and variance, marked read-only, when one exists", () => {
+test("the contractor's report shows the consultant's assessment note when one exists", () => {
     const html = renderReport(vo1, project, "contractor");
-    assert.match(html, /Consultant assessed \(read-only\)/);
-    assert.match(html, /Variance \(read-only\)/);
     assert.match(html, /Consultant's assessment:/);
 });
 
@@ -153,22 +138,19 @@ test("an unassessed VO's contractor report does not label totals read-only", () 
     assert.doesNotMatch(html, /read-only/);
 });
 
-test("the consultant's report is the fullest version: every row's rate cross-check, findings, variance and recommendation", () => {
+test("the consultant's report is the fullest version: every row's rate cross-check and the recommendation", () => {
     const html = renderReport(vo1, project, "consultant");
     assert.strictEqual((html.match(/rate-flag/g) || []).length, 3);
     assert.match(html, /RATE CROSS-CHECK/);
     assert.match(html, /Consultant's recommendation:/);
     assert.match(html, /Recommend approval at the assessed value/);
-    assert.match(html, /Variance<\/small>/);
 });
 
-test("the client's report is decision-focused: no itemised measurement table, but the values, time impact and recommendation are present", () => {
+test("the client's report is decision-focused: no itemised measurement table; the time impact and recommendation are present", () => {
     const html = renderReport(vo1, project, "client");
     assert.doesNotMatch(html, /rate-flag/);
     assert.doesNotMatch(html, /RATE CROSS-CHECK/);
     assert.doesNotMatch(html, /Omit ceramic floor tiles/);
-    assert.match(html, /RM 62,808\.00/);   /* claimed */
-    assert.match(html, /RM 55,856\.00/);   /* certified */
     assert.match(html, /7 day\(s\) claimed extension of time/);
     assert.match(html, /Consultant's recommendation:/);
 });
@@ -278,12 +260,13 @@ test("seeded VO-001 still reports RM 62,808.00 claimed and RM 55,856.00 certifie
     assert.match(row, /RM 55,856\.00/);
 });
 
-test("the report has no contractual-basis section; its sections run 1 to 9", () => {
+test("the report has no contractual-basis, classification or findings section; its sections run 1 to 7", () => {
     const db = seedDB();
     const p = db.projects[0];
     const html = renderReport(p.vos[0], p, "consultant");
     assert.ok(!/Contractual basis/i.test(html));
     assert.ok(!html.includes("ranks for valuation"));
     const numbers = [...html.matchAll(/<h3>(\d+)\./g)].map(m => Number(m[1]));
-    assert.deepStrictEqual(numbers, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert.deepStrictEqual(numbers, [1, 2, 3, 4, 5, 6, 7]);
+    assert.ok(!/Classification and affected elements|Findings<\/h3>|Confirm whether/.test(html));
 });

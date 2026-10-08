@@ -3,7 +3,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, today, prettyDate, contractorTotal, assessedTotal, voValue } = require("./calc.js");
-    var { analyse, checkRate } = require("./analysis.js");
+    var { checkRate } = require("./analysis.js");
     var { escapeHtml, logoMark, fileLink, seedText } = require("./ui.js");
     var { versionCount } = require("./documents.js");
     var { t, voNoLabel } = require("./i18n.js");
@@ -45,26 +45,6 @@ function docSection(files, label) {
         (vCount > 1 ? " · " + t("report.docSection.priorVersions", { n: vCount - 1 }) : "") +
         "</span></li>";
     }).join("") + "</ul>";
-}
-
-/* The consequential-element prompts from js/elements.js, surfaced
-   directly under the classification so a QS sees them without having
-   to read every line of the findings section. */
-function elementsBlock(a) {
-    const detected = (a.elements && a.elements.detected) || [];
-    if (detected.length === 0) return "";
-    const related = a.elements.related || [];
-    let html = '<p class="rate-detail"><strong>' + escapeHtml(t("report.elementsAffected")) + '</strong> ' +
-        detected.map(e => escapeHtml(t("element." + e.id + ".name"))).join(", ") + "</p>";
-    if (related.length > 0) {
-        html += '<ul class="report-list">' + related.map(r =>
-            "<li>" + t("report.confirmRelated", {
-                name: escapeHtml(t("element." + r.element.id + ".name")),
-                note: escapeHtml(t("element." + r.because + ".note"))
-            }) + "</li>"
-        ).join("") + "</ul>";
-    }
-    return html;
 }
 
 /* The full measurement table — every row, claimed and assessed
@@ -146,17 +126,6 @@ function clientValuationSummary(vo) {
     return "<p>" + t("report.claimedItems", { n: count }) + "</p>";
 }
 
-function renderTotals(a, certifiedCell, opts) {
-    opts = opts || {};
-    const assessedLabel = opts.readOnly ? t("report.totals.assessedReadOnly") : t("report.totals.assessed");
-    const varianceLabel = opts.readOnly ? t("report.totals.varianceReadOnly") : t("report.totals.variance");
-    return '<div class="report-totals">' +
-        "<div><small>" + escapeHtml(t("report.totals.claimed")) + "</small><strong>" + rm(a.contractorTotal) + "</strong></div>" +
-        "<div><small>" + escapeHtml(assessedLabel) + "</small><strong>" + rm(a.assessedTotal) + "</strong></div>" +
-        "<div><small>" + escapeHtml(varianceLabel) + "</small><strong>" + rm(a.variance) + "</strong></div>" +
-        "<div><small>" + escapeHtml(t("report.totals.certified")) + "</small><strong>" + certifiedCell + "</strong></div>" +
-    "</div>";
-}
 
 /* -----------------------------------------------------------
    Single-VO report — section order is fixed to the client's required
@@ -167,28 +136,14 @@ function renderTotals(a, certifiedCell, opts) {
 ----------------------------------------------------------- */
 
 function renderReport(vo, project, role) {
-    const a = analyse(vo, project);
-    const certifiedCell = (vo.certifiedStatus === "Approved" &&
-        vo.finalPrice !== null && vo.finalPrice !== undefined && vo.finalPrice !== "")
-        ? rm(vo.finalPrice)
-        : "—";
-
-    const hasAssessment = (vo.measurement || []).some(row =>
-        row.assessedQty !== "" && row.assessedQty !== null && row.assessedQty !== undefined
-    ) || Boolean(vo.assessmentNote);
-
-
-    let measurementBody, totalsHtml;
+    let measurementBody;
     if (role === "client") {
         measurementBody = clientValuationSummary(vo);
-        totalsHtml = renderTotals(a, certifiedCell, {});
     } else if (role === "contractor") {
         measurementBody = claimedMeasurementTable(vo);
-        totalsHtml = renderTotals(a, certifiedCell, { readOnly: hasAssessment });
     } else {
         /* consultant, and the default when no role is given */
         measurementBody = fullMeasurementTable(vo, project);
-        totalsHtml = renderTotals(a, certifiedCell, {});
     }
 
     /* The consultant's recommendation is written for whoever decides
@@ -224,14 +179,6 @@ function renderReport(vo, project, role) {
             date: prettyDate(vo.dueDate)
         }) + "</p>" + "</section>" +
 
-      '<section class="report-sec">' +
-      "<h3>" + escapeHtml(t("report.section.classification")) + "</h3>" +
-      "<p>" + t("report.classificationLine", {
-            label: escapeHtml(a.classification.label),
-            work: "<strong>" + escapeHtml(a.classification.affectedWork) + "</strong>"
-        }) + "</p>" +
-      elementsBlock(a) + "</section>" +
-
       '<div class="report-pair report-sec">' +
         "<div><h3>" + escapeHtml(t("report.section.revisedDrawing")) + "</h3>" + docSection(vo.revisedDrawing, t("report.docLabel.revisedDrawing")) + "</div>" +
         "<div><h3>" + escapeHtml(t("report.section.oldDrawing")) + "</h3>" + docSection(vo.oldDrawing, t("report.docLabel.oldDrawing")) + "</div>" +
@@ -241,16 +188,10 @@ function renderReport(vo, project, role) {
          rows, never inside one, and its heading stays with the table */
       '<section class="report-sec report-sec-long">' +
       "<h3>" + escapeHtml(t("report.section.measurement")) + "</h3>" +
-      measurementBody + totalsHtml + "</section>" +
+      measurementBody + "</section>" +
 
       '<section class="report-sec">' +
       "<h3>" + escapeHtml(t("report.section.supportingDocs")) + "</h3>" + docSection(vo.supportingDocs, t("report.docLabel.supportingDocs")) +
-      "</section>" +
-
-      '<section class="report-sec">' +
-      "<h3>" + escapeHtml(t("report.section.findings")) + "</h3>" +
-      (a.findings.length === 0 ? "<p>" + escapeHtml(t("report.nothingFlagged")) + "</p>"
-        : '<ul class="report-list report-findings">' + a.findings.map(f => "<li>" + escapeHtml(f) + "</li>").join("") + "</ul>") +
       "</section>" +
 
       /* time, status, the notes, signatures and disclaimer close the
