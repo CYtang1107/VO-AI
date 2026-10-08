@@ -57,18 +57,6 @@ if (typeof document !== "undefined") {
                 draw();
                 return;
             }
-            if (e.target.id === "cpCertAdd") {
-                const date = document.getElementById("cpCertDate").value;
-                const amount = Number(document.getElementById("cpCertAmount").value);
-                if (!date || !(amount > 0)) { toast(t("costplan.badCert"), "error"); return; }
-                const actualRaw = document.getElementById("cpCertActual").value;
-                const cert = { date: date, amount: amount };
-                if (actualRaw !== "" && Number(actualRaw) >= 0) cert.actual = Number(actualRaw);
-                updateProject(project.id, p => { p.certificates = (p.certificates || []).concat([cert]); });
-                toast(t("costplan.certAdded"));
-                draw();
-                return;
-            }
             const rem = e.target.closest(".cp-cert-remove");
             if (rem) {
                 updateProject(project.id, p => {

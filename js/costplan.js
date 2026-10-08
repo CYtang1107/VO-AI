@@ -483,72 +483,25 @@ function evmFormula(text) {
 
 function renderEarnedValue(e, opts) {
     const editable = opts && opts.editable;
-    const zh = evmChinese();
-    const f = EAC_FORMULA[e.method];
-    const money = v => v === null ? "—" : (v < 0 ? "−" : "") + rm(Math.abs(v));
-    const verdict = (good, keyGood, keyBad) => good === null ? "" :
-        '<span class="evm-flag ' + (good ? "evm-good" : "evm-bad") + '">' + (good ? "✓ " : "! ") + escapeHtml(t(good ? keyGood : keyBad)) + "</span>";
-    /* exactly on plan: neither good nor bad */
-    const level = key => '<span class="evm-flag evm-level">= ' + escapeHtml(t(key)) + "</span>";
-    const row = (abbr, formula, value, flag) => "<tr><th>" + escapeHtml(t("evm.name." + abbr)) + (zh ? "" : ' <abbr>' + abbr + "</abbr>") + "</th>" +
-        '<td class="evm-formula">' + escapeHtml(evmFormula(formula)) + '</td><td class="num">' + value + "</td><td>" + (flag || "") + "</td></tr>";
-    /* a row with no abbreviation (the figures in days and dates) */
-    const namedRow = (nameKey, formula, value, flag) => "<tr><th>" + escapeHtml(t(nameKey)) + "</th>" +
-        '<td class="evm-formula">' + escapeHtml(evmFormula(formula)) + '</td><td class="num">' + escapeHtml(value) + "</td><td>" + (flag || "") + "</td></tr>";
-    const group = key => '<tr class="evm-group"><th colspan="4">' + escapeHtml(t("evm.group." + key)) + "</th></tr>";
-    const table = rows => '<div class="table-scroll"><table class="evm-table"><tbody>' + rows + "</tbody></table></div>";
-    /* first, three cards in plain words: cost, schedule, at completion;
-       every figure (the baseline, variances, estimates, PV / EV / AC and
-       the indices) is one click away */
-    const card = (labelKey, state, headKey, line) => '<div class="evm-card evm-' + state + '"><small>' + escapeHtml(t(labelKey)) + "</small>" +
-        "<strong>" + escapeHtml(t(headKey)) + "</strong><span>" + escapeHtml(line) + "</span></div>";
-    const sign = v => v === null ? "none" : v > 0 ? "good" : v < 0 ? "bad" : "level";
-    const costCard = e.cpi === null
-        ? card("evm.card.cost", "none", "evm.card.costUnknown", t("evm.needAc"))
-        : card("evm.card.cost", sign(e.cv), e.cv > 0 ? "evm.under" : e.cv < 0 ? "evm.over" : "evm.onBudget",
-            t("evm.card.costLine", { rate: rm(e.cpi) }));
-    /* how many days behind (or ahead), and when it finishes at this pace */
-    const es = e.schedule;
-    const daysFlag = es && es.delayDays !== 0
-        ? t(es.delayDays > 0 ? "evm.behindDays" : "evm.aheadDays", { n: Math.abs(es.delayDays) }) : null;
-    const finishLine = es && es.forecastEnd ? " " + t(es.finishDelayDays > 0 ? "evm.card.finishLate" : es.finishDelayDays < 0 ? "evm.card.finishEarly" : "evm.card.finishOn",
-        { date: prettyDate(es.forecastEnd), end: prettyDate(es.plannedEnd), n: Math.abs(es.finishDelayDays) }) : "";
-    const timeCard = e.spi === null ? "" :
-        '<div class="evm-card evm-' + sign(e.sv) + '"><small>' + escapeHtml(t("evm.card.time")) + "</small>" +
-        "<strong>" + escapeHtml(daysFlag || t(e.sv > 0 ? "evm.ahead" : e.sv < 0 ? "evm.behind" : "evm.onSchedule")) + "</strong><span>" +
-        escapeHtml(t("evm.card.timeLine", { pct: (e.spi * 100).toFixed(0) }) + finishLine) + "</span></div>";
-    const days = n => (n < 0 ? "−" : n > 0 ? "+" : "") + t("evm.days", { n: Math.abs(n) });
-    const endCard = e.eac === null ? "" :
-        card("evm.card.end", sign(e.vac), e.vac > 0 ? "evm.underrun" : e.vac < 0 ? "evm.overrun" : "evm.onBudget",
-            t(e.vac < 0 ? "evm.card.endOver" : e.vac > 0 ? "evm.card.endUnder" : "evm.card.endOn", { eac: rm(e.eac), bac: rm(e.bac), amount: rm(Math.abs(e.vac)) }));
-    return '<h4 class="evm-title">' + escapeHtml(t("evm.title")) + "</h4>" +
-        '<div class="evm-cards">' + costCard + timeCard + endCard + "</div>" +
-        /* two tables side by side: the results (baseline, variances,
-           estimates), and the figures they come from */
-        fold("evm-figures", escapeHtml(t("evm.allFigures")), '<div class="evm-tables">' + table(
-            group("baseline") +
-            row("BAC", t("evm.f.BAC"), rm(e.bac)) +
-            group("variance") +
-            row("CV", "EV − AC", money(e.cv), e.cv === null ? "" : e.cv === 0 ? level("evm.onBudget") : verdict(e.cv > 0, "evm.under", "evm.over")) +
-            row("SV", "EV − PV", money(e.sv), e.sv === null ? "" : e.sv === 0 ? level("evm.onSchedule") :
-                '<span class="evm-flag ' + (e.sv > 0 ? "evm-good" : "evm-bad") + '">' + (e.sv > 0 ? "✓ " : "! ") + escapeHtml(daysFlag || t(e.sv > 0 ? "evm.ahead" : "evm.behind")) + "</span>") +
-            (es ? namedRow("evm.name.SVt", t("evm.f.SVt", { date: prettyDate(es.esDate) }), days(-es.delayDays),
-                es.delayDays === 0 ? level("evm.onSchedule") : verdict(es.delayDays < 0, "evm.ahead", "evm.behind")) : "") +
-            row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : e.vac === 0 ? level("evm.onBudget") : verdict(e.vac > 0, "evm.underrun", "evm.overrun")) +
-            group("estimate") +
-            row("EAC", f[0], money(e.eac)) +
-            row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc)) +
-            (es && es.forecastEnd ? namedRow("evm.name.finish", t("evm.f.finish", { end: prettyDate(es.plannedEnd), spi: es.spiT.toFixed(2) }),
-                prettyDate(es.forecastEnd), es.finishDelayDays === 0 ? level("evm.onSchedule") :
-                '<span class="evm-flag ' + (es.finishDelayDays < 0 ? "evm-good" : "evm-bad") + '">' + (es.finishDelayDays < 0 ? "✓ " : "! ") +
-                escapeHtml(t(es.finishDelayDays > 0 ? "evm.lateBy" : "evm.earlyBy", { n: Math.abs(es.finishDelayDays) })) + "</span>") : "")) + table(
-            group("source") +
-            row("PV", t("evm.f.PV"), money(e.pv)) +
-            row("EV", t("evm.f.EV", { pct: e.pctComplete.toFixed(1) }), rm(e.ev)) +
-            row("AC", t("evm.f.AC"), money(e.ac)) +
-            row("SPI", "EV / PV", e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? "" : e.spi === 1 ? level("evm.onSchedule") : verdict(e.spi > 1, "evm.ahead", "evm.behind")) +
-            row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : e.cpi === 1 ? level("evm.onBudget") : verdict(e.cpi > 1, "evm.under", "evm.over"))) + "</div>" +
-            '<p class="assistant-note">' + escapeHtml(t("evm.note")) + "</p>") +
+    /* the project's position in two short tables: cost, then schedule */
+    const whole = v => v === null || v === undefined ? "—" : (v < 0 ? "−" : "") + "RM " + Math.round(Math.abs(v)).toLocaleString("en-US");
+    const tone = bad => bad === null ? "" : bad ? " evm-v-bad" : " evm-v-good";
+    const sumRow = (label, value, bad, strong) => "<tr" + (strong ? ' class="evm-sum-strong"' : "") + "><th>" + escapeHtml(label) + '</th><td class="num' + tone(bad) + '">' + escapeHtml(value) + "</td></tr>";
+    const sumTable = (title, rows) => '<div class="evm-sum"><h4>' + escapeHtml(title) + '</h4><table class="evm-sum-table"><thead><tr><th>' +
+        escapeHtml(t("evm.sum.metric")) + '</th><th class="num">' + escapeHtml(t("evm.sum.value")) + "</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
+    const sch = e.schedule;
+    const cost = sumTable(t("evm.sum.cost"),
+        sumRow(t("evm.sum.BAC"), whole(e.bac), null) +
+        sumRow(t("evm.sum.CV"), whole(e.cv), e.cv === null ? null : e.cv < 0) +
+        sumRow(t("evm.sum.CPI"), e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? null : e.cpi < 1) +
+        sumRow(t("evm.sum.EAC"), whole(e.eac), null) +
+        sumRow(t(e.vac > 0 ? "evm.sum.VACunder" : e.vac < 0 ? "evm.sum.VACover" : "evm.sum.VAC"), e.vac === null ? "—" : whole(Math.abs(e.vac)), e.vac === null || e.vac === 0 ? null : e.vac < 0, true));
+    const days = n => t("evm.days", { n: Math.abs(n) });
+    const schedule = sumTable(t("evm.sum.schedule"),
+        sumRow(t("evm.sum.SPI"), e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? null : e.spi < 1) +
+        (sch ? sumRow(t(sch.delayDays < 0 ? "evm.sum.ahead" : "evm.sum.behind"), days(sch.delayDays), sch.delayDays > 0) : "") +
+        (sch && sch.forecastEnd ? sumRow(t(sch.finishDelayDays < 0 ? "evm.sum.finishEarly" : "evm.sum.finishLate"), days(sch.finishDelayDays), sch.finishDelayDays > 0, true) : ""));
+    return '<div class="evm-sums">' + cost + schedule + "</div>" +
         /* the EAC situation: an advanced choice, folded away (BAC / CPI by default) */
         fold("evm-advanced", escapeHtml(t("evm.advanced", { method: t("evm.method." + e.method) })),
         '<div class="evm-method"><label for="evmMethod">' + escapeHtml(t("evm.methodLabel")) + "</label>" +
@@ -643,10 +596,6 @@ function costInputsBody(project, editable) {
         '<ul class="cp-certs">' + certs.map((c, i) => "<li>" + escapeHtml(t("costplan.certLine", { n: i + 1, date: c.date })) + " — <strong>" + rm(c.amount) + "</strong>" +
             (c.actual !== undefined && c.actual !== null && c.actual !== "" ? ' <span class="rate-detail">' + escapeHtml(t("costplan.actualLine", { amount: rm(Number(c.actual)) })) + "</span>" : "") +
             (editable ? ' <button type="button" class="link-button cp-cert-remove" data-date="' + escapeHtml(c.date) + '" data-amount="' + escapeHtml(String(c.amount)) + '">×</button>' : "") + "</li>").join("") + "</ul>" +
-        (editable ? '<div class="cp-add"><input type="date" id="cpCertDate" aria-label="' + escapeHtml(t("costplan.certDate")) + '">' +
-            '<input type="number" min="0" step="0.01" id="cpCertAmount" placeholder="' + escapeHtml(t("costplan.certAmount")) + '">' +
-            '<input type="number" min="0" step="0.01" id="cpCertActual" placeholder="' + escapeHtml(t("costplan.certActual")) + '">' +
-            '<button type="button" class="secondary-button" id="cpCertAdd">' + escapeHtml(t("costplan.certAdd")) + "</button></div>" : "") +
         '<p class="assistant-note">' + escapeHtml(t(editable ? "costplan.inputsNote" : "costplan.inputsReadOnly")) + "</p>";
 }
 
@@ -670,8 +619,7 @@ function renderCostDetail(project, todayIso, opts) {
         if (!curve && tab !== "curve") body += costInputsBody(project, editable);
     } else if (tab === "health") {
         /* every figure open beside the three cards: the page has the room */
-        body = renderEarnedValue(earnedValue(project, todayIso), { editable: editable })
-            .replace('<details class="fold" data-fold="evm-figures">', '<details class="fold" data-fold="evm-figures" open>');
+        body = renderEarnedValue(earnedValue(project, todayIso), { editable: editable });
     } else if (tab === "table") {
         /* the monthly figures: the model's until the team uploads its own
            cash-flow sheet or types over a cell (project.cashflow) */
