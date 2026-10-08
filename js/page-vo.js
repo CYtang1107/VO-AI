@@ -798,8 +798,9 @@ if (typeof document !== "undefined") {
             const v = fresh.vos.find(x => x.id === voId);
             if (typeof drawPhotoCheck === "function") drawPhotoCheck();
 
-            document.getElementById("voTitle").textContent =
-                v.no + " — " + (seedText(v.description) || t("vo.untitled"));
+            const titleEl = document.getElementById("voTitle");
+            titleEl.textContent = v.no + " — " + (seedText(v.description) || t("vo.untitled"));
+            titleEl.title = titleEl.textContent; /* the whole description on hover */
             /* Two pills of the same kind side by side read as a duplicate —
                name each one. */
             document.getElementById("voStatus").innerHTML =
