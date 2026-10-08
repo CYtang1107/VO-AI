@@ -126,8 +126,9 @@ if (typeof document !== "undefined") {
         function chartHeight() {
             if (window.innerWidth <= 760) return null; /* a phone: the chart's own height */
             const top = costHost.getBoundingClientRect().top + window.scrollY;
-            /* room under it for the status line, the five figures and the fold */
-            return window.innerHeight - top - 262;
+            /* room under it for the status line, the five figures, the fold
+               and the row below (the VO list and what needs you) */
+            return window.innerHeight - top - 190 - 168;
         }
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;

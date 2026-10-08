@@ -208,7 +208,7 @@ function renderSCurveSvg(curve, width, height) {
        given, fits the chart to the screen (the dashboard: the whole curve in
        view when the page opens) */
     const W = Math.max(300, Math.min(1800, Math.round(width || 760)));
-    const H = height ? Math.max(220, Math.min(460, Math.round(height)))
+    const H = height ? Math.max(150, Math.min(460, Math.round(height)))
         : Math.max(240, Math.min(440, Math.round(W * 0.4))), L = 70, R = 14, T = 16, B = 34;
     const pts = curve.points;
     const max = Math.max.apply(null, pts.map(p => Math.max(p.planned, p.forecast, p.actual || 0))) || 1;
@@ -343,8 +343,8 @@ function renderCostOverview(project, todayIso, opts) {
         tile(t("costplan.pending"), rm(o.pending), t("costplan.nVos", { n: o.nPending })) +
         tile(t("costplan.forecast"), rm(o.forecast), t("costplan.change", { sign: o.change >= 0 ? "+" : "−", amount: rm(Math.abs(o.change)), pct: Math.abs(o.changePct).toFixed(1) }), "cp-key") +
         tile(t("costplan.certified"), rm(o.certified), t("costplan.certifiedPct", { pct: o.certifiedPct.toFixed(1) })) +
-    "</div>" +
-    (o.nDraft ? '<p class="assistant-note">' + escapeHtml(t("costplan.drafts", { n: o.nDraft, amount: rm(o.draft) })) + "</p>" : "");
+    "</div>";
+    const drafts = o.nDraft ? '<p class="assistant-note">' + escapeHtml(t("costplan.drafts", { n: o.nDraft, amount: rm(o.draft) })) + "</p>" : "";
 
     let chart;
     /* the figures sit under the S-curve */
@@ -395,7 +395,8 @@ function renderCostOverview(project, todayIso, opts) {
     const more = chart.indexOf(MORE_START);
     const head = more === -1 ? chart : chart.slice(0, more);
     const rest = (more === -1 ? "" : chart.slice(more + MORE_START.length)) + inputs;
-    return head + fold("cp-more", escapeHtml(t("costplan.more")), rest, "cp-more");
+    /* the drafts note and the fold share one line under the figures */
+    return head + '<div class="cp-foot">' + drafts + fold("cp-more", escapeHtml(t("costplan.more")), rest, "cp-more") + "</div>";
 }
 
 /* The crosshair: snaps to the nearest month, lists all three series. */
