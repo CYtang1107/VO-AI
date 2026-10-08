@@ -545,8 +545,15 @@ function wfChecklist(items) {
 }
 /* The bottom of the measurement tab, for the contractor measuring: what
    the submission still needs, and submitting it to the consultant QS. */
-function renderMeasureSubmit(vo, role) {
+function renderMeasureSubmit(vo, role, ui) {
     const stage = voStage(vo);
+    if (role === "contractor" && stage === "info") {
+        /* the further information asked for: the reply is written in the step */
+        const replied = !!String((ui && ui.infoText) || "").trim();
+        return '<div class="wf-actions measure-submit-bar">' + wfButton("wfSendBack", "wf.c.sendBack", "primary", !replied) +
+            wfChecklist([[replied, t("wf.check.reply")]]) +
+            (replied ? "" : '<button type="button" class="link-button" id="wfGoPhotos">' + escapeHtml(t("wf.c.goReply")) + "</button>") + "</div>";
+    }
     if (role !== "contractor" || (stage !== "measure" && stage !== "rejected")) return "";
     const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty)).length;
     const after = (vo.afterMedia || []).filter(isPhotoDoc).length;
@@ -617,14 +624,16 @@ function renderWorkflow(vo, project, role, ui) {
             wfChecklist([[after > 0, t("wf.check.after", { n: after })]]) + "</div>";
     } else if (role === "contractor" && stage === "info") {
         body += wfNote(t("wf.c.infoAsked", { date: prettyDate(vo.infoRequestedAt), note: vo.infoRequestNote || t("wf.noNote") }), "warn") +
-            '<div class="field owned"><label>' + escapeHtml(t("vo.field.infoResponse")) + '</label><textarea id="wfInfoText"></textarea></div>' +
+            '<div class="field owned"><label>' + escapeHtml(t("vo.field.infoResponse")) + '</label><textarea id="wfInfoText">' + escapeHtml((ui && ui.infoText) || "") + "</textarea></div>" +
             renderMediaField(vo, "afterMedia", { editable: true, geoState: ui && ui.geo }) +
             renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
-            '<div class="wf-actions">' + wfButton("wfSendBack", "wf.c.sendBack", "primary") + "</div>";
+            /* then the measurement, where it is sent back */
+            '<div class="wf-actions">' + wfButton("wfGoMeasure", "wf.c.goMeasure", "primary") +
+            wfChecklist([[!!String((ui && ui.infoText) || "").trim(), t("wf.check.reply")]]) + "</div>";
     } else if (role === "consultant" && stage === "consultant") {
         const answered = vo.infoResponse && vo.infoResponse.forRequest === infoRequestKey(vo);
         body += "<h4>" + escapeHtml(t("wf.q.title")) + "</h4>" +
-            '<ol class="wf-todo"><li>' + escapeHtml(t("wf.q.todo1")) + "</li><li>" + escapeHtml(t("wf.q.todo2")) + "</li><li>" + escapeHtml(t("wf.q.todo3")) + "</li></ol>" +
+
             (answered ? wfNote(t("wf.q.answered", { date: prettyDate(vo.infoResponse.at), text: vo.infoResponse.text || "—" }), "ok") : "") +
             /* before and after, and what the AI saw in the completed photos */
             '<div class="media-pair">' + renderMediaField(vo, "beforeMedia", {}) + renderMediaField(vo, "afterMedia", {}) + "</div>" + wfPhotoCheck() +
@@ -995,7 +1004,7 @@ if (typeof document !== "undefined") {
         }
 
         /* ---------- the workflow card (renderWorkflow) ---------- */
-        const wf = { step: 1, geo: null };
+        const wf = { step: 1, geo: null, infoText: "" };
         const wfHost = document.getElementById("workflowBody");
         /* the contractor's photos are placed where they are taken: the
            phone's position is watched while they may take them */
@@ -1037,6 +1046,17 @@ if (typeof document !== "undefined") {
             draw();
             /* the completed photos: the AI checks them against the description straight away */
             if (field === "afterMedia" && ready.items.some(it => it.doc.kind === "photo")) runPhotoCheck(true);
+        });
+        if (wfHost) wfHost.addEventListener("input", e => {
+            if (e.target.id !== "wfInfoText") return;
+            const before = !!String(wf.infoText || "").trim();
+            wf.infoText = e.target.value;
+            if (before === !!wf.infoText.trim()) return;
+            const v = getProject(project.id).vos.find(x => x.id === voId);
+            const ms = document.getElementById("measureSubmit");
+            if (ms) ms.innerHTML = renderMeasureSubmit(v, role, wf);
+            const li = wfHost.querySelector(".wf-checklist li");
+            if (li) { li.className = wf.infoText.trim() ? "done" : "todo"; li.textContent = (wf.infoText.trim() ? "✓ " : "○ ") + t("wf.check.reply"); }
         });
         if (wfHost) wfHost.addEventListener("click", e => {
             const rem = e.target.closest(".media-remove");
@@ -1094,7 +1114,7 @@ if (typeof document !== "undefined") {
             const stage = voStage(v);
             if (wfHost) wfHost.innerHTML = renderWorkflow(v, fresh, role, wf);
             const ms = document.getElementById("measureSubmit");
-            if (ms) { ms.innerHTML = renderMeasureSubmit(v, role); ms.hidden = !ms.innerHTML; }
+            if (ms) { ms.innerHTML = renderMeasureSubmit(v, role, wf); ms.hidden = !ms.innerHTML; }
             if (wfHost && typeof fillMediaThumbs === "function") fillMediaThumbs(wfHost);
             if (typeof drawPhotoCheck === "function") drawPhotoCheck();
             const late = LATE.indexOf(stage) !== -1;
@@ -1602,10 +1622,11 @@ if (typeof document !== "undefined") {
                 return;
             }
             if (id === "wfSendBack") {
-                const text = document.getElementById("wfInfoText").value.trim();
+                const text = String(wf.infoText || "").trim();
                 if (!text) { toast(t("wf.c.needText"), "error"); return; }
                 step(v => { v.infoResponse = { text: text, at: today(), by: session.name, forRequest: infoRequestKey(v) }; },
                      "Further information sent back", t("wf.toast.sentBack"));
+                wf.infoText = "";
                 return;
             }
             if (id === "wfRequestInfo") {

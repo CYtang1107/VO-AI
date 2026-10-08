@@ -113,7 +113,7 @@ function claimCheck(vo, project, opts) {
     /* 4. Has the contractor given the details and particulars the QS
        needs to measure and value it? */
     const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty));
-    const evidence = ["revisedDrawing", "designDocs", "supportingDocs"].reduce((n, f) => n + ((vo[f] || []).length), 0);
+    const evidence = ["revisedDrawing", "designDocs", "supportingDocs", "beforeMedia", "afterMedia"].reduce((n, f) => n + ((vo[f] || []).length), 0);
     const offSite = typeof photoLocations === "function"
         ? photoLocations(project, vo).filter(r => r.verdict === "offSite") : [];
     const gaps = [];

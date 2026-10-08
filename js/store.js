@@ -161,11 +161,13 @@ function upgradeDemo(db) {
         const vo = (demo.vos || []).find(v => v.id === sv.id);
         if (!vo) return;
         vo.supportingDocs = vo.supportingDocs || [];
-        (sv.supportingDocs || []).filter(d => d.geo).forEach(sd => {
-            const have = vo.supportingDocs.find(d => d.id === sd.id);
+        const seedPhotos = (sv.supportingDocs || []).concat(sv.beforeMedia || [], sv.afterMedia || []).filter(d => d.geo);
+        seedPhotos.forEach(sd => {
+            const have = vo.supportingDocs.concat(vo.beforeMedia || [], vo.afterMedia || []).find(d => d.id === sd.id);
             if (!have) { vo.supportingDocs.push(Object.assign({}, sd)); changed = true; }
             else if (!have.geo) { have.geo = sd.geo; have.size = sd.size; changed = true; }
         });
+        if (placeDemoMedia(vo)) changed = true;
     });
     /* the contract administrator's steps on the demo VOs */
     seed.vos.forEach(sv => {
@@ -698,7 +700,7 @@ function seedDB() {
         { id: "BQ6", code: "E/3.1", description: "Suspended plasterboard ceiling incl. framing", unit: "m2", rate: 76 }
     ];
 
-    return {
+    const db = {
         projects: [{
             id: "PRJ-CADANGAN",
             name: "Cadangan Pembangunan ABC Residence",
@@ -881,6 +883,26 @@ function seedDB() {
             ]
         }]
     };
+    db.projects[0].vos.forEach(placeDemoMedia);
+    return db;
+}
+
+/* The demo's site photos in the VO's own photo sets (js/media.js): the
+   site before the work, and the work done. They were kept with the
+   supporting documents before those sets existed. */
+var DEMO_MEDIA = { F4: "beforeMedia", P1: "beforeMedia", P2: "afterMedia", P3: "beforeMedia", P4: "afterMedia", P5: "afterMedia",
+                   P6: "beforeMedia", P7: "beforeMedia" };
+function placeDemoMedia(vo) {
+    let moved = false;
+    (vo.supportingDocs || []).slice().forEach(d => {
+        const field = DEMO_MEDIA[d.id];
+        if (!field) return;
+        vo.supportingDocs = vo.supportingDocs.filter(x => x !== d);
+        vo[field] = vo[field] || [];
+        if (!vo[field].some(x => x.id === d.id)) vo[field].push(Object.assign({}, d, { kind: "photo" }));
+        moved = true;
+    });
+    return moved;
 }
 
 if (typeof module !== "undefined" && module.exports) {

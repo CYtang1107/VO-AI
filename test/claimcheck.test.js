@@ -40,7 +40,7 @@ test("no written instruction, an Engineer's Instruction under PAM, or no measure
     r = claimCheck(vo({ typeOfInstruction: "Engineer's instruction (EI)", instructionNo: "EI-04", instructionStatus: "Confirmed" }), project());
     assert.strictEqual(r.checks.find(c => c.id === "instruction").state, "ok", "the design team confirmed it");
 
-    r = claimCheck(vo({ measurement: [], revisedDrawing: [], supportingDocs: [] }), project());
+    r = claimCheck(vo({ measurement: [], revisedDrawing: [], supportingDocs: [], beforeMedia: [], afterMedia: [] }), project());
     const p = r.checks.find(c => c.id === "particulars");
     assert.strictEqual(p.state, "missing");
     assert.match(p.reason, /measurement.*drawing/);

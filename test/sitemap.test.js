@@ -94,7 +94,11 @@ test("demo data saved before the site map gets the demo site and its placed phot
     const old = seedDB();
     const demo = old.projects[0];
     delete demo.site;
-    demo.vos.forEach(v => { v.supportingDocs = (v.supportingDocs || []).filter(d => !/^P\d$/.test(d.id)); });
+    /* saved before: the photos (without their places) kept with the supporting documents */
+    demo.vos.forEach(v => {
+        v.supportingDocs = (v.supportingDocs || []).concat(v.beforeMedia || [], v.afterMedia || []).filter(d => !/^P\d$/.test(d.id));
+        delete v.beforeMedia; delete v.afterMedia;
+    });
     const f4 = demo.vos[0].supportingDocs.find(d => d.id === "F4");
     delete f4.geo;
     assert.strictEqual(photoPins(demo).length, 0);
@@ -102,6 +106,8 @@ test("demo data saved before the site map gets the demo site and its placed phot
     upgradeDemo(old);
     assert.ok(siteOf(demo));
     assert.strictEqual(photoPins(demo).length, photoPins(seedDB().projects[0]).length);
+    assert.deepStrictEqual(demo.vos[1].afterMedia.map(d => d.id), ["P4", "P5"], "and in the VO's own photo sets");
+    assert.ok(!demo.vos[1].supportingDocs.some(d => /^P\d$/.test(d.id)));
 
     /* a site the consultant set is kept */
     demo.site = { lat: 3.2, lng: 101.6, address: "Our own site" };

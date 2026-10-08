@@ -13,7 +13,7 @@ test("the demo VOs: VO-001 done, VO-002 with the consultant QS, VO-003 being des
 });
 
 test("the contractor describes (step 1), the contract agent checks (step 2), then it can be sent", () => {
-    const v = draft();
+    const v = Object.assign(draft(), { beforeMedia: [] });
     let html = renderWorkflow(v, project(), "contractor", { step: 1 });
     /* the site before the work: a photo is required, a video optional */
     assert.match(html, /data-media="beforeMedia" accept="image\/\*" capture="environment"/);
@@ -91,7 +91,9 @@ test("the consultant QS assesses, submits to the client, or asks for information
     assert.strictEqual(voStage(v), "info");
     html = renderWorkflow(v, project(), "contractor", {});
     assert.match(html, /Show the sump base/);
-    assert.match(html, /id="wfSendBack"/);
+    assert.match(html, /id="wfGoMeasure"/, "the reply, then on to the measurement");
+    assert.match(renderMeasureSubmit(v, "contractor", {}), /id="wfSendBack" disabled/, "sent back from the measurement tab, once written");
+    assert.match(renderMeasureSubmit(v, "contractor", { infoText: "Photo attached" }), /id="wfSendBack">/);
     v.infoResponse = { text: "Photo attached", at: "2026-10-02", forRequest: infoRequestKey(v) };
     assert.strictEqual(voStage(v), "consultant");
     assert.match(renderWorkflow(v, project(), "consultant", {}), /The contractor replied on .*Photo attached/);
