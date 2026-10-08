@@ -630,7 +630,7 @@ function renderCostDetail(project, todayIso, opts) {
                 : '<td class="cd-cell' + (mine ? " cd-own" : "") + '">' + rm(p[k]) + "</td>";
         };
         const source = cf.source ? t("costplan.cf.source", { name: cf.source.name || "—", date: cf.source.at || "" }) :
-            Object.keys(own).length ? t("costplan.cf.edited") : t("costplan.cf.model");
+            Object.keys(own).length ? t("costplan.cf.edited") : t(editable ? "costplan.cf.model" : "costplan.cf.modelReadOnly");
         body = '<div class="cd-cf-bar">' +
                 '<span class="rate-detail">' + escapeHtml(source) + "</span>" +
                 (editable ? '<span class="cd-cf-actions">' +
