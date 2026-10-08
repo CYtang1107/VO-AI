@@ -6,7 +6,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { analyse, checkRate } = require("./analysis.js");
     var { escapeHtml, logoMark, fileLink, seedText } = require("./ui.js");
     var { versionCount } = require("./documents.js");
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
 }
 
 /* -----------------------------------------------------------
@@ -211,7 +211,7 @@ function renderReport(vo, project, role) {
         "<div><h1>" + escapeHtml(t("report.heading")) + "</h1>" +
         "<p>" + escapeHtml(project.name) + "</p>" +
         "<p>" + t("report.contractLine", { no: escapeHtml(project.contractNo || "—"), client: escapeHtml(project.client || "—") }) + "</p></div></div>" +
-        '<div class="report-ref"><strong>' + escapeHtml(vo.no) + "</strong>" +
+        '<div class="report-ref"><strong>' + escapeHtml(voNoLabel(vo.no)) + "</strong>" +
         "<span>" + t("report.issued", { date: prettyDate(vo.dateIssued) }) + "</span></div>" +
       "</div>" +
 
@@ -318,7 +318,7 @@ function renderSummaryReport(project) {
     const bodyRows = rows.length === 0
         ? '<tr><td colspan="9" class="empty-state">' + escapeHtml(t("report.summary.empty")) + '</td></tr>'
         : rows.map(r => "<tr>" +
-            "<td><span class=\"item-code\">" + escapeHtml(r.vo.no) + "</span></td>" +
+            "<td><span class=\"item-code\">" + escapeHtml(voNoLabel(r.vo.no)) + "</span></td>" +
             "<td>" + escapeHtml(seedText(r.vo.description) || "—") + "</td>" +
             "<td>" + prettyDate(r.vo.dateIssued) + "</td>" +
             "<td>" + escapeHtml(statusLabel(r.vo.evaluateStatus)) + "</td>" +
@@ -388,7 +388,7 @@ if (typeof document !== "undefined") {
 
         picker.innerHTML = (project.vos || []).map(v =>
             '<option value="' + escapeHtml(v.id) + '"' + (v.id === voId ? " selected" : "") +
-            ">" + escapeHtml(v.no + " — " + (seedText(v.description) || t("report.pickerUntitled"))) + "</option>"
+            ">" + escapeHtml(voNoLabel(v.no) + " — " + (seedText(v.description) || t("report.pickerUntitled"))) + "</option>"
         ).join("");
         picker.value = voId || (project.vos[0] || {}).id || "";
         if (new URLSearchParams(location.search).get("mode") === "instruction") modeSelect.value = "instruction";

@@ -3258,6 +3258,13 @@ function getLang() {
     }
 }
 
+/* A VO's number as shown: "变更单-001" in Chinese, "VO-001" in English.
+   The stored number stays "VO-001". */
+function voNoLabel(no) {
+    const s = no === null || no === undefined ? "" : String(no);
+    return getLang() === "zh" ? s.replace(/^VO-/i, "变更单-") : s;
+}
+
 function setLang(lang) {
     var l = lang === "zh" ? "zh" : "en";
     if (typeof localStorage !== "undefined") {
@@ -3354,7 +3361,7 @@ function wireLangSwitch(container) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         LANGS, I18N_EN, I18N_ZH, I18N_EN_ONLY_KEYS,
-        getLang, setLang, t, joinList,
+        getLang, setLang, t, joinList, voNoLabel,
         applyI18n, renderLangSwitch, wireLangSwitch
     };
 }

@@ -5,7 +5,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { statusPill, escapeHtml, seedText } = require("./ui.js");
     var { deadlineSummary } = require("./deadlines.js");
     var { voStage } = require("./permissions.js");
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
 }
 
 /* A one-line "where do my contractual deadlines stand" summary for the
@@ -58,7 +58,7 @@ function renderRecentRows(vos) {
 
     return sorted.slice(0, 6).map(v =>
         '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
-            '<td class="nowrap"><strong class="item-code">' + escapeHtml(v.no) + "</strong></td>" +
+            '<td class="nowrap"><strong class="item-code">' + escapeHtml(voNoLabel(v.no)) + "</strong></td>" +
             "<td>" + escapeHtml(seedText(v.description) || "—") + "</td>" +
             '<td class="nowrap">' + prettyDate(v.dateIssued) + "</td>" +
             '<td class="nowrap">' + rm(voValue(v)) + "</td>" +
@@ -206,7 +206,7 @@ if (typeof document !== "undefined") {
             : items.map(i =>
                 '<a class="finding" style="text-decoration:none;color:inherit" ' +
                 'href="vo.html?id=' + encodeURIComponent(i.vo.id) + '">' +
-                "<span><strong class=\"item-code\">" + escapeHtml(i.vo.no) + "</strong> — " +
+                "<span><strong class=\"item-code\">" + escapeHtml(voNoLabel(i.vo.no)) + "</strong> — " +
                 escapeHtml(i.text) + "</span></a>"
             ).join("");
 

@@ -6,7 +6,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { FIELD_OWNER } = require("./permissions.js");
     var { rateSummary } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
 }
 
 /* typeOfInstruction is a raw English data VALUE — never renamed; see
@@ -50,7 +50,7 @@ function rateFlags(vo, project) {
    prefers t(labelKey) so the header follows the current language. */
 const COLUMNS = [
     { field: "no", compact: true,                label: "VO NO.",           labelKey: "register.col.no",
-      render: v => "<strong>" + escapeHtml(v.no) + "</strong>" },
+      render: v => "<strong>" + escapeHtml(voNoLabel(v.no)) + "</strong>" },
     { field: "description", compact: true,       label: "DESCRIPTION",      labelKey: "register.col.description",
       render: v => escapeHtml(seedText(v.description) || "—") },
     { field: "dateIssued",        label: "DATE ISSUED",      labelKey: "register.col.dateIssued",
@@ -101,7 +101,7 @@ function filterVos(vos, filters) {
         if (evaluateStatus !== "all" && v.evaluateStatus !== evaluateStatus) return false;
         if (certifiedStatus !== "all" && v.certifiedStatus !== certifiedStatus) return false;
         if (query) {
-            const haystack = [v.no, v.description, seedText(v.description), v.instructionNo]
+            const haystack = [v.no, voNoLabel(v.no), v.description, seedText(v.description), v.instructionNo]
                 .map(s => String(s || "").toLowerCase())
                 .join(" \n ");
             if (!haystack.includes(query)) return false;

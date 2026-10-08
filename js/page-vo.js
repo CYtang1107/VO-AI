@@ -8,7 +8,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate, pastRateSources, pastRateWords, MATERIAL_WORDS } = require("./ratehistory.js");
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
     var { renderIssueForm, renderIssued, instructionProblem, proposedInstruction, nextInstructionNo } = require("./instruction.js");
     var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine } = require("./buildup.js");
@@ -173,7 +173,7 @@ function bqOptions(project, selectedId) {
     (project.bq || []).forEach(b => {
         opts.push('<option value="' + escapeHtml(b.id) + '"' +
             (b.id === selectedId ? " selected" : "") + ">" +
-            escapeHtml(b.code + " · " + seedText(b.description) + " · " + rm(b.rate) + "/" + b.unit) +
+            escapeHtml(voNoLabel(b.code) + " · " + seedText(b.description) + " · " + rm(b.rate) + "/" + b.unit) +
             "</option>");
     });
     return opts.join("");
@@ -189,7 +189,7 @@ function renderPastRates(i, suggestion, canAdd) {
     }
     const unit = suggestion.matches[0].unit;
     const list = suggestion.matches.map(m =>
-        "<li>" + (m.code ? '<span class="item-code">' + escapeHtml(m.code) + "</span> " : "") +
+        "<li>" + (m.code ? '<span class="item-code">' + escapeHtml(voNoLabel(m.code)) + "</span> " : "") +
             '<span class="past-src">' + escapeHtml(t("vo.past.source", { project: m.project, year: m.year || "—" })) +
             ' <span class="past-basis">' + escapeHtml(t("vo.past.basis." + m.basis)) +
             (m.sample ? " · " + escapeHtml(t("vo.past.sample")) : "") + "</span></span>" +
@@ -404,7 +404,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
         const autoBlock = check.autoMatched
             ? '<div class="rate-suggestion">' +
                 '<span class="rate-flag auto-match">' + escapeHtml(t("vo.measurement.suggestedMatch")) + '</span> ' +
-                '<span class="item-code">' + escapeHtml(check.matchedItem.code) + "</span> · " +
+                '<span class="item-code">' + escapeHtml(voNoLabel(check.matchedItem.code)) + "</span> · " +
                 escapeHtml(seedText(check.matchedItem.description)) +
                 '<div class="rate-detail">' + escapeHtml(check.matchBasis) + "</div>" +
                 (conEdit
@@ -849,7 +849,7 @@ if (typeof document !== "undefined") {
             if (typeof drawPhotoCheck === "function") drawPhotoCheck();
 
             const titleEl = document.getElementById("voTitle");
-            titleEl.textContent = v.no + " — " + (seedText(v.description) || t("vo.untitled"));
+            titleEl.textContent = voNoLabel(v.no) + " — " + (seedText(v.description) || t("vo.untitled"));
             titleEl.title = titleEl.textContent; /* the whole description on hover */
             /* Two pills of the same kind side by side read as a duplicate —
                name each one. */
@@ -1371,13 +1371,13 @@ if (typeof document !== "undefined") {
         document.getElementById("deleteVoBtn").addEventListener("click", async () => {
             const v = getProject(project.id).vos.find(x => x.id === voId);
             if (!canDeleteVO(v, role)) return;
-            if (!window.confirm(t("vo.delete.confirm", { no: v.no }))) return;
+            if (!window.confirm(t("vo.delete.confirm", { no: voNoLabel(v.no) }))) return;
             if (typeof Cloud !== "undefined" && Cloud.active()) {
                 try { await Cloud.deleteVO(project.id, voId); }
                 catch (err) { toast(t("vo.delete.failed", { reason: err.message || String(err) }), "error"); return; }
             }
             deleteVO(project.id, voId);
-            toast(t("vo.delete.done", { no: v.no }));
+            toast(t("vo.delete.done", { no: voNoLabel(v.no) }));
             window.location.href = "register.html";
         });
 

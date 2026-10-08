@@ -20,7 +20,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { contractorTotal, assessedTotal, today } = require("./calc.js");
     var { checkRate } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
-    var { t, getLang } = require("./i18n.js");
+    var { t, getLang, voNoLabel } = require("./i18n.js");
     var { seedText } = require("./ui.js");
 }
 
@@ -275,7 +275,7 @@ function registerSheet(project, todayIso) {
         var claimed = contractorTotal(vo);
         var assessed = assessedTotal(vo);
         rows.push({
-            cells: [vo.no, seedText(vo.description) || "", { d: vo.dateIssued }, due.date ? { d: due.date } : null, due.basis,
+            cells: [voNoLabel(vo.no), seedText(vo.description) || "", { d: vo.dateIssued }, due.date ? { d: due.date } : null, due.basis,
                     xlsxInstructionType(vo.typeOfInstruction), vo.instructionNo || "",
                     claimed, assessed, { f: "I" + r + "-H" + r, v: assessed - claimed },
                     rateText, xlsxBlankable(vo.timeImpact),
@@ -331,7 +331,7 @@ function measurementSheet(project, todayIso) {
             claimedSum += qty * rate;
             assessedSum += assessedAmount;
             rows.push({
-                cells: [vo.no, seedText(row.description) || "", item, row.unit || "", qty, rate,
+                cells: [voNoLabel(vo.no), seedText(row.description) || "", item, row.unit || "", qty, rate,
                         { f: "E" + r + "*F" + r, v: qty * rate },
                         check.contractRate !== undefined ? check.contractRate : null,
                         t("rate." + check.state + ".label"),

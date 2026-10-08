@@ -14,7 +14,7 @@
    web); without it the card says so and the rest of the page is unchanged. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
     var { escapeHtml, seedText } = require("./ui.js");
 }
 
@@ -112,7 +112,7 @@ function photoPins(project, voId) {
         GEO_FIELDS.forEach(field => (vo[field] || []).forEach(doc => {
             const g = doc.geo;
             if (!g || !validLatLng(g.lat, g.lng)) return;
-            pins.push({ voId: vo.id, voNo: vo.no, docId: doc.id, name: doc.name, at: doc.at || "",
+            pins.push({ voId: vo.id, voNo: voNoLabel(vo.no), docId: doc.id, name: doc.name, at: doc.at || "",
                         lat: g.lat, lng: g.lng, src: g.src || "", doc: doc });
         }));
     });

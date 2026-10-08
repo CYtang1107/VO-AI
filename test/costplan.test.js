@@ -266,3 +266,16 @@ test("in Chinese the performance figures go by their Chinese names, formulas too
         assert.match(html, /<td class="evm-formula">完工预算 ÷ 成本绩效指数<\/td>/);
     } finally { globalThis.localStorage = had; }
 });
+
+test("a VO's number reads 变更单-001 in Chinese and VO-001 in English; the stored number is unchanged", () => {
+    const i18n = require("../js/i18n.js");
+    assert.strictEqual(i18n.voNoLabel("VO-001"), "VO-001");
+    const store = {}, had = globalThis.localStorage;
+    globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    try {
+        i18n.setLang("zh");
+        assert.strictEqual(i18n.voNoLabel("VO-001"), "变更单-001");
+        assert.strictEqual(i18n.voNoLabel("VO-012/1"), "变更单-012/1");
+        assert.strictEqual(i18n.voNoLabel("B/4.1"), "B/4.1", "a BQ code stays as it is");
+    } finally { globalThis.localStorage = had; }
+});

@@ -27,7 +27,7 @@
    Never invents a figure: what the data does not hold, it says so. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { t } = require("./i18n.js");
+    var { t, voNoLabel } = require("./i18n.js");
     var { rm, prettyDate, contractorTotal, assessedTotal } = require("./calc.js");
     var { rateSummary, checkRate } = require("./analysis.js");
     var { claimCheck } = require("./claimcheck.js");
@@ -87,13 +87,13 @@ function answerFromData(intent, ctx) {
     } else if (intent === "waiting") {
         /* the VO's number is its link: not said twice */
         waitingFor(p, role).forEach(x => lines.push(voLine(x.vo,
-            stepMessage(x.vo, x.step).replace(new RegExp("^" + x.vo.no + "[\\s:：]*"), ""))));
+            stepMessage(x.vo, x.step).replace(new RegExp("^(" + x.vo.no + "|" + voNoLabel(x.vo.no) + ")[\\s:：]*"), ""))));
         if (!lines.length) lines.push({ text: t("copilot.none.waiting") });
     } else if (intent === "deadlines") {
         vos.forEach(v => deadlinesFor(v, today, p).forEach(d => {
             if (d.state !== "overdue" && d.state !== "due-soon") return;
             lines.push(voLine(v, t(d.state === "overdue" ? "copilot.dl.overdue" : "copilot.dl.soon", {
-                no: v.no, label: d.label, date: prettyDate(d.dueDate), n: Math.abs(d.daysRemaining),
+                no: voNoLabel(v.no), label: d.label, date: prettyDate(d.dueDate), n: Math.abs(d.daysRemaining),
                 owner: t("role." + d.owner + ".label") })));
         }));
         if (!lines.length) lines.push({ text: t("copilot.none.deadlines") });
@@ -102,7 +102,7 @@ function answerFromData(intent, ctx) {
             const c = claimCheck(v, p);
             if (c.verdict === "claimable") return;
             const why = c.checks.filter(x => x.state === "fail" || x.state === "missing").map(x => x.clause + ": " + x.reason);
-            lines.push(voLine(v, t("copilot.claim", { no: v.no, verdict: t("claim.verdict." + c.verdict), why: why.join(" ") })));
+            lines.push(voLine(v, t("copilot.claim", { no: voNoLabel(v.no), verdict: t("claim.verdict." + c.verdict), why: why.join(" ") })));
         });
         if (!lines.length) lines.push({ text: t("copilot.none.claims", { n: vos.length }) });
     } else if (intent === "rates") {
@@ -110,7 +110,7 @@ function answerFromData(intent, ctx) {
         vos.forEach(v => {
             const r = rateSummary(v, bq);
             if (!r.different && !r.star) return;
-            lines.push(voLine(v, t("copilot.rates", { no: v.no, diff: r.different, star: r.star })));
+            lines.push(voLine(v, t("copilot.rates", { no: voNoLabel(v.no), diff: r.different, star: r.star })));
         });
         if (!lines.length) lines.push({ text: t("copilot.none.rates") });
     } else if (intent === "cost" && !costOverviewVisible(role)) {
@@ -137,8 +137,8 @@ function answerFromData(intent, ctx) {
                 const s = suggestPastRate(row, sources);
                 const used = Number(row.assessedRate) || Number(row.rate) || 0;
                 lines.push(voLine(v, s
-                    ? t("copilot.exp.row", { no: v.no, desc: seedText(row.description), used: rm(used), rate: rm(s.rate), low: rm(s.low), high: rm(s.high), n: s.count, unit: row.unit || "" })
-                    : t("copilot.exp.rowNone", { no: v.no, desc: seedText(row.description) })));
+                    ? t("copilot.exp.row", { no: voNoLabel(v.no), desc: seedText(row.description), used: rm(used), rate: rm(s.rate), low: rm(s.low), high: rm(s.high), n: s.count, unit: row.unit || "" })
+                    : t("copilot.exp.rowNone", { no: voNoLabel(v.no), desc: seedText(row.description) })));
             }));
             if (!lines.length) lines.push({ text: t("copilot.none.experience") });
             else lines.unshift({ text: t("copilot.exp.intro") });
@@ -232,7 +232,7 @@ function renderDataAnswer(a, question, opts) {
     return botBubble(
         '<h4 class="copilot-title">' + escapeHtml(a.title) + "</h4>" +
         '<ul class="copilot-lines">' + a.lines.map(l => "<li>" +
-            (l.vo ? '<a class="copilot-vo" href="vo.html?id=' + encodeURIComponent(l.vo.id) + '">' + escapeHtml(l.vo.no) + "</a> " : "") +
+            (l.vo ? '<a class="copilot-vo" href="vo.html?id=' + encodeURIComponent(l.vo.id) + '">' + escapeHtml(voNoLabel(l.vo.no)) + "</a> " : "") +
             escapeHtml(l.text) + "</li>").join("") + "</ul>" +
         '<p class="copilot-source">' + escapeHtml(a.source) + "</p>" +
         (opts && opts.ai ? '<button type="button" class="link-button copilot-reask" data-question="' + escapeHtml(question) + '">' + escapeHtml(t("copilot.reask")) + "</button>" : ""));
