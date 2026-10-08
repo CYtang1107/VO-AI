@@ -247,11 +247,3 @@ test("each measurement row shows its verdict in one line; the explanation folds 
     assert.ok(!/<details[^>]* open/.test(html), "folds start closed");
 });
 
-test("findings beyond the first three fold away", () => {
-    const { renderFindings } = require("../js/page-vo.js");
-    const five = renderFindings(["a", "b", "c", "d", "e"]);
-    assert.strictEqual((five.match(/class="finding"/g) || []).length, 5);
-    assert.ok(five.indexOf('data-fold="findings-more"') > five.indexOf("<span>c</span>"));
-    assert.ok(five.includes("2 more finding(s)"));
-    assert.ok(!renderFindings(["a", "b"]).includes("<details"));
-});

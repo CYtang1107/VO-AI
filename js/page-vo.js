@@ -8,7 +8,6 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
     var { suggestPastRate, pastRateSources, pastRateWords, MATERIAL_WORDS } = require("./ratehistory.js");
-    var { renderContractBlock } = require("./contractread.js");
     var { t } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
     var { renderIssueForm, renderIssued, instructionProblem } = require("./instruction.js");
@@ -399,6 +398,17 @@ function renderMeasurementRows(vo, project, role, pastSources) {
    detected element(s) and the other elements that commonly need
    re-measurement alongside them, each with the reason. A prompt to
    confirm, never an assertion. */
+/* The standard form's clause for this kind of change: its wording and
+   the evidence it asks for, one click away under the contract check. */
+function renderStdClause(a) {
+    if (!a.clause) return "";
+    return fold("std-clause", escapeHtml(t("clause.showWording", { title: seedText(a.clause.title) })),
+        '<p class="rate-detail"><strong>' + escapeHtml(t("claim.clauseRef", { form: a.clause.form, no: String(a.clause.ref).replace(/^Clause\s*/, "") })) +
+        " · " + escapeHtml(seedText(a.clause.title)) + "</strong><br>" + escapeHtml(seedText(a.clause.entitlement)) + "</p>" +
+        '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + "</strong> " + escapeHtml(seedText(a.clause.evidence)) + "</p>" +
+        originalText([a.clause.title, a.clause.entitlement, a.clause.evidence]));
+}
+
 function renderElementsBlock(a) {
     const els = a.elements;
     if (!els || els.detected.length === 0) return "";
@@ -417,68 +427,6 @@ function renderElementsBlock(a) {
         (els.related.length === 0 ? "" :
             '<p class="rate-detail" style="margin-top:10px"><strong>' + escapeHtml(t("vo.result.confirmRelated")) +
             "</strong></p>" + relatedHtml);
-}
-
-/* The first three findings in full; any more open on demand. */
-function renderFindings(findings) {
-    if (findings.length === 0) {
-        return '<div class="empty-state">' + escapeHtml(t("vo.result.nothingToFlag")) + "</div>";
-    }
-    const item = f => '<div class="finding"><span>' + escapeHtml(f) + "</span></div>";
-    const shown = findings.slice(0, 3).map(item).join("");
-    const rest = findings.slice(3);
-    return shown + (rest.length
-        ? fold("findings-more", escapeHtml(t("vo.result.moreFindings", { n: rest.length })), rest.map(item).join(""))
-        : "");
-}
-
-function renderAssessmentPanel(vo, project, role) {
-    const a = analyse(vo, project);
-
-    /* a.clause.title/entitlement/evidence are the clause's own English
-       text — see js/i18n.js's clause.note for why that is never
-       translated; the note itself is. */
-    const clauseBlock = a.clause
-        ? '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.governingClause")) + '</span>' +
-          '<span class="result-value">' + escapeHtml(t("claim.clauseRef", { form: a.clause.form, no: String(a.clause.ref).replace(/^Clause\s*/, "") })) +
-          "</span></div>" +
-          fold("std-clause", escapeHtml(t("clause.showWording", { title: seedText(a.clause.title) })),
-              '<p class="rate-detail"><strong>' + escapeHtml(seedText(a.clause.title)) + "</strong><br>" +
-              escapeHtml(seedText(a.clause.entitlement)) + "</p>" +
-              '<p class="rate-detail"><strong>' + escapeHtml(t("clause.evidenceRequired")) + '</strong> ' +
-              escapeHtml(seedText(a.clause.evidence)) + "</p>" +
-              originalText([a.clause.title, a.clause.entitlement, a.clause.evidence]))
-        : '<p class="rate-detail">' + escapeHtml(t("vo.result.noClause")) + "</p>";
-
-    /* This project's own contract leads when it has been read; the
-       bundled standard-form clause then follows as a reference. */
-    const contract = a.contract;
-    const contractRead = contract && contract.state === "read";
-    const contractBlock = contract
-        ? '<h4 class="contract-heading">' + escapeHtml(t("contract.title")) + "</h4>" +
-          renderContractBlock(contract, { fold: true }) +
-          (contract.state === "read" || contract.state === "noText"
-              ? '<button type="button" class="link-button contract-reread-btn">' + escapeHtml(t("contract.reread")) + "</button>"
-              : "")
-        : "";
-
-    return '' +
-        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.classification")) + '</span>' +
-            '<span class="result-value">' + escapeHtml(a.classification.label) + "</span></div>" +
-        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.affectedWork")) + '</span>' +
-            '<span class="result-value">' + escapeHtml(a.classification.affectedWork) + "</span></div>" +
-        renderElementsBlock(a) +
-        contractBlock +
-        (contractRead ? '<h4 class="contract-heading">' + escapeHtml(t("contract.standardForm")) + "</h4>" : "") +
-        clauseBlock +
-        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.contractorClaimed")) + '</span>' +
-            '<span class="result-value">' + rm(a.contractorTotal) + "</span></div>" +
-        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.consultantAssessed")) + '</span>' +
-            '<span class="result-value">' + rm(a.assessedTotal) + "</span></div>" +
-        '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.variance")) + '</span>' +
-            '<span class="result-value">' + rm(a.variance) + "</span></div>" +
-        "<h4 style=\"font-size:12px;margin:18px 0 10px\">" + escapeHtml(t("vo.result.findings")) + "</h4>" +
-        renderFindings(a.findings);
 }
 
 /* -----------------------------------------------------------
@@ -772,7 +720,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, renderFindings, rowSummary, renderElementsBlock, renderAssessmentPanel,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, rowSummary, renderElementsBlock, renderStdClause,
         renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel,
         renderWorkflow, renderStepper
@@ -870,7 +818,8 @@ if (typeof document !== "undefined") {
             document.getElementById("claimCheckPanel").innerHTML =
                 renderClaimCheck(claimCheck(v, fresh), { recorded: v.claimCheck && v.claimCheck.verdict
                     ? { verdict: v.claimCheck.verdict, at: prettyDate(v.claimCheck.at) } : null,
-                    settled: voStage(v) === "done" ? "approved" : voStage(v) === "closed" ? "rejected" : null });
+                    settled: voStage(v) === "done" ? "approved" : voStage(v) === "closed" ? "rejected" : null }) +
+                renderStdClause(analyse(v, fresh));
 
             document.getElementById("deadlinesPanel").innerHTML =
                 renderDeadlinesPanel(v, today(), fresh);
@@ -888,8 +837,8 @@ if (typeof document !== "undefined") {
 
             document.getElementById("measurementBody").innerHTML =
                 renderMeasurementRows(v, fresh, role, pastRateSources(loadDB(), project.id));
-            document.getElementById("assessmentPanel").innerHTML =
-                renderAssessmentPanel(v, fresh, role);
+            /* what else a change like this usually needs measured */
+            document.getElementById("measureElements").innerHTML = renderElementsBlock(analyse(v, fresh));
             /* The contract is read once, the first time it is needed;
                the panel redraws when the reading is in. */
             if (typeof ensureContractReadings === "function") {
@@ -952,7 +901,6 @@ if (typeof document !== "undefined") {
             const late = LATE.indexOf(stage) !== -1;
             show(document.getElementById("measurementCard"), late);
             show(document.getElementById("buildUpCard"), late);
-            show(document.getElementById("assessmentSection"), late);
             show(document.querySelector(".claim-card"), late);
             show(document.getElementById("deadlinesCard"), !!v.submitted);
             const pc = document.querySelector(".photo-check-card");
@@ -1246,14 +1194,6 @@ if (typeof document !== "undefined") {
                     (suggestion ? ", based on " + suggestion.count + " past project rate(s)" : ""));
             });
             if (code) toast(t("vo.past.added", { code: code }));
-            draw();
-        });
-
-        document.getElementById("assessmentPanel").addEventListener("click", e => {
-            if (!e.target.closest(".contract-reread-btn")) return;
-            const fresh = getProject(project.id);
-            const v = fresh.vos.find(x => x.id === voId);
-            forgetContractReadings(project.id, contractSourceDocs(fresh, v).map(d => d.id));
             draw();
         });
 

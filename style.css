@@ -3558,7 +3558,7 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .wf-info label { width: 100%; font-size: 13px; font-weight: 700; }
 #wfInfoText { width: 100%; min-height: 80px; box-sizing: border-box; }
 .role-panels.record:not(.show-others) { display: none; }
-#assessmentSection[hidden], .card[hidden] { display: none !important; }
+.card[hidden] { display: none !important; }
 
 /* the VO register: site map and the VO counts on the left, the VO list on the right */
 .register-layout { display: grid; grid-template-columns: minmax(320px, 2fr) 3fr; gap: 20px; align-items: start; margin-bottom: 20px; }
@@ -3752,3 +3752,7 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .evm-card.evm-bad strong { color: #b91c1c; }
 .evm-card.evm-level { border-left-color: var(--accent); }
 .evm-card strong::first-letter { text-transform: uppercase; }
+
+/* under the measurement table: what else a change like this usually needs measured */
+.measure-elements:empty { display: none; }
+.measure-elements { border-top: 1px solid var(--rule); padding-top: 12px; }
