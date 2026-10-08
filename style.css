@@ -3928,8 +3928,12 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .dash-stats-card .stat-card small { grid-column: 1 / -1; font-size: 11px; color: var(--ink-3); }
 .dash-stats-card .stat-icon { width: 26px; height: 26px; font-size: 11px; border-radius: 6px; }
 .dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 20px; }
-.dash-stats-card .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: auto; }
-.dash-stats-card .card-body.stats-compact { grid-template-rows: 1fr 1fr; }
+/* three counts in one row, the total value across the row below */
+.dash-stats-card .card-body.stats-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 1fr auto; }
+.dash-stats-card .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: 1 / -1; }
+.dash-stats-card .stat-card { padding: 10px; }
+.dash-stats-card .stat-card p { font-size: 13px; }
+.dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 24px; }
 
 /* the monthly figures: upload a cash-flow sheet, or type over a cell */
 .cd-cf-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin-bottom: 8px; }
@@ -3941,3 +3945,10 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .cd-table .cd-own, .cd-table .cd-own input { background: #fff8e1; }
 .measure-head-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .measure-head-actions [hidden] { display: none; }
+
+/* with the cost overview: the cost card a little narrower, the VO numbers wider */
+@media (min-width: 1001px) {
+    .dash-has-cost .dash-grid { grid-template-columns: minmax(0, 1fr) minmax(330px, 36%); }
+}
+.dash-stats-card .stat-card { align-content: center; row-gap: 8px; }
+.dash-stats-card .stat-card h2 { font-size: 28px; }
