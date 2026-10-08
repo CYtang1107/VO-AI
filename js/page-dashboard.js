@@ -128,7 +128,7 @@ if (typeof document !== "undefined") {
             const top = costHost.getBoundingClientRect().top + window.scrollY;
             /* room under it for the status line, the five figures, the fold
                and the row below (the VO list and what needs you) */
-            return window.innerHeight - top - 190 - 168 - 32;
+            return window.innerHeight - top - 190 - 200 - 32;
         }
         const dashGrid = document.querySelector(".dash-grid");
         function drawCost() {
