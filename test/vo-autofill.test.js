@@ -45,8 +45,9 @@ test("a rate already typed is kept, a hand-picked item is left alone, and a vagu
     assert.strictEqual(autoFillRow(byHand, project.bq, sources), false);
     assert.strictEqual(byHand.bqItemId, "BQ6");
     const vague = row("Wall");
-    assert.strictEqual(autoFillRow(vague, project.bq, sources), false);
-    assert.strictEqual(vague.bqItemId, null);
+    autoFillRow(vague, project.bq, sources);
+    assert.strictEqual(vague.bqItemId, null, "no BQ item guessed");
+    assert.strictEqual(vague.unit, "m2", "only its unit");
 });
 
 test("re-describing an auto-filled row re-matches it, undoing what no longer fits", () => {
@@ -56,8 +57,8 @@ test("re-describing an auto-filled row re-matches it, undoing what no longer fit
     autoFillRow(r, project.bq, sources);
     assert.strictEqual(r.bqItemId, null);
     assert.strictEqual(r.rate, 0);
-    assert.strictEqual(r.unit, "");
-    assert.ok(!r.auto);
+    assert.strictEqual(r.unit, "m", "the unit a handrail is measured in, not the tiles'");
+    assert.deepStrictEqual(r.auto, { unit: true });
 });
 test("a row described in a word or two (油漆) is linked to the BQ item that has it; a typed unit and rate stay", () => {
     const r = row("油漆");
@@ -72,4 +73,15 @@ test("a row described in a word or two (油漆) is linked to the BQ item that ha
     const ext = row("外墙油漆");
     autoFillRow(ext, project.bq, sources);
     assert.strictEqual(ext.bqItemId, null, "external walls are not the internal walls item");
+});
+test("a row with no BQ item gets the unit its description says, and a typed unit stays", () => {
+    const { guessUnit } = require("../js/buildup.js");
+    assert.deepStrictEqual(["铺设200mm MS pipe", "G25混凝土挡土墙", "Y12 high tensile bar", "BRC A7 钢筋网", "75mm 钢扶手", "新开门洞并安装实木平板门", "Something"].map(guessUnit),
+        ["m", "m3", "kg", "m2", "m", "no", ""]);
+    const r = row("铺设200mm MS pipe");
+    autoFillRow(r, project.bq, sources);
+    assert.strictEqual(r.unit, "m");
+    const typed = Object.assign(row("铺设200mm MS pipe"), { unit: "nr" });
+    autoFillRow(typed, project.bq, sources);
+    assert.strictEqual(typed.unit, "nr");
 });

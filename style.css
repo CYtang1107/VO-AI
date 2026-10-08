@@ -2677,7 +2677,7 @@ td input:disabled, td select:disabled, td textarea:disabled {
 #measurementBody tr.rate-detail-row > td {
     border-top: none;
     border-left: none;
-    padding: 0 20px 14px;
+    padding: 0 12px 10px;
 }
 #measurementBody .rate-detail-row .rate-detail {
     margin: 0;
@@ -3469,7 +3469,18 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .bu-totals small { font-size: 12px; color: var(--ink-2); }
 .bu-totals input { width: 56px; padding: 3px; border: 1px solid #dfe3e8; border-radius: 6px; }
 .bu-totals .bu-rate { background: var(--accent); color: #fff; }
-.bu-totals.bu-totals-rate { grid-template-columns: minmax(220px, 340px); }
+.bu-totals.bu-totals-rate { grid-template-columns: 1fr; margin: 0; }
+.bu-rate-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin: 14px 0; }
+.bu-rate-row .bu-totals-rate { flex: 0 1 340px; }
+.bu-rate-row #buUseRate { margin-left: auto; }
+/* the measurement table, tighter: a row's actions beside its verdict */
+.row-under { display: flex; align-items: flex-start; gap: 10px; }
+.row-under .row-actions { margin: 4px 0 0; flex: none; }
+.row-under > details.fold { flex: 1; min-width: 0; margin: 0; }
+#measurementBody td.m-assessed { white-space: nowrap; }
+#measurementBody td.m-assessed input + input { margin-top: 0 !important; margin-left: 4px; }
+#measurementBody td.m-flag { white-space: nowrap; }
+#measurementBody td.m-flag .row-delete-btn { margin-left: 4px; vertical-align: middle; }
 .bu-totals .bu-rate small { color: #dbe4ff; }
 .bu-rent-item { padding: 10px 0; border-bottom: 1px dashed var(--rule); }
 .bu-rent-inputs { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0; font-size: 12px; }

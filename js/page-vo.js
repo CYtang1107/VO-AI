@@ -11,7 +11,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t, voNoLabel } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
     var { renderIssueForm, renderIssued, instructionProblem, proposedInstruction, nextInstructionNo } = require("./instruction.js");
-    var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine } = require("./buildup.js");
+    var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine, guessUnit } = require("./buildup.js");
     var { buildUpKey, buildUpSummary } = require("./private.js");
     var { renderMediaField, describeMissing, submitMissing, isPhotoDoc } = require("./media.js");
 }
@@ -288,6 +288,9 @@ function autoFillRow(row, bq, pastSources) {
             auto.rate = "past";
             if (!String(row.unit || "").trim()) { row.unit = past.matches[0].unit; auto.unit = true; }
         } else if (prevAuto.rate) row.rate = 0;
+        /* no unit yet: the one the description says (a pipe by the m, concrete by the m³) */
+        const guessed = !String(row.unit || "").trim() && typeof guessUnit === "function" ? guessUnit(row.description) : "";
+        if (guessed) { row.unit = guessed; auto.unit = true; }
     }
     if (Object.keys(auto).length) row.auto = auto; else delete row.auto;
     return JSON.stringify([row.bqItemId, row.unit, row.rate, row.auto]) !== before;
@@ -316,6 +319,11 @@ function rowsFromInstruction(vo, bq, isWork, newId) {
                 unit: it.bqItem ? it.bqItem.unit : "", qty: 0, rate: it.bqItem ? Number(it.bqItem.rate) || 0 : 0,
                 assessedQty: "", assessedRate: "", fromInstruction: true };
             if (it.bqItem) row.auto = { code: it.bqItem.code, basis: t("vo.row.fromInstructionBasis"), unit: true, rate: "bq" };
+            else {
+                /* a new item: its unit from what it is */
+                const u = typeof guessUnit === "function" ? guessUnit(it.description) : "";
+                if (u) { row.unit = u; row.auto = { unit: true }; }
+            }
             return row;
         });
     return { rows: rows.concat(added), added: added.length, replaced: (vo.measurement || []).length - rows.length };
@@ -452,7 +460,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
            its own line under the item, instead of wrapping down a narrow
            last column and stretching every cell of the row. */
         '<tr class="rate-detail-row" data-row="' + i + '">' +
-            '<td colspan="8">' + rowActions(i, row, check, suggestion, conEdit, assEdit, rematchTo) + fold("row-" + (row.id || i),
+            '<td colspan="8"><div class="row-under">' + rowActions(i, row, check, suggestion, conEdit, assEdit, rematchTo) + fold("row-" + (row.id || i),
                 '<span class="row-verdict row-verdict-' + check.state + '">' + escapeHtml(rowSummary(check, linkedItem, suggestion, row)) + "</span>",
                 '<div class="rate-detail rate-detail-' + check.state + '">' + escapeHtml(check.detail) + "</div>" + autoBlock +
                 (row.auto && row.auto.code ? '<div class="rate-detail auto-fill-note">' +
@@ -460,7 +468,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
                 renderBqOrigin(linkedItem) +
                 (suggestion !== undefined ? renderPastRates(i, suggestion, assEdit) : ""),
                 "row-fold") +
-            "</td>" +
+            "</div></td>" +
         "</tr>";
     }).join("");
 }
@@ -1093,7 +1101,7 @@ if (typeof document !== "undefined") {
             const useAs = canEdit("assessment", v, role) ? "assessed" : canEdit("measurement", v, role) ? "claimed" : null;
             const full = () => renderBuildUpCard(v, buProject(), { rowIndex: bu.rowIndex, stars: stars, editable: buEditable(v),
                 buildUp: (v.measurement || []).length ? getPrivate(project.id, buKey(v)) : null,
-                hideRow: role !== "contractor", privateNote: "buildup.private." + role,
+                hideRow: role !== "contractor",
                 useAs: useAs, rent: bu.rent, suppliers: bu.suppliers, canEditPriceList: buOwn });
             if (role === "contractor") host.innerHTML = full();
             else {

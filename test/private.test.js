@@ -39,10 +39,9 @@ test("the consultant's view of a row: the contractor's five figures, never the l
     assert.match(bu.renderBuildUpSummary(vo, {}), /The claimed rate is now RM 55\.00/);
 });
 
-test("the contractor's own card says only they see the working", () => {
+test("the contractor's own card shows their saved build-up", () => {
     const vo = { id: "VO-1", measurement: [{ id: "M1", description: "Excavation n.e. 1.0m", unit: "m" }] };
     const html = bu.renderBuildUpCard(vo, {}, { rowIndex: 0, editable: true, buildUp: excavation() });
-    assert.match(html, /Only you see this working/);
     assert.match(html, /Backhoe/);
     assert.doesNotMatch(html, /Drafted from the row/, "their own saved build-up, not a draft");
 });

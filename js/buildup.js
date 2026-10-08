@@ -543,6 +543,28 @@ var TEMPLATES = [
     } }
 ];
 
+/* The unit a piece of work is measured in, from its description: the
+   unit of the team's template it fits, else what the words say (a pipe
+   by the metre, concrete by the m³, a door by the number, a floor by the
+   m²). "" when nothing says. */
+var TEMPLATE_UNITS = { msPipe: "m", rebar: "kg", brc: "m2", formwork: "m2", concrete: "m3", handrail: "m",
+    enamel: "m2", emulsion: "m2", plainface: "m2", paving: "m2" };
+var UNIT_WORDS = [
+    ["no", /\b(nr|nos?|each|units?|sets?|pcs?)\b|door|window|sump|manhole|inspection chamber|valve|\btap\b|light|lamp|socket|switch|fitting|集水井|沙井|检查井|(?<!门)窗|门(?!框|洞)|阀|水龙头|灯|插座|开关|套/i],
+    ["m", /pipe|drain|gutter|trench|skirting|cornice|coving|kerb|handrail|railing|balustrade|fence|管|沟|排水|踢脚|线脚|路缘|扶手|栏杆|围栏|围篱/i],
+    ["m3", /concrete|excavat|backfill|hardcore|earthwork|混凝土|砼|开挖|挖土|回填|土方/i],
+    ["kg", /rebar|reinforcement bar|\bbars?\b|steel bar|钢筋(?!网)/i],
+    ["m2", /tile|floor|wall|plaster|render|paint|emulsion|ceiling|screed|waterproof|formwork|roof|partition|cladding|mesh|brc|paving|砖|地面|地板|墙|批荡|抹灰|油漆|涂料|天花|吊顶|找平|防水|模板|屋面|隔墙|钢筋网|铺地/i]
+];
+function guessUnit(description) {
+    const text = String(description || "");
+    if (!text.trim()) return "";
+    const tpl = templateFor(text, "");
+    if (tpl && TEMPLATE_UNITS[tpl.id]) return TEMPLATE_UNITS[tpl.id];
+    const hit = UNIT_WORDS.find(u => u[1].test(text));
+    return hit ? hit[0] : "";
+}
+
 /* The team's template for a row, or null. */
 function templateFor(text, unit) {
     return TEMPLATES.find(x => x.words.test(text) && !(x.not && x.not.test(text)) && (!unit || x.unit.test(unit))) || null;
@@ -698,22 +720,23 @@ function renderBuildUpCard(vo, project, opts) {
         (o.canEditPriceList ? '<textarea id="buPriceListInput" rows="4" placeholder="' + escapeHtml(t("buildup.priceListPh")) + '"></textarea>' +
             '<button type="button" class="secondary-button" id="buPriceListSave">' + escapeHtml(t("buildup.priceListSave")) + "</button>" : ""));
 
-    return '<p class="bu-private">' + escapeHtml(t(o.privateNote || "buildup.private.contractor")) + "</p>" +
-        '<div class="bu-head">' +
+    return '<div class="bu-head">' +
             (o.hideRow ? "" : rowPicker(rows, i, o.stars)) +
             '<span class="rate-detail">' + escapeHtml(t("buildup.region." + region.from, { region: t("buildup.regionName." + region.id), f: region.factor.toFixed(2) })) + "</span>" +
         "</div>" +
         (o.stars && o.stars.has(i) ? '<p class="assistant-note">' + escapeHtml(t("buildup.starNote")) + "</p>" : "") +
         (drafted && o.editable ? '<p class="assistant-note">' + escapeHtml(t(suggestBuildUp(row, project) ? "buildup.drafted" : "buildup.noRecipe")) + "</p>" : "") +
         '<div class="bu-secs">' + sections + "</div>" +
-        /* the four sections show their totals above: here only the rate */
-        '<div class="bu-totals bu-totals-rate">' +
+        /* the four sections show their totals above: here the rate, and
+           using it, on one line */
+        '<div class="bu-rate-row"><div class="bu-totals bu-totals-rate">' +
             '<div class="bu-rate"><small>' + escapeHtml(t("buildup.total.rate", { unit: row.unit || t("buildup.unit") })) + "</small><strong>" + rm(r.rate) + "</strong>" +
                 '<span class="bu-round">' + (r.rate !== r.raw ? escapeHtml(rm(r.raw)) + " → " : "") + escapeHtml(t("buildup.roundTo")) + ' <select data-k="roundTo"' + dis + ">" +
                 [0, 0.5, 1, 5, 10].map(v => '<option value="' + v + '"' + (v === r.roundTo ? " selected" : "") + ">" + escapeHtml(v ? "RM " + v : t("buildup.noRound")) + "</option>").join("") +
                 "</select></span></div>" +
         "</div>" +
         (o.useAs ? '<button type="button" class="primary-button" id="buUseRate">' + escapeHtml(t("buildup.use." + o.useAs, { rate: rm(r.rate) })) + "</button>" : "") +
+        "</div>" +
         rentBlock + priceBlock +
         /* where to buy or hire it near the site (js/suppliers.js) */
         (typeof renderSuppliers === "function"
@@ -797,7 +820,7 @@ function renderRentOrBuy(plant, state) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, TEMPLATES, templateFor, diameterOf, girthOf, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
+    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, TEMPLATES, templateFor, guessUnit, diameterOf, girthOf, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
         lineAmount, runSection, newLine, newSub, editBuildUp, roundUp, thicknessOf, rentOrBuy, parsePriceList,
         renderBuildUpCard, renderBuildUpSummary, renderRentOrBuy };
 }
