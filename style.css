@@ -3975,3 +3975,16 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     body:not(.dash-has-cost) .dash-grid { grid-template-rows: auto minmax(0, 1fr); min-height: calc(100vh - 118px); }
 }
 @media (max-width: 760px) { .dash-stats-card .stats-compact { grid-template-columns: 1fr 1fr; } }
+/* the VO numbers under the cost overview, then the recent VOs; what needs you down the right */
+@media (min-width: 1001px) {
+    .dash-grid { grid-template-areas: "kpi attn" "list attn"; }
+    .dash-has-cost .dash-grid { grid-template-areas: "cost attn" "kpi attn" "list attn"; grid-template-rows: auto auto minmax(0, 1fr); }
+    body:not(.dash-has-cost) .dash-grid { grid-template-rows: auto minmax(0, 1fr); }
+    .dash-stats-card { padding: 6px 8px; }
+    .dash-stats-card .stats-compact { gap: 8px; grid-template-columns: 1fr 1fr 1fr 1.7fr; }
+    .dash-stats-card .stat-card { padding: 6px 10px; gap: 8px; }
+    .dash-stats-card .stat-card p { font-size: 13px; }
+    .dash-stats-card .stat-card h2 { font-size: 20px; }
+    .dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 18px; }
+    .dash-stats-card .stat-icon { width: 24px; height: 24px; font-size: 11px; }
+}
