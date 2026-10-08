@@ -307,6 +307,28 @@ function rowSummary(check, linkedItem, suggestion, row) {
     return text;
 }
 
+/* The next step for a row, on the row itself:
+   - linked to a BQ item by hand: match it automatically again;
+   - no BQ item (a new, star rate): use the past projects' rate, build the
+     rate up in cost planning, or (the consultant) add it to the BQ. */
+function rowActions(i, row, check, suggestion, conEdit, assEdit, rematchTo) {
+    const b = (cls, label, extra) => '<button type="button" class="link-button row-action ' + cls + '" data-row="' + i + '"' + (extra || "") + ">" + escapeHtml(label) + "</button>";
+    const out = [];
+    /* linked by hand to an item automatic matching would not pick */
+    if (conEdit && row.bqItemId && !row.auto && rematchTo !== undefined) {
+        out.push(b("rematch-btn", rematchTo ? t("vo.row.rematchTo", { code: rematchTo }) : t("vo.row.rematch")));
+    }
+    /* no BQ item: a new (star) rate, or no rate entered yet */
+    if (check.state === "star" || (check.state === "norate" && !row.bqItemId)) {
+        if (suggestion && (conEdit || assEdit)) {
+            out.push(b("use-past-btn", t("vo.row.usePast", { rate: rm(suggestion.rate), unit: suggestion.matches[0].unit }), ' data-rate="' + suggestion.rate + '"'));
+        }
+        if (conEdit || assEdit) out.push(b("goto-buildup-btn", t("vo.row.buildUp")));
+        if (assEdit && suggestion) out.push(b("add-bq-item-btn", t("vo.row.addBq"), ' data-rate="' + suggestion.rate + '"'));
+    }
+    return out.length ? '<div class="row-actions">' + out.join("") + "</div>" : "";
+}
+
 function renderMeasurementRows(vo, project, role, pastSources) {
     const rows = vo.measurement || [];
     if (rows.length === 0) {
@@ -333,7 +355,15 @@ function renderMeasurementRows(vo, project, role, pastSources) {
         const claimed = lineTotal(row.qty, row.rate);
         const linkedItem = row.bqItemId ? (project.bq || []).find(b => b.id === row.bqItemId) : null;
         /* undefined: not looked up; null: looked up, nothing comparable */
-        const suggestion = check.state === "star" && pastSources ? suggestPastRate(row, pastSources) : undefined;
+        const newRate = check.state === "star" || (check.state === "norate" && !row.bqItemId);
+        /* what automatic matching would pick for a row linked by hand */
+        let rematchTo;
+        if (conEdit && row.bqItemId && !row.auto) {
+            const probe = { description: row.description, unit: "", qty: row.qty, rate: "" };
+            autoFillRow(probe, project.bq || [], []);
+            if (probe.bqItemId !== row.bqItemId) rematchTo = probe.bqItemId ? (probe.auto && probe.auto.code) || "" : "";
+        }
+        const suggestion = newRate && pastSources ? suggestPastRate(row, pastSources) : undefined;
 
         /* An auto-match is a SUGGESTION, not a decision — shown visually
            distinct (.rate-flag.auto-match, .rate-suggestion) from a
@@ -381,7 +411,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
            its own line under the item, instead of wrapping down a narrow
            last column and stretching every cell of the row. */
         '<tr class="rate-detail-row" data-row="' + i + '">' +
-            '<td colspan="8">' + fold("row-" + (row.id || i),
+            '<td colspan="8">' + rowActions(i, row, check, suggestion, conEdit, assEdit, rematchTo) + fold("row-" + (row.id || i),
                 '<span class="row-verdict row-verdict-' + check.state + '">' + escapeHtml(rowSummary(check, linkedItem, suggestion, row)) + "</span>",
                 '<div class="rate-detail rate-detail-' + check.state + '">' + escapeHtml(check.detail) + "</div>" + autoBlock +
                 (row.auto && row.auto.code ? '<div class="rate-detail auto-fill-note">' +
@@ -660,6 +690,8 @@ function translateHistoryAction(action) {
     if (a === "Instruction returned to contractor") return t("history.instructionReturned");
     if ((m = a.match(/^Contract agent: (claimable|needsInfo|notClaimable)$/))) return t("history.claimCheck", { verdict: t("claim.verdict." + m[1]) });
     if ((m = a.match(/^Built-up rate RM ([\d.]+) used for row (\d+)$/))) return t("history.buildUpUsed", { rate: m[1], row: m[2] });
+    if ((m = a.match(/^Past projects' rate RM ([\d.]+) used for row (\d+)$/))) return t("history.pastRateUsed", { rate: m[1], row: m[2] });
+    if ((m = a.match(/^Row (\d+) matched automatically again(?: — (.+))?$/))) return m[2] ? t("history.rematched", { row: m[1], code: m[2] }) : t("history.rematchedNone", { row: m[1] });
     if (a === "Sent to design team") return t("history.sentToDesign");
     if ((m = a.match(/^Design team approved — (.+)$/))) return t("history.designApproved", { no: m[1] });
     if ((m = a.match(/^Design team rejected: (.+)$/))) return t("history.designRejected", { note: m[1] });
@@ -720,7 +752,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, rowSummary, renderElementsBlock, renderStdClause,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, rowSummary, renderElementsBlock, renderStdClause, rowActions,
         renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel,
         renderWorkflow, renderStepper
@@ -1172,8 +1204,8 @@ if (typeof document !== "undefined") {
             const btn = e.target.closest(".add-bq-item-btn");
             if (!btn) return;
             const i = Number(btn.dataset.row);
-            const input = document.querySelector('.past-rate-input[data-row="' + i + '"]');
-            const rate = Number(input && input.value);
+            const input = btn.dataset.rate ? null : document.querySelector('.past-rate-input[data-row="' + i + '"]');
+            const rate = Number(input ? input.value : btn.dataset.rate);
             if (!(rate > 0)) { toast(t("vo.past.badRate"), "error"); return; }
             const sources = pastRateSources(loadDB(), project.id);
             let code = "";
@@ -1194,6 +1226,45 @@ if (typeof document !== "undefined") {
                     (suggestion ? ", based on " + suggestion.count + " past project rate(s)" : ""));
             });
             if (code) toast(t("vo.past.added", { code: code }));
+            draw();
+        });
+
+        /* A row's next step (rowActions): match again, use the past rate,
+           or build the rate up. */
+        document.getElementById("measurementBody").addEventListener("click", e => {
+            const btn = e.target.closest(".rematch-btn, .use-past-btn, .goto-buildup-btn");
+            if (!btn) return;
+            const i = Number(btn.dataset.row);
+            if (btn.classList.contains("goto-buildup-btn")) {
+                bu.rowIndex = i;
+                draw();
+                const card = document.getElementById("buildUpCard");
+                if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+                return;
+            }
+            const fresh = getProject(project.id);
+            const sources = pastRateSources(loadDB(), project.id);
+            updateVO(project.id, voId, v => {
+                const row = v.measurement[i];
+                if (!row) return;
+                if (btn.classList.contains("rematch-btn")) {
+                    if (!canEdit("measurement", v, role)) return;
+                    row.bqItemId = null;
+                    delete row.auto;
+                    autoFillRow(row, fresh.bq || [], sources);
+                    const item = row.bqItemId ? (fresh.bq || []).find(x => x.id === row.bqItemId) : null;
+                    logHistory(v, session, "Row " + (i + 1) + " matched automatically again" + (item ? " — " + item.code : ""));
+                } else {
+                    const rate = Number(btn.dataset.rate);
+                    if (!(rate > 0)) return;
+                    if (canEdit("measurement", v, role)) row.rate = rate;
+                    else if (canEdit("assessment", v, role)) {
+                        row.assessedRate = rate;
+                        if (row.assessedQty === "" || row.assessedQty === null || row.assessedQty === undefined) row.assessedQty = row.qty;
+                    } else return;
+                    logHistory(v, session, "Past projects' rate RM " + rate + " used for row " + (i + 1));
+                }
+            });
             draw();
         });
 

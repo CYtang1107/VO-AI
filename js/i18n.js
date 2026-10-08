@@ -1524,7 +1524,15 @@ var I18N_EN = {
     "evm.allFigures": "All the figures (BAC, CV, SV, EAC, CPI and others)",
     "evm.group.source": "Where they come from",
     "claim.summary.settled.approved": "This VO has been approved and closed: the check below is kept as a record.",
-    "claim.summary.settled.rejected": "This VO has been rejected and closed: the check below is kept as a record."
+    "claim.summary.settled.rejected": "This VO has been rejected and closed: the check below is kept as a record.",
+    "vo.row.rematch": "↺ Match automatically again",
+    "vo.row.usePast": "Use the past rate {rate}/{unit}",
+    "vo.row.buildUp": "Build up the rate",
+    "vo.row.addBq": "Add to the BQ",
+    "history.pastRateUsed": "Past projects' rate RM {rate} used for row {row}",
+    "history.rematched": "Row {row} matched automatically again: {code}",
+    "history.rematchedNone": "Row {row} matched automatically again: no BQ item fits",
+    "vo.row.rematchTo": "↺ Match automatically: {code}"
 };
 
 var I18N_ZH = {
@@ -3007,7 +3015,15 @@ var I18N_ZH = {
     "evm.allFigures": "全部数字（BAC、CV、SV、EAC、CPI 等）",
     "evm.group.source": "数字来源",
     "claim.summary.settled.approved": "此变更单已批准结案，以下检查仅作记录。",
-    "claim.summary.settled.rejected": "此变更单已拒绝结案，以下检查仅作记录。"
+    "claim.summary.settled.rejected": "此变更单已拒绝结案，以下检查仅作记录。",
+    "vo.row.rematch": "↺ 重新自动匹配",
+    "vo.row.usePast": "用过往单价 {rate}/{unit}",
+    "vo.row.buildUp": "去组价",
+    "vo.row.addBq": "加入工程量清单",
+    "history.pastRateUsed": "第 {row} 行采用过往项目单价 RM {rate}",
+    "history.rematched": "第 {row} 行已重新自动匹配：{code}",
+    "history.rematchedNone": "第 {row} 行已重新自动匹配：没有相符的清单项目",
+    "vo.row.rematchTo": "↺ 自动匹配为 {code}"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

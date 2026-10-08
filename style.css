@@ -3756,3 +3756,8 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 /* under the measurement table: what else a change like this usually needs measured */
 .measure-elements:empty { display: none; }
 .measure-elements { border-top: 1px solid var(--rule); padding-top: 12px; }
+
+/* a measurement row's next step, on the row: match again / past rate / build up / add to BQ */
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 6px; }
+.row-action { font-size: 13px; font-weight: 600; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); text-decoration: none; }
+.row-action:hover { border-color: var(--accent); }
