@@ -85,3 +85,16 @@ test("a row with no BQ item gets the unit its description says, and a typed unit
     autoFillRow(typed, project.bq, sources);
     assert.strictEqual(typed.unit, "nr");
 });
+test("rows made before units were filled in get the unit their description says; a BQ row or a typed unit is left", () => {
+    const { fillMissingUnits } = require("../js/page-vo.js");
+    const rows = [{ description: "铺设200mm MS pipe", unit: "" }, { description: "G25混凝土挡土墙" }, { description: "Y12 high tensile bar", unit: "t" },
+                  { description: "内墙油漆", unit: "", bqItemId: "BQ3" }, { description: "Something", unit: "" }];
+    assert.strictEqual(fillMissingUnits(rows), 2);
+    assert.deepStrictEqual(rows.map(r => r.unit || ""), ["m", "m3", "t", "", ""]);
+});
+test("a substitution in the instruction is two items: the omitted one at its BQ rate, the new one a new rate", () => {
+    const { instructionItems } = require("../js/analysis.js");
+    const items = instructionItems("Change living room floor finish from ceramic tiles to polished marble", project.bq, () => true);
+    assert.deepStrictEqual(items.map(i => [i.description, i.bqItem ? code(i.bqItem.id) : null]),
+        [["Omit Change living room floor finish ceramic tiles", "B/4.1"], ["Change living room floor finish polished marble", null]]);
+});

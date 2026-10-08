@@ -105,7 +105,7 @@ var REFERENCE_PRICES = [
    materials; ohp: profit %; roundTo: the rate is rounded up to it.
    The first recipe whose words the description has is used. */
 var RECIPES = [
-    { id: "marbleFloor",  words: /marble/i, unit: /m2|m²/i, material: [["marble-tile", 1, 0.05], ["adhesive", 1, 0], ["grout", 1, 0]],
+    { id: "marbleFloor",  words: /marble|大理石(?!踢脚)/i, unit: /m2|m²/i, material: [["marble-tile", 1, 0.05], ["adhesive", 1, 0], ["grout", 1, 0]],
       labour: [["tiler", 1, 8], ["general", 1, 16]], plant: [["tile-cutter", 1, 8]] },
     { id: "marbleSkirting", words: /marble.*skirting|skirting.*marble|大理石踢脚/i, unit: /^m$/i, material: [["marble-skirt", 1, 0.05], ["adhesive", 0.15, 0]],
       labour: [["tiler", 1, 30]], plant: [["tile-cutter", 1, 60]] },
@@ -122,7 +122,7 @@ var RECIPES = [
       labour: [["general", 2, 36]], plant: [["backhoe", 1, 36], ["lorry-3t", 1, 36]], perUnit: [["diesel", 0.16]] },
     { id: "sump",         words: /sump|manhole|集水井|沙井/i, unit: /no|nr|each|unit/i, material: [["precast-sump", 1, 0], ["concrete-g25", 0.1, 0.05]],
       labour: [["general", 2, 2], ["plumber", 1, 4]], plant: [["backhoe", 1, 6]] },
-    { id: "ceiling",      words: /ceiling|cove|gypsum|cornice|天花|吊顶/i, unit: /.*/, material: [["gypsum-board", 1, 0.08], ["cove-cornice", 0.4, 0.05]],
+    { id: "ceiling",      words: /ceiling|cove|gypsum|cornice|天花|吊顶|线脚|石膏/i, unit: /.*/, material: [["gypsum-board", 1, 0.08], ["cove-cornice", 0.4, 0.05]],
       labour: [["ceiling-fixer", 1, 12]], plant: [["scaffold-tower", 1, 20]] },
     { id: "concrete",     words: /concrete|混凝土/i, unit: /m3|m³/i, material: [["concrete-g25", 1, 0.03]],
       labour: [["concretor", 2, 8], ["general", 3, 8]], plant: [["poker-vibrator", 1, 15]] },
