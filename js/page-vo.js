@@ -638,7 +638,6 @@ function renderWorkflow(vo, project, role, ui) {
             /* before and after, and what the AI saw in the completed photos */
             '<div class="media-pair">' + renderMediaField(vo, "beforeMedia", {}) + renderMediaField(vo, "afterMedia", {}) + "</div>" + wfPhotoCheck() +
             field({ field: "assessmentNote", label: t("vo.field.assessmentNote"), type: "textarea", value: seedText(vo.assessmentNote), vo: vo, role: role }) +
-            field({ field: "timeImpact", label: t("vo.field.timeImpact"), type: "number", value: vo.timeImpact, vo: vo, role: role }) +
             field({ field: "consultantRemark", label: t("vo.field.consultantRemark"), type: "textarea", value: seedText(vo.consultantRemark), vo: vo, role: role }) +
             '<div class="wf-actions">' + wfButton("wfSubmitClient", "wf.q.submitClient", "primary") + wfButton("wfQsReject", "wf.q.reject", "secondary danger") + "</div>" +
             '<div class="wf-info"><label>' + escapeHtml(t("wf.q.infoLabel")) + '</label><input type="text" id="wfInfoNote" placeholder="' + escapeHtml(t("vo.infoRequest.placeholder")) + '">' +
@@ -954,8 +953,6 @@ if (typeof document !== "undefined") {
                         value: v.dueDate, vo: v, role: view }) +
                 field({ field: "assessmentNote", label: t("vo.field.assessmentNote"),
                         type: "textarea", value: seedText(v.assessmentNote), vo: v, role: view }) +
-                field({ field: "timeImpact", label: t("vo.field.timeImpact"), type: "number",
-                        value: v.timeImpact, vo: v, role: view }) +
                 field({ field: "evaluateStatus", label: t("vo.field.evaluateStatus"), type: "select",
                         options: ["Pending", "Under Review", "Approved", "Rejected"],
                         value: v.evaluateStatus, vo: v, role: view }) +
