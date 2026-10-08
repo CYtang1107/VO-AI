@@ -235,6 +235,7 @@ var I18N_EN = {
 
     /* ---------- dashboard ---------- */
     "dashboard.newVo": "+ New Variation Order",
+    "dashboard.statsTitle": "Variation orders",
     "dashboard.recentTitle": "Recent Variation Orders",
     "dashboard.viewRegister": "View register →",
     "dashboard.col.voRef": "VO REF",
@@ -1817,6 +1818,7 @@ var I18N_ZH = {
     "toast.wrongProjectPasscode": "项目密码错误。",
 
     "dashboard.newVo": "+ 新增变更单",
+    "dashboard.statsTitle": "变更单概况",
     "dashboard.recentTitle": "最近的变更单",
     "dashboard.viewRegister": "查看登记册 →",
     "dashboard.col.voRef": "变更单编号",

@@ -3588,22 +3588,15 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 30%); gap: 18px; align-items: start; }
 .dash-main, .dash-side { display: grid; gap: 18px; min-width: 0; }
 @media (max-width: 1000px) { .dash-grid { grid-template-columns: minmax(0, 1fr); } }
-/* With the cost overview (contractor, design team, client): S-curve | map
-   on top, VO list | what needs you below, the rows lined up */
+/* With the cost overview (contractor, design team, client): S-curve | VO
+   numbers on top, VO list | what needs you below, the rows lined up */
 @media (min-width: 1001px) {
     .dash-has-cost .dash-grid { grid-template-areas: "cost map" "list attn"; align-items: stretch; }
     .dash-has-cost .dash-main, .dash-has-cost .dash-side { display: contents; }
     .dash-has-cost .cost-plan-card { grid-area: cost; }
     .dash-has-cost .recent-card { grid-area: list; }
-    .dash-has-cost .site-map-card { grid-area: map; display: flex; flex-direction: column; }
-    .dash-has-cost .site-map-card #siteMapBody { flex: 1; display: flex; flex-direction: column; }
-    .dash-has-cost .site-map-card .site-map { flex: 1; height: auto; min-height: 200px; }
+    .dash-has-cost .dash-stats-card { grid-area: map; display: flex; flex-direction: column; }
     .dash-has-cost .ai-card { grid-area: attn; }
-    /* the dashboard map shows the map only: the photo check is on each VO, so what needs you has the room */
-    .dash-side .site-map-summary { display: none; }
-    /* the consultant: the VO list on the left, the map and what needs them on the right */
-    body:not(.dash-has-cost) .dash-side .site-map { height: max(180px, calc(50vh - 120px)); }
-    body:not(.dash-has-cost) .dash-side .site-map-card:has(.site-map-set) .site-map { height: max(150px, calc(100vh - 520px)); }
     body:not(.dash-has-cost) .dash-main .recent-card .table-scroll { max-height: calc(100vh - 170px); overflow: auto; }
 }
 
@@ -3925,3 +3918,15 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .instr-issue { margin: 12px 0 8px; }
 .wf-reject { display: flex; gap: 8px; align-items: center; }
 .wf-reject input { flex: 1; padding: 9px 12px; border-radius: 8px; border: 1px solid #dfe3e8; font: inherit; }
+
+/* the dashboard's VO numbers (in place of the site map): four cards, two by two */
+.dash-stats-card .card-body.stats-compact { margin: 0; padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; align-content: stretch; }
+.dash-stats-card .stat-card { padding: 12px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 4px; }
+.dash-stats-card .stat-card > div:not(.stat-icon) { display: contents; }
+.dash-stats-card .stat-card h2 { grid-column: 1 / -1; font-size: 24px; margin: 0; white-space: nowrap; }
+.dash-stats-card .stat-card p { font-size: 14px; margin: 0; white-space: nowrap; }
+.dash-stats-card .stat-card small { grid-column: 1 / -1; font-size: 11px; color: var(--ink-3); }
+.dash-stats-card .stat-icon { width: 26px; height: 26px; font-size: 11px; border-radius: 6px; }
+.dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 20px; }
+.dash-stats-card .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: auto; }
+.dash-stats-card .card-body.stats-compact { grid-template-rows: 1fr 1fr; }

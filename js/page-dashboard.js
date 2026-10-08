@@ -216,17 +216,9 @@ if (typeof document !== "undefined") {
             ensureContractReadings(project.id, null).then(changed => { if (changed) location.reload(); });
         }
 
-        /* The site map (js/sitemap.js): the consultant sets the site's
-           location; everyone sees it and where each site photo was taken. */
-        const mapHost = document.getElementById("siteMapBody");
-        if (mapHost && typeof drawSiteMap === "function") {
-            drawSiteMap(mapHost, getProject(project.id) || project, {
-                canSetSite: session.role === "consultant",
-                onSiteSaved: site => {
-                    updateProject(project.id, p => { p.site = site; });
-                    toast(t("map.siteSaved"));
-                }
-            });
-        }
+        /* the four headline numbers, in place of the site map (the
+           register keeps the map; the consultant sets the site there) */
+        const statsHost = document.getElementById("dashStats");
+        if (statsHost) statsHost.innerHTML = renderStatCards(projectStats(getProject(project.id) || project), session.role);
     })();
 }

@@ -446,6 +446,31 @@ function mountChrome(active, title, crumb, opts) {
     return ctx;
 }
 
+/* The four headline numbers: VOs, pending, approved, value (the
+   register and the dashboard). */
+function renderStatCards(stats, role) {
+    const money = typeof rm === "function" ? rm : require("./calc.js").rm;
+    const cards = [
+        { icon: "▧", cls: "blue",   label: t("dashboard.stat.total"),     value: stats.total,
+          note: t("dashboard.stat.totalNote", { n: stats.draft }) },
+        { icon: "◷", cls: "orange", label: t("dashboard.stat.pending"), value: stats.pending,
+          note: stats.pending > 0 ? t("dashboard.stat.pendingNoteWarn") : t("dashboard.stat.pendingNoteOk"), warn: stats.pending > 0 },
+        { icon: "✓", cls: "green",  label: t("dashboard.stat.approved"),       value: stats.approved,
+          note: t("dashboard.stat.approvedNote", { n: stats.certified }) },
+        { icon: "RM", cls: "purple", label: t("dashboard.stat.value"), value: money(stats.value),
+          note: t("dashboard.stat.valueNote", { n: stats.timeImpact }) }
+    ];
+
+    return cards.map(c =>
+        '<div class="stat-card">' +
+            '<div class="stat-icon ' + c.cls + '">' + c.icon + "</div>" +
+            "<div><p>" + c.label + "</p><h2>" + c.value + "</h2>" +
+            '<small' + (c.warn ? ' class="warning"' : "") + ">" + escapeHtml(c.note) +
+            "</small></div>" +
+        "</div>"
+    ).join("");
+}
+
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds, seedText, originalText };
+    module.exports = { NAV, escapeHtml, initials, logoMark, statusPill, renderSidebar, renderTopbar, fileLink, renderBottomTabs, fold, keepFolds, seedText, originalText, renderStatCards };
 }
