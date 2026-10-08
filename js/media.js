@@ -97,7 +97,7 @@ function renderMediaField(vo, field, opts) {
             picker("primary-button", "media.takePhoto", 'accept="image/*" capture="environment"') +
             picker("secondary-button", "media.fromAlbum", 'accept="image/*" multiple') +
             picker("secondary-button", "media.addVideo", 'accept="video/*" multiple') +
-            (o.geoState ? '<span class="capture-geo ' + escapeHtml(o.geoState) + '">' + escapeHtml(t("capture.geo." + o.geoState)) + "</span>" : "") +
+            (o.geoState && o.geoState !== "idle" ? '<span class="capture-geo ' + escapeHtml(o.geoState) + '" title="' + escapeHtml(t("capture.geo." + o.geoState)) + '">' + escapeHtml(t("media.geo." + o.geoState)) + "</span>" : "") +
             "</div>" : "") +
     "</div>";
 }

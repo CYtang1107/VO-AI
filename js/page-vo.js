@@ -13,7 +13,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { renderIssueForm, renderIssued, instructionProblem, proposedInstruction, nextInstructionNo } = require("./instruction.js");
     var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine } = require("./buildup.js");
     var { buildUpKey, buildUpSummary } = require("./private.js");
-    var { renderMediaField, describeMissing, submitMissing } = require("./media.js");
+    var { renderMediaField, describeMissing, submitMissing, isPhotoDoc } = require("./media.js");
 }
 
 /* An <option> VALUE is always the raw English data value (evaluateStatus,
@@ -513,9 +513,10 @@ function wfNote(text, kind) {
     return '<div class="wf-note' + (kind ? " wf-note-" + kind : "") + '">' + escapeHtml(text) + "</div>";
 }
 
-/* what still stops a step, as a short list under its button */
-function wfMissing(keys) {
-    return keys.length ? '<ul class="wf-missing">' + keys.map(k => "<li>" + escapeHtml(t(k)) + "</li>").join("") + "</ul>" : "";
+/* what a step needs, ticked off, beside its button: [done, label] */
+function wfChecklist(items) {
+    return '<ul class="wf-checklist">' + items.map(([done, label]) =>
+        '<li class="' + (done ? "done" : "todo") + '">' + (done ? "✓" : "○") + " " + escapeHtml(label) + "</li>").join("") + "</ul>";
 }
 /* the AI's check of the completed photos (drawn in by the page) */
 var WF_PHOTO_CHECK = '<div class="wf-photo-check"><h5>' + "%T%" + '</h5><div class="photo-check-host"></div></div>';
@@ -535,11 +536,13 @@ function renderWorkflow(vo, project, role, ui) {
         if (!ui.step || ui.step === 1) {
             /* the site before the work: at least one photo (js/media.js) */
             const missing = describeMissing(vo);
+            const before = (vo.beforeMedia || []).filter(isPhotoDoc).length;
             body += "<h4>" + escapeHtml(t("wf.c.step1")) + "</h4>" +
                 renderMediaField(vo, "beforeMedia", { editable: true, required: true, geoState: ui && ui.geo }) +
                 field({ field: "description", label: t("vo.field.description"), type: "textarea", value: seedText(vo.description), vo: vo, role: role }) +
                 field({ field: "contractorRemark", label: t("vo.field.contractorRemark"), type: "textarea", value: seedText(vo.contractorRemark), vo: vo, role: role }) +
-                '<div class="wf-actions">' + wfButton("wfNext", "wf.next", "primary", missing.length > 0) + "</div>" + wfMissing(missing);
+                '<div class="wf-actions">' + wfButton("wfNext", "wf.next", "primary", missing.length > 0) +
+                wfChecklist([[before > 0, t("wf.check.before", { n: before })], [!!String(vo.description || "").trim(), t("wf.check.description")]]) + "</div>";
         } else {
             const check = claimCheck(vo, project, { stage: "describe" });
             body += "<h4>" + escapeHtml(t("wf.c.step2")) + "</h4>" +
@@ -566,14 +569,14 @@ function renderWorkflow(vo, project, role, ui) {
     } else if (role === "contractor" && (stage === "measure" || stage === "rejected")) {
         if (stage === "rejected") body += wfNote(t("wf.c.rejectedByQs", { note: vo.consultantRemark || t("wf.noNote") }), "warn");
         else body += wfNote(t("wf.c.approved", { instr: instr || "—" }), "ok");
+        const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty)).length;
+        const after = (vo.afterMedia || []).filter(isPhotoDoc).length;
         body += "<h4>" + escapeHtml(t("wf.c.measureTitle")) + "</h4>" +
-            '<ol class="wf-todo"><li>' + escapeHtml(t("wf.c.todo1")) + "</li><li>" + escapeHtml(t("wf.c.todo2")) + "</li><li>" +
-            escapeHtml(t("wf.c.todo3")) + "</li></ol>" +
             /* the work done: at least one photo, checked by the AI against the description */
-            renderMediaField(vo, "afterMedia", { editable: true, required: true, geoState: ui && ui.geo }) + wfPhotoCheck() +
+            renderMediaField(vo, "afterMedia", { editable: true, required: true, geoState: ui && ui.geo }) + (after ? wfPhotoCheck() : "") +
             renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
-            '<div class="wf-actions">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", submitMissing(vo).length > 0) + "</div>" +
-            wfMissing(submitMissing(vo));
+            '<div class="wf-actions">' + wfButton("wfSubmitQs", "wf.c.submitQs", "primary", submitMissing(vo).length > 0) +
+            wfChecklist([[rows > 0, t("wf.check.rows", { n: rows })], [after > 0, t("wf.check.after", { n: after })]]) + "</div>";
     } else if (role === "contractor" && stage === "info") {
         body += wfNote(t("wf.c.infoAsked", { date: prettyDate(vo.infoRequestedAt), note: vo.infoRequestNote || t("wf.noNote") }), "warn") +
             '<div class="field owned"><label>' + escapeHtml(t("vo.field.infoResponse")) + '</label><textarea id="wfInfoText"></textarea></div>' +
@@ -955,7 +958,7 @@ if (typeof document !== "undefined") {
             SiteGeo.start(state => {
                 wf.geo = state;
                 if (wfHost) wfHost.querySelectorAll(".media-actions .capture-geo").forEach(el => {
-                    el.className = "capture-geo " + state; el.textContent = t("capture.geo." + state);
+                    el.className = "capture-geo " + state; el.textContent = t("media.geo." + state); el.title = t("capture.geo." + state);
                 });
             });
         }
@@ -1610,17 +1613,18 @@ if (typeof document !== "undefined") {
             });
             const loading = !!(photoCheck.state && photoCheck.state.loading);
             const noDescription = !String(v.description || "").trim();
-            host.innerHTML =
-                '<p class="assistant-note">' + escapeHtml(t("photo.note")) + "</p>" +
-                (askAsGuest(project.id) ? '<p class="assistant-note ask-guest-note">' + escapeHtml(t("ask.guestNote")) + "</p>" : "") +
+            const notes = '<p class="assistant-note">' + escapeHtml(t("photo.note")) + "</p>" +
+                (askAsGuest(project.id) ? '<p class="assistant-note ask-guest-note">' + escapeHtml(t("ask.guestNote")) + "</p>" : "");
+            const main =
                 (docs.length ? '<div class="photo-check-actions"><button type="button" class="secondary-button photo-check-btn"' +
                     (loading || noDescription ? " disabled" : "") + ">" +
                     escapeHtml(t(photoCheck.state && photoCheck.state.results ? "photo.recheck" : "photo.check", { n: docs.length })) + "</button>" +
                     (noDescription ? ' <span class="assistant-note">' + escapeHtml(t("photo.needDescription")) + "</span>" : "") + "</div>" : "") +
                 '<div class="photo-check-result">' + renderPhotoCheck(photoCheck.state, docs, photoCheck.thumbs, total) + "</div>";
-            /* the same check inside the step: the contractor's before they
-               submit, the consultant's while they assess */
-            inSteps.forEach(h => { h.innerHTML = host.innerHTML; });
+            host.innerHTML = notes + main;
+            /* the same check inside the step (without the notes): the
+               contractor's before they submit, the consultant's while they assess */
+            inSteps.forEach(h => { h.innerHTML = main; });
         }
         document.addEventListener("click", e => {
             if (e.target.closest(".photo-check-btn")) runPhotoCheck(false);
