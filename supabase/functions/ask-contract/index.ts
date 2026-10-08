@@ -28,7 +28,9 @@ import {
     reviewAnswer, systemPrompt, userPrompt, validRequest
 } from "./rules.mjs";
 
-const DASHSCOPE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+// AI_BASE_URL: another OpenAI-compatible address for the same models (e.g.
+// Qwen Cloud); DashScope international by default.
+const DASHSCOPE = Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
 // 「评审一键体验」: questions without an account, for the demo project only
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
 const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);

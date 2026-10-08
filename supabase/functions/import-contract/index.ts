@@ -23,7 +23,9 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OCR_PROMPT, chunkRows, embedText, validImportRequest } from "./checks.mjs";
 
-const DASHSCOPE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+// AI_BASE_URL: another OpenAI-compatible address for the same models (e.g.
+// Qwen Cloud); DashScope international by default.
+const DASHSCOPE = Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
 const EMBED_MODEL = "text-embedding-v4";
 const EMBED_BATCH = 10;
 const OCR_MODELS = (Deno.env.get("OCR_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
