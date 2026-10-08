@@ -3656,11 +3656,12 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .login-card > .login-lang-row { grid-column: 2; justify-self: end; align-self: center; margin: 0; }
     .login-card > h1 { grid-column: 1; font-size: 20px; margin-bottom: 10px; }
     .login-card > .login-mode { grid-column: 2; align-self: end; margin-bottom: 10px; }
-    #demoLogin, #teamLogin:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; grid-auto-flow: row dense; align-items: start; }
-    #demoLogin > *, #teamLogin > * { grid-column: 2; }
-    #demoLogin > .lead:first-child, #demoLogin > .judge-btn, #demoLogin > .judge-hint, #demoLogin > #demoNote,
-    #teamLogin > .lead:first-child, #teamLogin > .login-note { grid-column: 1; }
-    #demoLogin > .lead:last-child, #teamLogin > .lead:last-child, #demoLogin > .passcode-panel { grid-column: 1; margin-top: 6px !important; }
+    #demoLogin:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; grid-auto-flow: row dense; align-items: start; }
+    #demoLogin > * { grid-column: 2; }
+    #demoLogin > .lead:first-child, #demoLogin > .judge-btn, #demoLogin > .judge-hint, #demoLogin > #demoNote { grid-column: 1; }
+    #demoLogin > .lead:last-child, #demoLogin > .passcode-panel { grid-column: 1; margin-top: 6px !important; }
+    /* a team account: just the email, the password and sign in */
+    #teamLogin:not([hidden]) { max-width: 440px; width: 100%; justify-self: center; }
     .login-card .lead { margin-bottom: 12px; }
     .login-card .field { margin-bottom: 10px; }
     .login-card .judge-btn { padding: 14px; font-size: 15px; }
