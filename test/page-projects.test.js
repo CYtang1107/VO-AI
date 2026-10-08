@@ -229,3 +229,15 @@ test("renderBqCheck names every figure that does not add up, escaped", () => {
     assert.match(html, /Sub-total Bill B: the BQ says RM 60,136\.00, but the priced rows above add up to RM 59,956\.00/);
     assert.doesNotMatch(html, /<600x600>/);
 });
+
+test("a project card says how many VOs wait for this role, and how much is certified", () => {
+    const project = {
+        id: "P1", name: "ABC Residence", client: "ABC", contractNo: "X", contractSum: 1000, bq: [], documents: [],
+        certificates: [{ date: "2026-08-01", amount: 250 }],
+        vos: [{ evaluateStatus: "Pending", certifiedStatus: "Pending", submitted: true, instructionStatus: "Confirmed",
+                timeImpact: 0, measurement: [{ qty: 1, rate: 0 }] }]
+    };
+    assert.match(renderProjectCard(project, { role: "consultant" }), /1 VO\(s\) waiting for you/);
+    assert.match(renderProjectCard(project, { role: "client" }), /Nothing waiting for you/);
+    assert.match(renderProjectCard(project, { role: "client" }), /Certified RM 250\.00 · 25\.0 %/);
+});

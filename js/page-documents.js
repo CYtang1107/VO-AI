@@ -7,7 +7,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { prettyDate } = require("./calc.js");
-    var { escapeHtml, fileLink, seedText } = require("./ui.js");
+    var { escapeHtml, fileLink, seedText, statusPill } = require("./ui.js");
     var { versionCount } = require("./documents.js");
     var { t, getLang } = require("./i18n.js");
 }
@@ -19,6 +19,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 var VO_DOC_FIELDS = [
     { field: "revisedDrawing", label: "Revised drawing",    labelKey: "documents.field.revisedDrawing", bucket: "drawings" },
     { field: "oldDrawing",     label: "Superseded drawing", labelKey: "documents.field.oldDrawing",      bucket: "drawings" },
+    { field: "designDocs",     label: "Design team document", labelKey: "documents.field.designDocs", bucket: "drawings" },
     { field: "supportingDocs", label: "Supporting document", labelKey: "documents.field.supportingDocs", bucket: "supporting" },
     { field: "contractDocs",   label: "Contract basis document", labelKey: "documents.field.contractDocs", bucket: "supporting" }
 ];
@@ -67,7 +68,7 @@ function collectDocuments(project) {
                     id: d.id, name: d.name, size: d.size || 0, stored: !!d.stored, url: d.url,
                     uploadedBy: d.uploadedBy, at: d.at,
                     source: "vo", kind: f.field, bucket: f.bucket,
-                    voId: vo.id, voNo: vo.no, voDescription: seedText(vo.description),
+                    voId: vo.id, voNo: vo.no, voDescription: seedText(vo.description), voStatus: vo.evaluateStatus,
                     revisionCount: versionCount(d) - 1,
                     revisions: d.revisions || []
                 });
@@ -150,12 +151,20 @@ function renderProjectDocList(docs, role) {
 var VO_FIELD_LABEL = {};
 VO_DOC_FIELDS.forEach(function (f) { VO_FIELD_LABEL[f.field] = f.label; });
 
-function renderVoGroup(voId, voNo, voDescription, docs) {
+/* One VO as a ticket: a stub with its number, then its title, status and
+   how many files of each kind it has; its files open on a click. `open`:
+   shown open (the list is filtered to this one VO). */
+function renderVoGroup(voId, voNo, voDescription, docs, open, status) {
     var byKind = {};
     docs.forEach(function (d) {
         byKind[d.kind] = byKind[d.kind] || [];
         byKind[d.kind].push(d);
     });
+
+    var chips = VO_DOC_FIELDS.map(function (f) {
+        var n = (byKind[f.field] || []).length;
+        return n ? '<span class="tk-chip tk-' + f.bucket + '">' + escapeHtml(t(f.labelKey)) + " <b>" + n + "</b></span>" : "";
+    }).join("");
 
     var kindsHtml = VO_DOC_FIELDS.map(function (f) {
         var kindDocs = (byKind[f.field] || []).slice().sort(byNewest);
@@ -168,14 +177,19 @@ function renderVoGroup(voId, voNo, voDescription, docs) {
         "</div>";
     }).join("");
 
-    return '<div class="doc-group doc-group-vo">' +
-        '<div class="doc-group-head doc-group-head-link" data-vo-id="' + escapeHtml(voId) + '">' +
-            '<h3>' + escapeHtml(voNo || "VO") + " — " +
-                escapeHtml(voDescription || t("documents.untitled")) + "</h3>" +
-            '<span class="doc-group-goto">' + escapeHtml(t("documents.openVo")) + '</span>' +
+    return '<details class="doc-group doc-group-vo doc-ticket"' + (open ? " open" : "") + ">" +
+        '<summary class="tk-summary">' +
+            '<span class="tk-stub">' + escapeHtml(voNo || "VO") + "</span>" +
+            '<span class="tk-main">' +
+                '<span class="tk-title">' + escapeHtml(voDescription || t("documents.untitled")) + "</span>" +
+                '<span class="tk-chips">' + (status && typeof statusPill === "function" ? statusPill(status) : "") + chips + "</span>" +
+            "</span>" +
+            '<span class="tk-count">' + escapeHtml(t("documents.ticketCount", { n: docs.length })) + "</span>" +
+        "</summary>" +
+        '<div class="tk-body">' + kindsHtml +
+            '<div class="doc-group-head-link tk-open" data-vo-id="' + escapeHtml(voId) + '">' + escapeHtml(t("documents.openVo")) + "</div>" +
         "</div>" +
-        kindsHtml +
-    "</div>";
+    "</details>";
 }
 
 /* The whole read-only Documents screen, as one HTML string: the project
@@ -209,11 +223,13 @@ function renderDocumentGroups(list, filters, role) {
         var voIds = [];
         voDocs.forEach(function (d) { if (voIds.indexOf(d.voId) === -1) voIds.push(d.voId); });
 
+        var oneVo = !!(f.voId && f.voId !== "all");
         var voGroupsHtml = voIds.map(function (id) {
             var docsForVo = voDocs.filter(function (d) { return d.voId === id; });
             var first = docsForVo[0];
-            return renderVoGroup(id, first.voNo, first.voDescription, docsForVo);
+            return renderVoGroup(id, first.voNo, first.voDescription, docsForVo, oneVo, first.voStatus);
         }).join("");
+        if (voGroupsHtml) voGroupsHtml = '<div class="doc-tickets">' + voGroupsHtml + "</div>";
 
         if (voIds.length === 0 && !showProject) {
             voGroupsHtml = '<div class="empty-state">' + escapeHtml(t("documents.empty.voFiltered")) + '</div>';

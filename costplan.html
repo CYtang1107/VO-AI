@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VO-AI | Copilot</title>
+    <title>VO-AI | S-curve</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="style.css?v=20261009s">
 </head>
@@ -16,20 +16,15 @@
 
     <section class="welcome">
         <div>
-            <h2 data-i18n="copilot.heading">Project Copilot</h2>
+            <h2 data-i18n="costplan.detailTitle">S-curve and cost</h2>
+        </div>
+        <div class="page-actions" style="margin:0">
+            <a class="secondary-button" href="dashboard.html" data-i18n="costplan.back">← Dashboard</a>
         </div>
     </section>
 
-    <div class="card tone-blue copilot-card">
-        <div class="card-body" id="copilotBody"></div>
-    </div>
-
-    <div class="disclaimer">
-        <strong data-i18n="disclaimer.title">⚠ Professional Review Required</strong>
-        <span data-i18n="disclaimer.body">
-            AI-generated results are decision-support outputs. Final variation assessment,
-            certification and approval must be reviewed by the appropriate construction professional.
-        </span>
+    <div class="card tone-purple cost-plan-card cd-card">
+        <div class="card-body" id="costDetail"></div>
     </div>
 </main>
 
@@ -39,22 +34,20 @@
 <script src="js/elements.js?v=20261009s"></script>
 <script src="js/analysis.js?v=20261009s"></script>
 <script src="js/permissions.js?v=20261009s"></script>
-<script src="js/deadlines.js?v=20261009s"></script>
 <script src="js/store.js?v=20261009s"></script>
 <script src="js/config.js?v=20261009s"></script>
 <script src="js/cloud.js?v=20261009s"></script>
+<script src="js/documents.js?v=20261009s"></script>
 <script src="js/ui.js?v=20261009s"></script>
 <script src="js/notify.js?v=20261009s"></script>
-<script src="js/askcontract.js?v=20261009s"></script>
-<script src="js/filestore.js?v=20261009s"></script>
 <script src="js/bqimport.js?v=20261009s"></script>
 <script src="js/contractread.js?v=20261009s"></script>
+<script src="js/filestore.js?v=20261009s"></script>
 <script src="js/sitemap.js?v=20261009s"></script>
 <script src="js/claimcheck.js?v=20261009s"></script>
-<script src="js/ratehistory.js?v=20261009s"></script>
+<script src="js/instruction.js?v=20261009s"></script>
 <script src="js/costplan.js?v=20261009s"></script>
-<script src="js/copilot.js?v=20261009s"></script>
-<script src="js/page-copilot.js?v=20261009s"></script>
+<script src="js/page-costplan.js?v=20261009s"></script>
 
 </body>
 </html>

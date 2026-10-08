@@ -3637,6 +3637,11 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .register-layout { margin-bottom: 0; }
     .register-side { gap: 14px; }
     .register-side .site-map { height: max(170px, calc(100vh - 402px)); }
+    /* the consultant also has the site search under the map */
+    .register-side .site-map-card:has(.site-map-set) .site-map { height: max(140px, calc(100vh - 470px)); }
+    .register-side .site-map-set { margin-top: 8px; }
+    .register-side .site-map-set .assistant-note { display: none; } /* the dashboard map says it */
+    .register-side .site-map-card .card-body { padding-bottom: 12px; }
     .register-summary-card .card-body.stats-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 10px; gap: 8px; }
     .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: 1 / -1; }
     .stats-compact .stat-card p { white-space: nowrap; }
@@ -3761,3 +3766,90 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 6px; }
 .row-action { font-size: 13px; font-weight: 600; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); text-decoration: none; }
 .row-action:hover { border-color: var(--accent); }
+
+/* the project picker: project cards in a grid */
+.project-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; align-items: start; margin-bottom: 18px; }
+.project-card { overflow: hidden; }
+.pc-head { display: flex; gap: 12px; align-items: center; padding: 16px 18px; background: linear-gradient(135deg, #eef3ff, var(--paper) 70%); border-bottom: 1px solid var(--rule); }
+.pc-badge { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 20px; }
+.pc-head h3 { font-size: 17px; margin: 0; line-height: 1.3; }
+.pc-sub { font-size: 12px; color: var(--ink-3); margin: 3px 0 0; }
+.pc-stats { display: grid; grid-template-columns: 1fr 1fr 1.7fr 1fr; gap: 8px; margin-bottom: 12px; }
+.pc-stat { border-radius: 8px; padding: 8px 10px; border: 1px solid var(--rule); min-width: 0; }
+.pc-stat small { display: block; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.pc-stat strong { font-size: 16px; white-space: nowrap; }
+.pc-blue { background: #eef3ff; border-color: #cfdcff; } .pc-blue strong { color: var(--accent); }
+.pc-orange { background: #fff5e6; border-color: #f6d9a8; } .pc-orange strong { color: #b45309; }
+.pc-purple { background: var(--verdict-star-bg); border-color: #dccbf5; } .pc-purple strong { color: var(--verdict-star); }
+.pc-green { background: var(--verdict-same-bg); border-color: #bfe3cc; } .pc-green strong { color: var(--verdict-same); }
+.pc-progress { margin-bottom: 10px; }
+.pc-bar { height: 6px; background: var(--rule); border-radius: 999px; overflow: hidden; margin-bottom: 4px; }
+.pc-bar span { display: block; height: 100%; background: var(--verdict-same); border-radius: 999px; }
+.pc-progress small { font-size: 12px; color: var(--ink-3); }
+.pc-waiting { font-size: 13px; color: var(--ink-3); margin: 0 0 12px; }
+.pc-waiting.has { color: #b45309; font-weight: 600; }
+.pc-waiting.has::before { content: "● "; }
+.pc-links { text-align: center; margin-top: 8px; }
+.pc-links .link-button { font-size: 13px; }
+/* import and restore: quiet, so the projects stand out */
+.toolbar-quiet { font-size: 13px; color: var(--ink-2); padding: 6px 8px; cursor: pointer; text-decoration: none; }
+.toolbar-quiet:hover { text-decoration: underline; color: var(--accent); }
+
+/* the cost overview's "More", across the page under the curve and the map */
+
+/* Documents: each VO as a ticket — a numbered stub, a tear line, its title,
+   status and file counts; its files open on a click */
+.doc-tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 14px; align-items: start; }
+.doc-ticket { padding: 0 !important; overflow: hidden; border-radius: 12px; }
+.tk-summary { display: flex; align-items: stretch; cursor: pointer; list-style: none; }
+.tk-summary::-webkit-details-marker { display: none; }
+.tk-stub { flex: none; width: 92px; display: grid; place-items: center; font-weight: 700; font-family: ui-monospace, Menlo, Consolas, monospace;
+           color: #fff; background: var(--accent); position: relative; border-right: 2px dashed rgba(255,255,255,.75); }
+.tk-stub::before, .tk-stub::after { content: ""; position: absolute; right: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper-sunk); }
+.tk-stub::before { top: -8px; } .tk-stub::after { bottom: -8px; }
+.tk-main { flex: 1; min-width: 0; padding: 12px 14px; display: grid; gap: 6px; }
+.tk-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tk-chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #eef3ff; color: var(--accent); }
+.tk-chip.tk-supporting { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.tk-chip b { font-weight: 700; }
+.tk-count { flex: none; align-self: center; padding: 0 14px; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.tk-count::after { content: " ▸"; color: var(--accent); }
+.doc-ticket[open] .tk-count::after { content: " ▾"; }
+.tk-body { border-top: 1px dashed var(--rule); padding: 10px 16px 14px; }
+.tk-open { color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; margin-top: 8px; text-align: right; }
+
+/* the dashboard's link to the S-curve page */
+.cp-detail-link { margin-left: auto; font-weight: 600; font-size: 14px; color: var(--accent); text-decoration: none;
+    padding: 6px 12px; border-radius: 8px; background: #e6ecfb; }
+.cp-detail-link:hover { text-decoration: underline; }
+
+/* the S-curve page (costplan.html): one view at a time */
+.cd-card .card-body { padding-top: 12px; }
+.cd-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
+.cd-tab { border: 1px solid var(--rule); background: var(--paper); color: var(--ink-3); border-radius: 999px;
+    padding: 7px 16px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cd-tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cd-scroll { overflow: auto; }
+.cd-table .cp-table { width: 100%; }
+.cd-table .cp-table th { position: sticky; top: 0; background: var(--paper-sunk); }
+@media (min-width: 1001px) {
+    .cd-health { display: grid; grid-template-columns: minmax(280px, 2fr) 3fr; column-gap: 20px; align-items: start; }
+    .cd-health > * { grid-column: 1; }
+    .cd-health > details[data-fold="evm-figures"] { grid-column: 2; grid-row: 1 / span 8; margin-top: 0; }
+    .cd-health > details[data-fold="evm-figures"] > .fold-body { max-height: calc(100vh - 290px); overflow: auto; }
+    .cd-health .evm-cards { grid-template-columns: 1fr; }
+}
+.cd-inputs .cp-certs { columns: 2; column-gap: 32px; }
+@media (max-width: 760px) { .cd-inputs .cp-certs { columns: 1; } }
+
+/* a build-up line worked out as on the QS's sheet: 2 × RM 120 /day ÷ 10 m2 /day */
+.bu-calc { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; white-space: nowrap; }
+.bu-calc + .bu-calc { margin-top: 4px; }
+.bu-fuel { display: flex; font-size: 12px; color: var(--ink-3); }
+.bu-table .bu-calc input { width: 66px; padding: 4px 6px; }
+.bu-table .bu-calc input[data-bu="nos"] { width: 46px; }
+.bu-table .bu-calc input[data-bu="price"], .bu-table .bu-calc input[data-bu="oilYear"] { width: 80px; }
+.bu-table input[data-bu="name"] { width: 260px; }
+.bu-round { font-size: 12px; color: #dbe4ff; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.bu-round select { font-size: 12px; padding: 2px 4px; border-radius: 6px; border: 0; }

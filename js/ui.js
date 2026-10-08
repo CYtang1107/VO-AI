@@ -225,7 +225,7 @@ function fitPanels() {
     const desktop = window.innerWidth > 1000 && window.innerHeight >= 480;
     document.querySelectorAll("[data-fit]").forEach(el => {
         const prop = el.dataset.fit === "height" ? "height" : "maxHeight";
-        if (!desktop || el.offsetParent === null) { el.style[prop] = ""; return; }
+        if (!desktop || el.offsetParent === null || el.closest(".no-fit")) { el.style[prop] = ""; return; }
         const gap = Number(el.dataset.fitGap || 24), min = Number(el.dataset.fitMin || 220);
         const top = el.getBoundingClientRect().top + window.scrollY;
         el.style[prop] = Math.max(min, Math.floor(window.innerHeight - top - gap)) + "px";

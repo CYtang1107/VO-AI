@@ -128,16 +128,17 @@ if (typeof document !== "undefined") {
             const top = costHost.getBoundingClientRect().top + window.scrollY;
             /* room under it for the status line, the five figures, the fold
                and the row below (the VO list and what needs you) */
-            return window.innerHeight - top - 190 - 168;
+            return window.innerHeight - top - 190 - 168 - 32;
         }
+        const dashGrid = document.querySelector(".dash-grid");
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;
             const p = getProject(project.id) || project;
-            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, height: chartHeight(), range: costRange }); });
+            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, height: chartHeight(), range: costRange, detailHref: "costplan.html" }); });
             mountCostChart(costHost, viewCurve(sCurve(p, today()), costRange));
         }
         if (costHost) {
-            costHost.addEventListener("change", e => {
+            (dashGrid || costHost).addEventListener("change", e => {
                 /* the EAC situation, and a fresh estimate to complete */
                 if (costEditable && e.target.id === "evmMethod") {
                     updateProject(project.id, p => { p.eacMethod = e.target.value; });
@@ -156,7 +157,7 @@ if (typeof document !== "undefined") {
                 updateProject(project.id, p => { p.programme = { start: start, end: end }; });
                 drawCost();
             });
-            costHost.addEventListener("click", e => {
+            (dashGrid || costHost).addEventListener("click", e => {
                 const rangeBtn = e.target.closest(".sc-range-btn");
                 if (rangeBtn) {
                     costRange = rangeBtn.dataset.range;

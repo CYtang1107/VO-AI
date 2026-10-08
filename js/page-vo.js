@@ -990,7 +990,7 @@ if (typeof document !== "undefined") {
             if (!el.dataset.bu) return;
             const k = el.dataset.bu, i = Number(el.dataset.i);
             saveBuildUp(b => {
-                if (k === "ohp") { b.ohp = Number(el.value) || 0; return; }
+                if (k === "ohp" || k === "delivery" || k === "roundTo") { b[k] = Number(el.value) || 0; return; }
                 const it = b.items[i];
                 if (!it) return;
                 if (k === "name") it.name = el.value;
@@ -1001,7 +1001,14 @@ if (typeof document !== "undefined") {
         });
         buPanel.addEventListener("click", e => {
             const add = e.target.closest(".bu-add");
-            if (add) { saveBuildUp(b => b.items.push({ kind: add.dataset.kind, name: "", unit: add.dataset.kind === "material" ? "" : "hr", qty: 1, waste: 0, price: 0, source: "manual" })); return; }
+            if (add) {
+                /* a material by quantity; labour and plant by the day ÷ output (plant with its diesel and oil) */
+                const kind = add.dataset.kind;
+                saveBuildUp(b => b.items.push(kind === "material" ? { kind: kind, name: "", unit: "", qty: 1, waste: 0, price: 0, source: "manual" }
+                    : Object.assign({ kind: kind, name: "", unit: "day", nos: 1, price: 0, output: 1, source: "manual" },
+                        kind === "plant" ? { fuel: 0, fuelPrice: 4.72, oilYear: 0 } : {})));
+                return;
+            }
             const rem = e.target.closest(".bu-remove");
             if (rem) { saveBuildUp(b => b.items.splice(Number(rem.dataset.i), 1)); return; }
             if (e.target.id === "buUseRate") {
