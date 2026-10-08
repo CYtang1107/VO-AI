@@ -59,3 +59,17 @@ test("re-describing an auto-filled row re-matches it, undoing what no longer fit
     assert.strictEqual(r.unit, "");
     assert.ok(!r.auto);
 });
+test("a row described in a word or two (油漆) is linked to the BQ item that has it; a typed unit and rate stay", () => {
+    const r = row("油漆");
+    assert.ok(autoFillRow(r, project.bq, sources));
+    assert.strictEqual(code(r.bqItemId), "B/5.1");
+    const typed = Object.assign(row("油漆"), { unit: "m", rate: 76.32 });
+    autoFillRow(typed, project.bq, sources);
+    assert.deepStrictEqual([code(typed.bqItemId), typed.unit, typed.rate], ["B/5.1", "m", 76.32]);
+    const run = Object.assign(row("油漆"), { unit: "m" });
+    autoFillRow(run, project.bq, sources);
+    assert.deepStrictEqual([code(run.bqItemId), run.rate], ["B/5.1", 0], "a rate per m2 is not put on a row measured in m");
+    const ext = row("外墙油漆");
+    autoFillRow(ext, project.bq, sources);
+    assert.strictEqual(ext.bqItemId, null, "external walls are not the internal walls item");
+});

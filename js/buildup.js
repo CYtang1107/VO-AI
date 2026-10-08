@@ -390,12 +390,33 @@ function nearest(table, d, dflt) {
     if (!d) return dflt;
     return sizes.reduce((a, b) => Math.abs(b - d) < Math.abs(a - d) ? b : a, sizes[0]);
 }
+/* what a metre run of painting measures round (m): "300mm girth", a
+   pipe's or rail's circumference (π × diameter), any "150mm", else 300mm */
+function girthOf(text) {
+    const s = String(text || "");
+    const g = s.match(/(\d+(?:\.\d+)?)\s*mm\s*girth|girth[^0-9]{0,12}(\d+(?:\.\d+)?)\s*mm|周长\s*(\d+(?:\.\d+)?)\s*mm/i);
+    if (g) return Number(g[1] || g[2] || g[3]) / 1000;
+    const d = diameterOf(s);
+    if (d > 0 && d <= 1000 && /pipe|rail|管|扶手|栏杆/i.test(s)) return Math.round(Math.PI * d) / 1000;
+    if (d > 0 && d <= 1000) return d / 1000;
+    return 0.3;
+}
+/* painting priced a m², for a row measured a metre run: × the girth */
+function perRun(sections, text, unit) {
+    if (!U_M.test(unit)) return sections;
+    const g = girthOf(text);
+    const line = () => unitLine("girth", g, 1, { mm: Math.round(g * 1000) }, "m2", unit);
+    sections.labour.forEach(l => { if (l.type === "hr") l.of = "m2"; });
+    sections.material.push(line());
+    sections.labour.push(line());
+    return sections;
+}
 function coatsOf(text, dflt) {
     const m = String(text || "").match(/(\d)\s*(?:coats?|道)/i);
     return m && Number(m[1]) > 0 ? Number(m[1]) : dflt;
 }
 
-const U_M = /^(m|lm|m run|rm|米)$/i, U_M2 = /^(m2|m²|sq\.?\s*m|sqm|平方米)$/i, U_M3 = /^(m3|m³|cu\.?\s*m|立方米)$/i, U_KG = /^(kg|t|tonne|ton|公斤|吨)$/i;
+const U_M = /^(m|lm|m run|rm|米)$/i, U_M2 = /^(m2|m²|sq\.?\s*m|sqm|平方米)$/i, U_M2_OR_M = /^(m2|m²|sq\.?\s*m|sqm|平方米|m|lm|m run|rm|米)$/i, U_M3 = /^(m3|m³|cu\.?\s*m|立方米)$/i, U_KG = /^(kg|t|tonne|ton|公斤|吨)$/i;
 
 var TEMPLATES = [
     /* reinforcement bar: the bar and 5 % wastage, tying wire; unloading,
@@ -466,23 +487,23 @@ var TEMPLATES = [
     } },
     /* enamel paint to steelwork: primer, undercoat, enamel; preparing and
        applying, brushes; overhead and profit */
-    { id: "enamel", words: /enamel|gloss|磁漆|调和漆|(paint|油漆).*(steel|metal|钢|铁)|(steel|metal|钢|铁).*(paint|油漆)/i, unit: U_M2, build(text, unit, p) {
+    { id: "enamel", words: /enamel|gloss|磁漆|调和漆|(paint|油漆).*(steel|metal|钢|铁)|(steel|metal|钢|铁).*(paint|油漆)/i, unit: U_M2_OR_M, build(text, unit, p) {
         const coats = Math.max(3, coatsOf(text, 4));
-        return { sections: {
+        return { sections: perRun({
             material: [tItem("primer", 0.08, p), tItem("undercoat", 0.08, p), tItem("enamel", round2((coats - 2) * 0.08), p), pctLine("wastage", 5)],
             machinery: [],
             labour: [tHr("painter", 1, 0.02, p, { task: "prepare" }), tHr("painter", 1, round2(coats * 0.1), p, { task: "apply", vars: { n: coats } }), pctLine("brushes", 3)],
-            profit: [pctLine("overhead", 5), pctLine("profit", 30)] }, roundTo: 0 };
+            profit: [pctLine("overhead", 5), pctLine("profit", 30)] }, text, unit), roundTo: 0 };
     } },
     /* emulsion paint: a sealer and the emulsion coats; preparing and
        applying, brushes; overhead and profit */
-    { id: "emulsion", words: /emulsion|paint|油漆|涂料|乳胶漆/i, unit: U_M2, build(text, unit, p) {
+    { id: "emulsion", words: /emulsion|paint|油漆|涂料|乳胶漆/i, unit: U_M2_OR_M, build(text, unit, p) {
         const coats = Math.max(2, coatsOf(text, 3));
-        return { sections: {
+        return { sections: perRun({
             material: [tItem("sealer", 0.08, p), tItem("emulsion-paint", round2((coats - 1) * 0.08), p), pctLine("wastage", 5)],
             machinery: [],
             labour: [tHr("painter", 1, 0.02, p, { task: "prepare" }), tHr("painter", 1, round2(coats * 0.1), p, { task: "apply", vars: { n: coats } }), pctLine("brushes", 3)],
-            profit: [pctLine("overhead", 5), pctLine("profit", 30)] }, roundTo: 0 };
+            profit: [pctLine("overhead", 5), pctLine("profit", 30)] }, text, unit), roundTo: 0 };
     } },
     /* plainface: a skim coat, 9 kg a m² at 5 mm; a plasterer and a helper */
     { id: "plainface", words: /plain\s*face|skim|批灰|腻子/i, unit: U_M2, build(text, unit, p) {
@@ -777,7 +798,7 @@ function renderRentOrBuy(plant, state) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, TEMPLATES, templateFor, diameterOf, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
+    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, TEMPLATES, templateFor, diameterOf, girthOf, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
         lineAmount, runSection, newLine, newSub, editBuildUp, roundUp, thicknessOf, rentOrBuy, parsePriceList,
         renderBuildUpCard, renderBuildUpSummary, renderRentOrBuy };
 }

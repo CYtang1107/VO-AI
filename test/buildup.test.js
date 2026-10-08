@@ -220,3 +220,12 @@ test("a labour line by the hour: how many × the day rate ÷ 8 × the hours", ()
     assert.strictEqual(bu.lineAmount({ type: "unit", factor: 1, per: 4 }, 100), -75);
     assert.strictEqual(bu.newLine("hr:labour").type, "hr");
 });
+test("paint measured a metre run: the m² build-up × the girth (300mm unless the description says)", () => {
+    const b = bu.suggestBuildUp({ description: "油漆", unit: "m" }, {});
+    assert.strictEqual(b.recipe, "emulsion");
+    assert.strictEqual(b.sections.material.slice(-1)[0].factor, 0.3);
+    assert.strictEqual(bu.buildUpRate(b).rate, 4.27);
+    assert.strictEqual(bu.girthOf("Emulsion paint to 150mm wide edge"), 0.15);
+    assert.strictEqual(bu.girthOf("Enamel paint to 200mm pipe"), 0.628);
+    assert.strictEqual(bu.girthOf("Paint to skirting, 225mm girth"), 0.225);
+});
