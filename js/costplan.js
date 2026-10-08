@@ -96,17 +96,29 @@ function sCurve(project, todayIso) {
        the model's where given; a forecast not given follows the plan */
     const cf = (project.cashflow && project.cashflow.months) || {};
     const given = v => v !== undefined && v !== null && v !== "" && isFinite(Number(v));
-    const ratio = o.baseline ? o.forecast / o.baseline : 1;
+    /* the forecast at current performance: what has been certified, then
+       on to the estimate at completion (EAC, earned value) along the same
+       S-shape; without the costs to work out an EAC, the plan with the VOs */
+    const est = estimateAtCompletion(project, todayIso);
+    const target = est.eac !== null ? est.eac : o.forecast;
+    const x0 = lastCert ? Math.min(1, Math.max(0, (dayNo(lastCert) - s) / (e - s))) : 0;
+    const from = lastCert ? est.ev : 0;
+    const projected = x => {
+        if (lastCert && x <= x0) return null;
+        const f0 = sFraction(x0);
+        return Math.round(from + (target - from) * (f0 >= 1 ? 1 : (sFraction(x) - f0) / (1 - f0)));
+    };
     const points = months.map(date => {
         const x = (dayNo(date) - s) / (e - s);
         const certifiedTo = certs.filter(c => c.date <= date).reduce((a, c) => a + Number(c.amount), 0);
         const own = cf[date.slice(0, 7)] || {};
         const planned = given(own.planned) ? Math.round(Number(own.planned)) : Math.round(o.baseline * sFraction(x));
+        const ahead = projected(x);
         return {
             date: date,
             planned: planned,
             forecast: given(own.forecast) ? Math.round(Number(own.forecast))
-                : given(own.planned) ? Math.round(planned * ratio) : Math.round(o.forecast * sFraction(x)),
+                : ahead === null ? certifiedTo : ahead,
             /* actual only up to the month of the latest certificate */
             actual: lastCert && date.slice(0, 7) <= lastCert.slice(0, 7) ? certifiedTo : null,
             own: given(own.planned) || given(own.forecast)
@@ -257,20 +269,17 @@ function readCashflowSheet(rows, forceMode) {
    AC + (BAC − EV) / CPI it would equal BAC / CPI, since AC = EV / CPI.)
    Nulls where a figure cannot be worked out, never a guess. */
 var EAC_METHODS = ["cpi", "plan", "atypical", "new"];
-function earnedValue(project, todayIso) {
+/* The estimate at completion and what it rests on: the work certified
+   (EV), its actual cost (AC, when every certificate has one) and the
+   EAC situation chosen. Used by earned value and by the S-curve's
+   forecast. */
+function estimateAtCompletion(project, todayIso) {
     const o = costOverview(project);
-    const curve = sCurve(project, todayIso);
     const certs = ((project && project.certificates) || []).filter(c => Number(c.amount) > 0 && (!todayIso || c.date <= todayIso));
     const bac = o.baseline;
-    const pv = curve ? curve.plannedToday : null;
     const ev = certs.reduce((s, c) => s + Number(c.amount), 0);
     const haveAc = certs.length > 0 && certs.every(c => c.actual !== undefined && c.actual !== null && c.actual !== "" && Number(c.actual) >= 0);
     const ac = haveAc ? certs.reduce((s, c) => s + Number(c.actual), 0) : null;
-    const r2 = n => Math.round(n * 100) / 100;
-    const sv = pv === null ? null : ev - pv;
-    const spi = pv ? r2(ev / pv) : null;
-    const cv = ac === null ? null : ev - ac;
-    const cpi = ac ? r2(ev / ac) : null;
     const method = EAC_METHODS.indexOf(project && project.eacMethod) >= 0 ? project.eacMethod : "cpi";
     const etcIn = project && project.etcEstimate !== undefined && project.etcEstimate !== null && project.etcEstimate !== ""
         ? Number(project.etcEstimate) : null;
@@ -279,6 +288,20 @@ function earnedValue(project, todayIso) {
     else if (method === "cpi" && ac) { eac = Math.round(bac / (ev / ac)); etc = Math.round((bac - ev) / (ev / ac)); }
     else if (method === "atypical" && ac !== null) { etc = bac - ev; eac = ac + etc; }
     else if (method === "new" && ac !== null && etcIn !== null && etcIn >= 0) { etc = Math.round(etcIn); eac = ac + etc; }
+    return { certs: certs, bac: bac, ev: ev, ac: ac, haveAc: haveAc, method: method, etcIn: etcIn, eac: eac, etc: etc };
+}
+
+function earnedValue(project, todayIso) {
+    const curve = sCurve(project, todayIso);
+    const est = estimateAtCompletion(project, todayIso);
+    const certs = est.certs, bac = est.bac, ev = est.ev, ac = est.ac, haveAc = est.haveAc;
+    const method = est.method, etcIn = est.etcIn, eac = est.eac, etc = est.etc;
+    const pv = curve ? curve.plannedToday : null;
+    const r2 = n => Math.round(n * 100) / 100;
+    const sv = pv === null ? null : ev - pv;
+    const spi = pv ? r2(ev / pv) : null;
+    const cv = ac === null ? null : ev - ac;
+    const cpi = ac ? r2(ev / ac) : null;
     return {
         bac: bac, pv: pv, ev: ev, ac: ac, pctComplete: bac ? ev / bac * 100 : 0,
         sv: sv, spi: spi, cv: cv, cpi: cpi,

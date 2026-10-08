@@ -59,7 +59,8 @@ function renderRecentRows(vos) {
     return sorted.slice(0, 6).map(v =>
         '<tr class="vo-row" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
             '<td class="nowrap"><strong class="item-code">' + escapeHtml(voNoLabel(v.no)) + "</strong></td>" +
-            "<td>" + escapeHtml(seedText(v.description) || "—") + "</td>" +
+            /* one line a VO; the whole description on hover */
+            '<td class="recent-desc" title="' + escapeHtml(seedText(v.description) || "") + '">' + escapeHtml(seedText(v.description) || "—") + "</td>" +
             '<td class="nowrap">' + prettyDate(v.dateIssued) + "</td>" +
             '<td class="nowrap">' + rm(voValue(v)) + "</td>" +
             "<td>" + statusPill(v.evaluateStatus) + "</td>" +
