@@ -19,7 +19,9 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { BQ_PROMPT, correction, parseBqRows, validBqRequest } from "./rules.mjs";
 
-const DASHSCOPE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+// AI_BASE_URL: another OpenAI-compatible address for the same models (e.g.
+// Qwen Cloud); DashScope international by default.
+const DASHSCOPE = Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
 const OCR_MODELS = (Deno.env.get("OCR_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
 const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);

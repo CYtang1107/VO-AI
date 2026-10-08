@@ -17,7 +17,7 @@
 // quantities — a photo is evidence of what is on site, never a
 // measurement. One retry with the broken rule named; then nothing is shown.
 //
-// Secrets: DASHSCOPE_API_KEY. SUPABASE_URL and SUPABASE_ANON_KEY are
+// Secrets: DASHSCOPE_API_KEY (or VISION_API_KEY). SUPABASE_URL and SUPABASE_ANON_KEY are
 // provided by Supabase.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -25,7 +25,12 @@ import {
     checkPrompt, correction, describePrompt, parseCheck, parseDescribe, validPhotoRequest,
 } from "./rules.mjs";
 
-const DASHSCOPE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+// The vision models may live elsewhere than the text models: VISION_BASE_URL
+// and VISION_API_KEY (e.g. Qwen Cloud), else AI_BASE_URL and
+// DASHSCOPE_API_KEY, else DashScope international.
+const DASHSCOPE = Deno.env.get("VISION_BASE_URL") || Deno.env.get("AI_BASE_URL") ||
+    "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+const VISION_KEY = Deno.env.get("VISION_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 const VISION_MODELS = (Deno.env.get("VISION_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
@@ -48,6 +53,7 @@ type Message = { role: string; content: string | Content[] };
 
 async function vision(messages: Message[]): Promise<{ text: string; model: string }> {
     let last: Error | null = null;
+    const tried: string[] = [];
     for (const model of VISION_MODELS) {
         try {
             const body: Record<string, unknown> = { model, messages, temperature: 0.1, max_tokens: 800 };
@@ -55,7 +61,7 @@ async function vision(messages: Message[]): Promise<{ text: string; model: strin
             const res = await fetch(DASHSCOPE + "/chat/completions", {
                 method: "POST",
                 headers: {
-                    "Authorization": "Bearer " + Deno.env.get("DASHSCOPE_API_KEY"),
+                    "Authorization": "Bearer " + VISION_KEY,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(body),
@@ -69,11 +75,14 @@ async function vision(messages: Message[]): Promise<{ text: string; model: strin
             return { text: String(json.choices?.[0]?.message?.content || ""), model };
         } catch (e) {
             last = e as Error;
+            tried.push(model + ": " + last.message);
             const status = (e as Error & { status?: number }).status || 0;
             // quota, rate limit, unknown model: try the next one
             if (![400, 401, 403, 404, 429].includes(status)) break;
         }
     }
+    // every model's refusal, so a wrong key or an empty quota can be told apart
+    if (tried.length > 1) throw new Error(tried.join(" | "));
     throw last || new Error("No vision model configured");
 }
 
