@@ -3798,3 +3798,25 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .cost-more-slot > .cp-more > summary { border-radius: 0; }
 .cost-more-slot > .cp-more > .fold-body { padding: 4px 18px 16px; }
 body:not(.dash-has-cost) .cost-more-slot { display: none !important; }
+
+/* Documents: each VO as a ticket — a numbered stub, a tear line, its title,
+   status and file counts; its files open on a click */
+.doc-tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 14px; align-items: start; }
+.doc-ticket { padding: 0 !important; overflow: hidden; border-radius: 12px; }
+.tk-summary { display: flex; align-items: stretch; cursor: pointer; list-style: none; }
+.tk-summary::-webkit-details-marker { display: none; }
+.tk-stub { flex: none; width: 92px; display: grid; place-items: center; font-weight: 700; font-family: ui-monospace, Menlo, Consolas, monospace;
+           color: #fff; background: var(--accent); position: relative; border-right: 2px dashed rgba(255,255,255,.75); }
+.tk-stub::before, .tk-stub::after { content: ""; position: absolute; right: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper-sunk); }
+.tk-stub::before { top: -8px; } .tk-stub::after { bottom: -8px; }
+.tk-main { flex: 1; min-width: 0; padding: 12px 14px; display: grid; gap: 6px; }
+.tk-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tk-chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #eef3ff; color: var(--accent); }
+.tk-chip.tk-supporting { background: var(--verdict-same-bg); color: var(--verdict-same); }
+.tk-chip b { font-weight: 700; }
+.tk-count { flex: none; align-self: center; padding: 0 14px; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.tk-count::after { content: " ▸"; color: var(--accent); }
+.doc-ticket[open] .tk-count::after { content: " ▾"; }
+.tk-body { border-top: 1px dashed var(--rule); padding: 10px 16px 14px; }
+.tk-open { color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; margin-top: 8px; text-align: right; }
