@@ -58,17 +58,11 @@ function instructionProblem(project, vo, kind, no) {
     return taken ? t("instr.taken", { no: n, vo: taken.no }) : "";
 }
 
-/* The design team's step ①, when it may still issue. */
+/* The design team's step ①, when it may still issue: one button. The
+   kind (AI / EI) and the next number are set by the system
+   (proposedInstruction). */
 function renderIssueForm(project, vo) {
-    const p = proposedInstruction(project, vo);
-    const opt = k => '<option value="' + k + '"' + (k === p.kind ? " selected" : "") + ">" + escapeHtml(t("instr.kind." + k)) + "</option>";
     return '<div class="instr-issue">' +
-        '<p class="ca-ref">' + escapeHtml(t(p.confirming ? "instr.confirming" : "instr.newNo", { no: p.no })) + "</p>" +
-        '<div class="instr-issue-row">' +
-            '<select id="instrKind" aria-label="' + escapeHtml(t("instr.kindLabel")) + '">' + opt("AI") + opt("EI") + "</select>" +
-            '<input type="text" id="instrNo" value="' + escapeHtml(p.no) + '" aria-label="' + escapeHtml(t("instr.noLabel")) + '">' +
-        "</div>" +
-        '<textarea id="instrNote" rows="2" placeholder="' + escapeHtml(t("instr.notePh")) + '"></textarea>' +
         '<button type="button" class="primary-button" id="issueInstrBtn">' + escapeHtml(t("instr.issueBtn")) + "</button>" +
     "</div>";
 }

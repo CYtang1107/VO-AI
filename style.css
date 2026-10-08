@@ -3381,7 +3381,7 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .claim-card .claim-checks + .assistant-note, .claim-card .assistant-note { margin-top: 10px; }
 
 /* the design team issues the AI / EI (js/instruction.js) */
-.instr-issue { display: grid; gap: 8px; margin: 6px 0 14px; padding: 12px; border: 1px dashed var(--line, #cfd5df); border-radius: 10px; }
+.instr-issue { margin: 6px 0 14px; }
 .instr-issue-row { display: grid; grid-template-columns: 1fr 140px; gap: 8px; }
 .instr-issue select, .instr-issue input, .instr-issue textarea { padding: 9px; border-radius: 8px; border: 1px solid #dfe3e8; font: inherit; width: 100%; box-sizing: border-box; }
 .instr-issued { margin: 6px 0 14px; }
