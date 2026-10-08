@@ -4,9 +4,9 @@
 //   → { results: [{id, verdict: "match"|"mismatch"|"unclear", seen, reason}], model }
 // POST { project_id, mode: "describe", images: [{id, data}], lang? }
 //   → { description, model }
-//      { …, guest: true } without an account: the demo project only, within
-//      the same daily limits as 「问合同」 (migration 0004)
-//   → { results: null | description: null, reason: "quantity-check" | "format" | "guest-limit" }
+//      { …, guest: true } without an account: the demo project only, no
+//      daily limit
+//   → { results: null | description: null, reason: "quantity-check" | "format" }
 //
 // `data` is a base64 JPEG the browser has already scaled down (at most 4
 // photos a call). Any member of the project may ask, whatever their role:
@@ -17,9 +17,8 @@
 // quantities — a photo is evidence of what is on site, never a
 // measurement. One retry with the broken rule named; then nothing is shown.
 //
-// Secrets: DASHSCOPE_API_KEY. SUPABASE_URL, SUPABASE_ANON_KEY and
-// SUPABASE_SERVICE_ROLE_KEY are provided by Supabase (the service role
-// only for the guest route, as in ask-contract).
+// Secrets: DASHSCOPE_API_KEY. SUPABASE_URL and SUPABASE_ANON_KEY are
+// provided by Supabase.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
@@ -30,8 +29,6 @@ const DASHSCOPE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
 const VISION_MODELS = (Deno.env.get("VISION_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
-const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
-const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
 
 const CORS = {
     "Access-Control-Allow-Origin": "*",
@@ -96,17 +93,9 @@ Deno.serve(async (req) => {
     const empty = mode === "check" ? { results: null } : { description: null };
 
     if (body.guest === true) {
+        // The demo project only, with no daily limit: photo checks do not
+        // count towards the guest quota of 「问合同」 (migration 0004).
         if (projectId !== GUEST_PROJECT) return reply({ error: "Sign in first." }, 401);
-        const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-            auth: { persistSession: false },
-        });
-        const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
-            req.headers.get("x-real-ip") || "unknown";
-        const { data: allowed, error } = await db.rpc("guest_quota", {
-            p_ip: ip, p_ip_limit: GUEST_PER_VISITOR, p_day_limit: GUEST_PER_DAY,
-        });
-        if (error) return reply({ error: error.message }, 500);
-        if (!allowed) return reply({ ...empty, reason: "guest-limit" }, 429);
     } else {
         const auth = req.headers.get("Authorization");
         if (!auth) return reply({ error: "Sign in first." }, 401);

@@ -38,8 +38,8 @@ Branch `claude/eager-ramanujan-6i2lox`.
 - **AI photo check (7 Oct):** `supabase/functions/photo-check` (deployed) reads site photos with Qwen-VL. Mode
   `check`: one verdict per photo (match / mismatch / unclear, with what it shows and why) against the VO description,
   on the VO page's 「AI 照片核对」 card. Mode `describe`: a draft description on the capture page's 「根据照片生成说明」
-  button, for the contractor to edit. Any project member may ask; the demo uses the same guest route and daily limit
-  as 「问合同」. The server refuses an answer with money or quantities (one retry). At most 4 photos a call, scaled to
+  button, for the contractor to edit. Any project member may ask; the demo uses the guest route with no daily limit
+  (8 Oct). The server refuses an answer with money or quantities (one retry). At most 4 photos a call, scaled to
   1024 px in the browser. Results are kept for the browser session until the description or photos change.
 - **「评审一键体验」 (7 Oct):** the demo (no account) can ask the demo project's contract. `ask-contract` accepts
   `guest: true` for `PRJ-CADANGAN` only, reads it with the service role, and counts each question first
