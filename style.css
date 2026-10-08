@@ -3761,3 +3761,31 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 6px; }
 .row-action { font-size: 13px; font-weight: 600; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); text-decoration: none; }
 .row-action:hover { border-color: var(--accent); }
+
+/* the project picker: project cards in a grid */
+.project-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; align-items: start; margin-bottom: 18px; }
+.project-card { overflow: hidden; }
+.pc-head { display: flex; gap: 12px; align-items: center; padding: 16px 18px; background: linear-gradient(135deg, #eef3ff, var(--paper) 70%); border-bottom: 1px solid var(--rule); }
+.pc-badge { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 20px; }
+.pc-head h3 { font-size: 17px; margin: 0; line-height: 1.3; }
+.pc-sub { font-size: 12px; color: var(--ink-3); margin: 3px 0 0; }
+.pc-stats { display: grid; grid-template-columns: 1fr 1fr 1.7fr 1fr; gap: 8px; margin-bottom: 12px; }
+.pc-stat { border-radius: 8px; padding: 8px 10px; border: 1px solid var(--rule); min-width: 0; }
+.pc-stat small { display: block; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.pc-stat strong { font-size: 16px; white-space: nowrap; }
+.pc-blue { background: #eef3ff; border-color: #cfdcff; } .pc-blue strong { color: var(--accent); }
+.pc-orange { background: #fff5e6; border-color: #f6d9a8; } .pc-orange strong { color: #b45309; }
+.pc-purple { background: var(--verdict-star-bg); border-color: #dccbf5; } .pc-purple strong { color: var(--verdict-star); }
+.pc-green { background: var(--verdict-same-bg); border-color: #bfe3cc; } .pc-green strong { color: var(--verdict-same); }
+.pc-progress { margin-bottom: 10px; }
+.pc-bar { height: 6px; background: var(--rule); border-radius: 999px; overflow: hidden; margin-bottom: 4px; }
+.pc-bar span { display: block; height: 100%; background: var(--verdict-same); border-radius: 999px; }
+.pc-progress small { font-size: 12px; color: var(--ink-3); }
+.pc-waiting { font-size: 13px; color: var(--ink-3); margin: 0 0 12px; }
+.pc-waiting.has { color: #b45309; font-weight: 600; }
+.pc-waiting.has::before { content: "● "; }
+.pc-links { text-align: center; margin-top: 8px; }
+.pc-links .link-button { font-size: 13px; }
+/* import and restore: quiet, so the projects stand out */
+.toolbar-quiet { font-size: 13px; color: var(--ink-2); padding: 6px 8px; cursor: pointer; text-decoration: none; }
+.toolbar-quiet:hover { text-decoration: underline; color: var(--accent); }

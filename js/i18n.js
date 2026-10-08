@@ -1532,7 +1532,10 @@ var I18N_EN = {
     "history.pastRateUsed": "Past projects' rate RM {rate} used for row {row}",
     "history.rematched": "Row {row} matched automatically again: {code}",
     "history.rematchedNone": "Row {row} matched automatically again: no BQ item fits",
-    "vo.row.rematchTo": "↺ Match automatically: {code}"
+    "vo.row.rematchTo": "↺ Match automatically: {code}",
+    "projects.card.certified": "Certified {amount} · {pct} % of the forecast final cost",
+    "projects.card.waiting": "{n} VO(s) waiting for you",
+    "projects.card.nothingWaiting": "Nothing waiting for you"
 };
 
 var I18N_ZH = {
@@ -2419,7 +2422,7 @@ var I18N_ZH = {
     "projects.emptyOther": "请先请顾问工料测量师创建项目。",
     "projects.card.vos": "变更单数",
     "projects.card.voValue": "变更单总金额",
-    "projects.card.bqItems": "工程量清单项目数",
+    "projects.card.bqItems": "清单项目",
     "projects.openAs": "以{role}身份打开 →",
     "projects.exportBtn": "导出项目（.json）",
     "projects.createTitle": "创建新项目",
@@ -3023,7 +3026,10 @@ var I18N_ZH = {
     "history.pastRateUsed": "第 {row} 行采用过往项目单价 RM {rate}",
     "history.rematched": "第 {row} 行已重新自动匹配：{code}",
     "history.rematchedNone": "第 {row} 行已重新自动匹配：没有相符的清单项目",
-    "vo.row.rematchTo": "↺ 自动匹配为 {code}"
+    "vo.row.rematchTo": "↺ 自动匹配为 {code}",
+    "projects.card.certified": "已核证 {amount} · 占预计最终成本 {pct}%",
+    "projects.card.waiting": "{n} 份变更单待您处理",
+    "projects.card.nothingWaiting": "目前没有待您处理的事项"
 };
 
 /* Keys that are DELIBERATELY English-only in both languages — contract

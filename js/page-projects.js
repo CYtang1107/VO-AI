@@ -1,7 +1,8 @@
 /* VO-AI | page-projects.js — Stage 2 & 3: create and choose a project. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { rm, prettyDate, today, projectStats } = require("./calc.js");
+    var { rm, prettyDate, today, projectStats, voValue } = require("./calc.js");
+    var { voStage } = require("./permissions.js");
     var { escapeHtml } = require("./ui.js");
     var { uid } = require("./store.js");
     var { t } = require("./i18n.js");
@@ -87,32 +88,55 @@ function renderMembersBlock(project, session) {
     "</div>";
 }
 
+/* The stages that wait on each role (as on the dashboard): how many of a
+   project's VOs need the signed-in person. */
+var WAITING_STAGES = {
+    contractor: ["describe", "designRejected", "measure", "info", "rejected"],
+    administrator: ["design"], consultant: ["consultant"], client: ["client"]
+};
+
 function renderProjectCard(project, session) {
     const s = projectStats(project);
     const team = !!session.cloud;
     const locked = !team && !!project.passcode;
     const isConsultant = !team && session.role === "consultant";
     const role = (team && project.cloudRole) || session.role;
+    const vos = project.vos || [];
+    const waiting = typeof voStage === "function"
+        ? vos.filter(v => (WAITING_STAGES[role] || []).indexOf(voStage(v)) !== -1).length : 0;
+    /* certified to date against the forecast final cost */
+    const counted = vos.filter(v => ["Approved", "Pending", "Under Review"].indexOf(v.evaluateStatus) !== -1);
+    const forecast = (Number(project.contractSum) || 0) + counted.reduce((sum, v) => sum + voValue(v), 0);
+    const certified = (project.certificates || []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+    const pct = forecast > 0 ? Math.min(100, certified / forecast * 100) : 0;
+    const tile = (cls, label, value) => '<div class="pc-stat pc-' + cls + '"><small>' + escapeHtml(label) + "</small><strong>" + value + "</strong></div>";
     return '' +
         '<div class="card project-card" data-project="' + escapeHtml(project.id) + '">' +
-          '<div class="card-body">' +
-            "<h3>" + escapeHtml(project.name) +
+          '<div class="pc-head">' +
+            '<span class="pc-badge" aria-hidden="true">' + escapeHtml(String(project.name || "?").trim().charAt(0).toUpperCase() || "?") + "</span>" +
+            "<div><h3>" + escapeHtml(project.name) +
                 (locked ? ' <span class="passcode-badge" title="' + escapeHtml(t("projects.passcode.badgeTitle")) + '">&#128274;</span>' : "") +
             "</h3>" +
-            '<p class="lead" style="font-size:11px;margin:6px 0 14px">' +
-                escapeHtml(project.client || "—") + " · " + escapeHtml(t("sidebar.contract", { no: project.contractNo || "—" })) + "</p>" +
-            '<div class="project-meta">' +
-                "<div><small>" + escapeHtml(t("projects.card.vos")) + "</small><strong>" + s.total + "</strong></div>" +
-                "<div><small>" + escapeHtml(t("status.Pending")) + "</small><strong>" + s.pending + "</strong></div>" +
-                "<div><small>" + escapeHtml(t("projects.card.voValue")) + "</small><strong>" + rm(s.value) + "</strong></div>" +
-                "<div><small>" + escapeHtml(t("projects.card.bqItems")) + "</small><strong>" + (project.bq || []).length + "</strong></div>" +
+            '<p class="pc-sub">' + escapeHtml(project.client || "—") + " · " + escapeHtml(t("sidebar.contract", { no: project.contractNo || "—" })) + "</p></div>" +
+          "</div>" +
+          '<div class="card-body">' +
+            '<div class="pc-stats">' +
+                tile("blue", t("projects.card.vos"), s.total) +
+                tile("orange", t("status.Pending"), s.pending) +
+                tile("purple", t("projects.card.voValue"), rm(s.value)) +
+                tile("green", t("projects.card.bqItems"), (project.bq || []).length) +
             "</div>" +
+            (certified > 0
+                ? '<div class="pc-progress"><div class="pc-bar"><span style="width:' + pct.toFixed(1) + '%"></span></div>' +
+                  '<small>' + escapeHtml(t("projects.card.certified", { amount: rm(certified), pct: pct.toFixed(1) })) + "</small></div>"
+                : "") +
+            '<p class="pc-waiting' + (waiting ? " has" : "") + '">' +
+                escapeHtml(waiting ? t("projects.card.waiting", { n: waiting }) : t("projects.card.nothingWaiting")) + "</p>" +
             '<div class="project-passcode-gate-slot"></div>' +
-            '<button class="primary-button open-project" style="width:100%;margin-top:16px">' +
+            '<button class="primary-button open-project" style="width:100%">' +
                 escapeHtml(t("projects.openAs", { role: t("role." + role + ".label", {}) })) +
             "</button>" +
-            '<button type="button" class="secondary-button export-project" ' +
-                'style="width:100%;margin-top:8px">' + escapeHtml(t("projects.exportBtn")) + '</button>' +
+            '<div class="pc-links"><button type="button" class="link-button export-project">' + escapeHtml(t("projects.exportBtn")) + "</button></div>" +
             (isConsultant ? renderPasscodeManageBlock(project) : "") +
             (team ? renderMembersBlock(project, session) : "") +
           "</div>" +
@@ -562,9 +586,8 @@ if (typeof document !== "undefined") {
             /* A new team account belongs to no project until a consultant
                adds it: say so, with the address to give them. */
             const waiting = session.cloud && loadDB().projects.length === 0;
-            createBox.innerHTML = '<div class="empty-state">' + escapeHtml(waiting
-                ? t("projects.waitForInvite", { email: session.email || "" })
-                : t("projects.consultantOnly")) + '</div>';
+            if (waiting) createBox.innerHTML = '<div class="empty-state">' + escapeHtml(t("projects.waitForInvite", { email: session.email || "" })) + "</div>";
+            else createBox.hidden = true;   /* nothing to do here but open a project */
         } else {
             /* with projects already, the form waits behind "+ New project" */
             const newBtn = document.getElementById("newProjectBtn");
