@@ -587,6 +587,24 @@ var DEMO_FILES = {
    Measurement lines stay in English: they are matched against the
    English priced BQ. */
 var SEED_ZH = {
+    /* the demo's file names */
+    "Contract Agreement - PAM 2018.pdf": "合同协议书 - PAM 2018.pdf",
+    "Bills of Quantities (Priced).pdf": "已标价工程量清单.pdf",
+    "Conditions of Contract (demo extract).pdf": "合同条件（示范节录）.pdf",
+    "A-201 Rev C - Floor Finishes.pdf": "A-201 C 版 - 地面饰面.pdf",
+    "A-201 Rev B - Floor Finishes.pdf": "A-201 B 版 - 地面饰面.pdf",
+    "Marble supplier quotation.pdf": "大理石供应商报价单.pdf",
+    "Site photos - living area.jpg": "现场照片 - 客厅.jpg",
+    "Site photo - existing skirting.jpg": "现场照片 - 现有踢脚线.jpg",
+    "Site photo - marble tiles delivered.jpg": "现场照片 - 已送达的大理石砖.jpg",
+    "C-104 Rev A - External Drainage.pdf": "C-104 A 版 - 室外排水.pdf",
+    "Site instruction EI-008.pdf": "现场指示 EI-008.pdf",
+    "Site photo - trench along rear boundary.jpg": "现场照片 - 后方边界沟槽.jpg",
+    "Site photo - uPVC pipe laid in trench.jpg": "现场照片 - 沟槽内铺设的 uPVC 管.jpg",
+    "Site photo - precast sump at rear corner.jpg": "现场照片 - 后角预制集水井.jpg",
+    "Site photo - master bedroom ceiling before.jpg": "现场照片 - 主人房天花（施工前）.jpg",
+    "Site photo - ceiling cove framing.jpg": "现场照片 - 天花灯槽龙骨.jpg",
+
     "Change of living area floor finish from ceramic tile to marble tile": "客厅地面饰面由瓷砖改为大理石",
     "AI-021 confirmed: the floor finish change is instructed under clause 11.1.": "已确认 AI-021：地面饰面变更依第 11.1 条发出指示。",
     "Certified at the assessed value for Interim Certificate No. 4.": "按评估金额核证，纳入第 4 期中期付款证书。",

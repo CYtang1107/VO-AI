@@ -3952,3 +3952,5 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 }
 .dash-stats-card .stat-card { align-content: center; row-gap: 8px; }
 .dash-stats-card .stat-card h2 { font-size: 28px; }
+/* room for "变更单-001" on the ticket's stub */
+.tk-stub { width: 116px; font-size: 14px; padding: 0 6px; white-space: nowrap; }
