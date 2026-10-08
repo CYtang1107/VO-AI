@@ -124,7 +124,6 @@ function renderProjectCard(project, session) {
                 tile("blue", t("projects.card.vos"), s.total) +
                 tile("orange", t("status.Pending"), s.pending) +
                 tile("purple", t("projects.card.voValue"), rm(s.value)) +
-                tile("green", t("projects.card.bqItems"), (project.bq || []).length) +
             "</div>" +
             (certified > 0
                 ? '<div class="pc-progress"><div class="pc-bar"><span style="width:' + pct.toFixed(1) + '%"></span></div>' +
