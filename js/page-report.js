@@ -129,7 +129,7 @@ function clientValuationSummary(vo) {
 
 /* -----------------------------------------------------------
    Single-VO report — section order is fixed to the client's required
-   spine (Instruction / Revised drawing / Old drawing / Measurement /
+   spine (Instruction / Revised drawing / Original drawing / Measurement /
    Supporting document), with the professional sections that make the
    document defensible arranged around it. Content emphasis changes by
    role; the facts never do.

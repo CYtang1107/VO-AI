@@ -65,7 +65,7 @@ test("sections appear in the required sequence", () => {
     const order = [
         "1. Instruction",
         "2. Revised drawing",
-        "3. Old drawing",
+        "3. Original drawing",
         "4. Measurement and valuation",
         "5. Supporting documents",
         "6. Time impact",
@@ -81,10 +81,10 @@ test("sections appear in the required sequence", () => {
     }
 });
 
-test("revised drawing, old drawing and supporting documents each get their own section with the attachment date", () => {
+test("revised drawing, original drawing and supporting documents each get their own section with the attachment date", () => {
     const html = renderReport(vo1, project);
     const revisedIdx = html.indexOf("2. Revised drawing");
-    const oldIdx = html.indexOf("3. Old drawing");
+    const oldIdx = html.indexOf("3. Original drawing");
     const measurementIdx = html.indexOf("4. Measurement");
     const supportingIdx = html.indexOf("5. Supporting documents");
     const findingsIdx = html.indexOf("6. Time impact");
@@ -106,7 +106,7 @@ test("a VO with no attachments still renders each document section without malfo
     const bare = Object.assign({}, vo3, { revisedDrawing: [], oldDrawing: [], supportingDocs: [] });
     const html = renderReport(bare, project);
     assert.match(html, /No revised drawing attached/);
-    assert.match(html, /No superseded drawing attached/);
+    assert.match(html, /No original drawing attached/);
     assert.match(html, /No supporting document attached/);
     assert.doesNotMatch(html, /<ul class="report-doc-list"><\/ul>/);
 });
