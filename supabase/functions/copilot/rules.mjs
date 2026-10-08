@@ -40,7 +40,7 @@ export function validCopilotRequest(body) {
 const ROLE = {
     contractor: ["the contractor's quantity surveyor", "承包商工料测量师"],
     administrator: ["the design team (Architect, Engineer or SO)", "设计团队（建筑师、工程师或 SO）"],
-    consultant: ["the consultant quantity surveyor", "咨询工料测量师"],
+    consultant: ["the consultant quantity surveyor", "顾问工料测量师"],
     client: ["the client / developer", "业主 / 发展商"]
 };
 

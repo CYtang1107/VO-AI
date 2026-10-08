@@ -42,13 +42,13 @@ export function nextStep(vo) {
 
 const WHAT = {
     returned: ["was rejected by the design team: revise it and send it again", "被设计团队退回：请修改后重新送出"],
-    measure: ["was approved by the design team: measure it, check the rates and submit it to the consultant QS", "已获设计团队批准：请计量、核对单价后提交咨询工料测量师"],
-    info: ["has a request for further information from the consultant QS: answer it and send it back", "咨询工料测量师要求补充资料：请填写后送回"],
-    rejected: ["was rejected by the consultant QS: correct it and submit again", "被咨询工料测量师拒绝：请修改后重新提交"],
+    measure: ["was approved by the design team: measure it, check the rates and submit it to the consultant QS", "已获设计团队批准：请计量、核对单价后提交顾问工料测量师"],
+    info: ["has a request for further information from the consultant QS: answer it and send it back", "顾问工料测量师要求补充资料：请填写后送回"],
+    rejected: ["was rejected by the consultant QS: correct it and submit again", "被顾问工料测量师拒绝：请修改后重新提交"],
     issue: ["was sent by the contractor for approval: add the drawings and documents, then approve or reject it", "承包商已送审：请补齐图纸与文件，然后批准或退回"],
     value: ["was submitted by the contractor: check it and assess it", "承包商已提交：请核查并评估"],
-    certify: ["was approved by the consultant QS: certify the value", "已由咨询工料测量师批准：请核证金额"],
-    approve: ["was submitted by the consultant QS: approve it", "咨询工料测量师已提交：请批准"],
+    certify: ["was approved by the consultant QS: certify the value", "已由顾问工料测量师批准：请核证金额"],
+    approve: ["was submitted by the consultant QS: approve it", "顾问工料测量师已提交：请批准"],
 };
 
 function esc(s) {
