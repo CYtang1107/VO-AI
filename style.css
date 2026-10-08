@@ -2930,8 +2930,8 @@ details.fold > summary:hover { background: #e2e7f0; }
 details.fold[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .fold-summary { min-width: 0; }
 .fold-toggle { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--accent); white-space: nowrap; }
-.fold-less, details.fold[open] .fold-more { display: none; }
-details.fold[open] .fold-less { display: inline; }
+.fold-less, details.fold[open] > summary .fold-more { display: none; }
+details.fold[open] > summary .fold-less { display: inline; }
 .fold-body { padding: 8px 2px 2px; }
 
 /* the measurement row's verdict line */
@@ -3739,3 +3739,16 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .dash-has-cost .cp-status { margin-bottom: 2px; }
     .dash-has-cost .dash-grid { gap: 14px; }
 }
+
+/* earned value in plain words: three cards, green when good, red when not */
+.evm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 6px 0 10px; }
+.evm-card { border: 1px solid var(--rule); border-left-width: 4px; border-radius: 10px; padding: 10px 12px; display: grid; gap: 3px; background: var(--paper); }
+.evm-card small { font-size: 12px; color: var(--ink-3); }
+.evm-card strong { font-size: 16px; }
+.evm-card span { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+.evm-card.evm-good { border-left-color: var(--verdict-same); background: var(--verdict-same-bg); }
+.evm-card.evm-good strong { color: var(--verdict-same); }
+.evm-card.evm-bad { border-left-color: #c2410c; background: #fff1ea; }
+.evm-card.evm-bad strong { color: #b91c1c; }
+.evm-card.evm-level { border-left-color: var(--accent); }
+.evm-card strong::first-letter { text-transform: uppercase; }
