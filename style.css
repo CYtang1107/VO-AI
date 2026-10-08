@@ -3842,3 +3842,14 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 }
 .cd-inputs .cp-certs { columns: 2; column-gap: 32px; }
 @media (max-width: 760px) { .cd-inputs .cp-certs { columns: 1; } }
+
+/* a build-up line worked out as on the QS's sheet: 2 × RM 120 /day ÷ 10 m2 /day */
+.bu-calc { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; white-space: nowrap; }
+.bu-calc + .bu-calc { margin-top: 4px; }
+.bu-fuel { display: flex; font-size: 12px; color: var(--ink-3); }
+.bu-table .bu-calc input { width: 66px; padding: 4px 6px; }
+.bu-table .bu-calc input[data-bu="nos"] { width: 46px; }
+.bu-table .bu-calc input[data-bu="price"], .bu-table .bu-calc input[data-bu="oilYear"] { width: 80px; }
+.bu-table input[data-bu="name"] { width: 260px; }
+.bu-round { font-size: 12px; color: #dbe4ff; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.bu-round select { font-size: 12px; padding: 2px 4px; border-radius: 6px; border: 0; }

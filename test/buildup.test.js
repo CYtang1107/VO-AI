@@ -12,7 +12,7 @@ test("the rate adds materials (with waste), labour and plant, then overhead and 
         { kind: "labour", qty: 0.5, price: 20 },
         { kind: "plant", qty: 0.25, price: 8 }
     ] });
-    assert.deepStrictEqual(r, { material: 105, labour: 10, plant: 2, net: 117, ohpPct: 10, ohp: 11.7, rate: 128.7 });
+    assert.deepStrictEqual(r, { material: 105, deliveryPct: 0, delivery: 0, labour: 10, plant: 2, net: 117, ohpPct: 10, ohp: 11.7, raw: 128.7, roundTo: 0, rate: 128.7 });
     assert.strictEqual(bu.buildUpRate({ items: [] }).ohpPct, 15, "15 % by default");
 });
 
@@ -36,12 +36,12 @@ test("skirting is matched by its unit and material; work with no recipe gets non
 });
 
 test("the contractor's own price list is used before the reference price", () => {
-    const p = Object.assign(project(), { priceList: [{ name: "Marble tile 600x600 (Supplier X)", unit: "m2", price: 168 }, { name: "Tiler", unit: "hr", price: 24 }] });
+    const p = Object.assign(project(), { priceList: [{ name: "Marble tile 600x600 (Supplier X)", unit: "m2", price: 168 }, { name: "Tiler", unit: "day", price: 150 }] });
     const b = bu.suggestBuildUp({ description: "Marble floor tiles", unit: "m2" }, p);
     const tile = b.items.find(i => i.ref === "marble-tile");
     assert.strictEqual(tile.price, 168);
     assert.strictEqual(tile.source, "priceList");
-    assert.strictEqual(b.items.find(i => i.ref === "tiler").price, 24);
+    assert.strictEqual(b.items.find(i => i.ref === "tiler").price, 150);
     assert.strictEqual(b.items.find(i => i.ref === "grout").source, "reference");
 });
 
@@ -86,4 +86,32 @@ test("the card: the star row is marked, the draft is said to be a draft, and the
     assert.match(ro, /disabled/);
     assert.doesNotMatch(ro, /buUseRate/);
     assert.match(bu.renderBuildUpCard({ measurement: [] }, p, {}), /Add a measurement row first/);
+});
+
+/* the team's own build-up sheets */
+test("a 12mm cement screed, built up as the QS does: mortar 1:4 per m³, delivery 10 %, wastage 30 %, two skilled workers, tools, profit 20 %", () => {
+    const b = bu.suggestBuildUp({ description: "Turapan simen biasa 12mm tebal", unit: "m2" }, {});
+    assert.strictEqual(b.recipe, "screed");
+    const mortar = b.items[0];
+    assert.deepStrictEqual([mortar.qty, mortar.price, mortar.waste], [0.012, 290, 0.3], "0.2 × 870 + 0.8 × 145, 12mm thick");
+    assert.strictEqual(Math.round(bu.itemAmount(mortar) * 1.1 * 100) / 100, 4.98, "RM 414.70 a m³ × 0.012");
+    const r = bu.buildUpRate(b);
+    assert.deepStrictEqual([r.material, r.labour, r.plant, r.net, r.ohp, r.raw, r.rate], [4.98, 24, 10, 38.98, 7.8, 46.77, 47]);
+});
+
+test("excavation with machinery: the backhoe's day with diesel and oil, the lorry and its diesel a metre, two workers, profit 10 %", () => {
+    const b = bu.suggestBuildUp({ description: "Excavation n.e. 1.0m width & 1.0m depth", unit: "m" }, {});
+    assert.strictEqual(b.recipe, "excavation");
+    const hoe = b.items.find(i => i.ref === "backhoe");
+    assert.strictEqual(Math.round(bu.itemAmount(hoe) * 100) / 100, 22.59, "(475 + 70 × 4.72 + 2,800 / 365) ÷ 36 m");
+    assert.strictEqual(Math.round(bu.itemAmount(b.items.find(i => i.ref === "lorry-3t")) * 100) / 100, 15.97);
+    assert.strictEqual(Math.round(bu.itemAmount(b.items.find(i => i.ref === "diesel")) * 100) / 100, 0.76, "0.16 L a metre");
+    const r = bu.buildUpRate(b);
+    assert.deepStrictEqual([r.plant, r.labour, r.net, r.ohp, r.raw, r.rate], [39.31, 4.72, 44.03, 4.4, 48.44, 50]);
+});
+
+test("the rate is rounded up as chosen", () => {
+    assert.deepStrictEqual([bu.roundUp(46.77, 1), bu.roundUp(48.44, 5), bu.roundUp(48.44, 10), bu.roundUp(47, 1), bu.roundUp(46.77, 0)], [47, 50, 50, 47, 46.77]);
+    assert.strictEqual(bu.thicknessOf("screed 25mm thick", 12), 0.025);
+    assert.strictEqual(bu.thicknessOf("screed", 12), 0.012);
 });

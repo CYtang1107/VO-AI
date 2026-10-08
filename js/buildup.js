@@ -33,7 +33,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
 
 /* a labour or plant hour, in the interface's language (m, m2, no stay) */
 function unitLabel(unit) {
-    return unit === "hr" ? t("buildup.unitHr") : String(unit || "");
+    return unit === "hr" ? t("buildup.unitHr") : unit === "day" ? t("buildup.unitDay") : String(unit || "");
 }
 
 /* Regions and their price level against the Klang Valley. */
@@ -55,8 +55,12 @@ function regionOf(project) {
     return hit ? { id: hit.id, factor: hit.factor, from: "address" } : { id: "klang", factor: 1, from: "default" };
 }
 
-/* Indicative Klang Valley 2026 prices (RM). `buy` is a plant item's
-   purchase price, for rent or buy. */
+/* Indicative Klang Valley 2026 prices (RM). Labour and plant are by the
+   day (a gang's day rate ÷ what it does in a day, the way a QS builds a
+   rate up); plant may burn fuel (litres a day) and oil (RM a year).
+   `buy` is a plant item's purchase price, for rent or buy.
+   Cement RM 30 a 50 kg bag at 1,440 kg/m³ ≈ RM 870/m³; sand RM 85 a tonne
+   at 0.59 m³/t ≈ RM 145/m³. */
 var REFERENCE_PRICES = [
     { id: "marble-tile",   kind: "material", unit: "m2",  price: 180,  words: ["marble", "tile"] },
     { id: "homog-tile",    kind: "material", unit: "m2",  price: 55,   words: ["homogeneous", "tile"] },
@@ -65,52 +69,65 @@ var REFERENCE_PRICES = [
     { id: "grout",         kind: "material", unit: "m2",  price: 2,    words: ["grout"] },
     { id: "marble-skirt",  kind: "material", unit: "m",   price: 25,   words: ["marble", "skirting"] },
     { id: "tile-skirt",    kind: "material", unit: "m",   price: 9,    words: ["skirting"] },
-    { id: "screed",        kind: "material", unit: "m2",  price: 9,    words: ["screed"] },
+    { id: "cement",        kind: "material", unit: "m3",  price: 870,  words: ["cement"] },
+    { id: "sand",          kind: "material", unit: "m3",  price: 145,  words: ["sand"] },
     { id: "upvc-150",      kind: "material", unit: "m",   price: 38,   words: ["upvc", "pipe"] },
-    { id: "sand",          kind: "material", unit: "m3",  price: 75,   words: ["sand"] },
     { id: "precast-sump",  kind: "material", unit: "no",  price: 450,  words: ["precast", "sump"] },
     { id: "concrete-g25",  kind: "material", unit: "m3",  price: 260,  words: ["concrete"] },
     { id: "rebar",         kind: "material", unit: "kg",  price: 3.3,  words: ["rebar", "reinforcement"] },
     { id: "gypsum-board",  kind: "material", unit: "m2",  price: 18,   words: ["gypsum", "board"] },
     { id: "cove-cornice",  kind: "material", unit: "m",   price: 14,   words: ["cove", "cornice"] },
     { id: "emulsion",      kind: "material", unit: "m2",  price: 4.5,  words: ["paint", "emulsion"] },
-    { id: "tiler",         kind: "labour",   unit: "hr",  price: 22,   words: ["tiler"] },
-    { id: "general",       kind: "labour",   unit: "hr",  price: 13,   words: ["general", "worker", "labourer"] },
-    { id: "plumber",       kind: "labour",   unit: "hr",  price: 22,   words: ["plumber"] },
-    { id: "carpenter",     kind: "labour",   unit: "hr",  price: 20,   words: ["carpenter"] },
-    { id: "ceiling-fixer", kind: "labour",   unit: "hr",  price: 20,   words: ["ceiling", "fixer"] },
-    { id: "painter",       kind: "labour",   unit: "hr",  price: 17,   words: ["painter"] },
-    { id: "concretor",     kind: "labour",   unit: "hr",  price: 18,   words: ["concretor"] },
-    { id: "operator",      kind: "labour",   unit: "hr",  price: 20,   words: ["operator"] },
-    { id: "tile-cutter",   kind: "plant",    unit: "hr",  price: 6,    buy: 2800,   words: ["tile", "cutter"] },
-    { id: "mini-excavator",kind: "plant",    unit: "hr",  price: 55,   buy: 120000, words: ["excavator"] },
-    { id: "plate-compactor",kind: "plant",   unit: "hr",  price: 10,   buy: 4500,   words: ["compactor"] },
-    { id: "poker-vibrator",kind: "plant",    unit: "hr",  price: 8,    buy: 1500,   words: ["vibrator"] },
-    { id: "scaffold-tower",kind: "plant",    unit: "hr",  price: 4,    buy: 3500,   words: ["scaffold"] }
+    { id: "skilled",       kind: "labour",   unit: "day", price: 120,  words: ["skilled", "worker"] },
+    { id: "tiler",         kind: "labour",   unit: "day", price: 130,  words: ["tiler"] },
+    { id: "general",       kind: "labour",   unit: "day", price: 85,   words: ["general", "worker"] },
+    { id: "plumber",       kind: "labour",   unit: "day", price: 140,  words: ["plumber"] },
+    { id: "carpenter",     kind: "labour",   unit: "day", price: 130,  words: ["carpenter"] },
+    { id: "ceiling-fixer", kind: "labour",   unit: "day", price: 130,  words: ["ceiling", "fixer"] },
+    { id: "painter",       kind: "labour",   unit: "day", price: 110,  words: ["painter"] },
+    { id: "concretor",     kind: "labour",   unit: "day", price: 120,  words: ["concretor"] },
+    { id: "backhoe",       kind: "plant",    unit: "day", price: 475,  fuel: 70, oilYear: 2800, buy: 250000, words: ["backhoe"] },
+    { id: "lorry-3t",      kind: "plant",    unit: "day", price: 575,  buy: 120000, words: ["lorry"] },
+    { id: "diesel",        kind: "plant",    unit: "L",   price: 4.72, words: ["diesel"] },
+    { id: "tools",         kind: "plant",    unit: "day", price: 100,  words: ["tools"] },
+    { id: "tile-cutter",   kind: "plant",    unit: "day", price: 50,   buy: 2800,   words: ["tile", "cutter"] },
+    { id: "plate-compactor",kind: "plant",   unit: "day", price: 80,   fuel: 3, buy: 4500, words: ["compactor"] },
+    { id: "poker-vibrator",kind: "plant",    unit: "day", price: 60,   fuel: 2, buy: 1500, words: ["vibrator"] },
+    { id: "scaffold-tower",kind: "plant",    unit: "day", price: 30,   buy: 3500,   words: ["scaffold"] }
 ];
 
-/* What a unit of each kind of work takes. [reference id, quantity per
-   unit of the row, waste fraction (materials)]. The first recipe whose
-   words the description has is used. */
+/* What a unit of each kind of work takes. Materials: [reference id,
+   quantity per unit of the row, waste]. Labour and plant: [reference id,
+   how many, output per day in the row's unit]. perUnit: plant used by
+   the unit of the row ([id, quantity], e.g. the lorry's diesel a metre).
+   mortar: a cement:sand mix (parts of a m³), laid `thickness` thick (from
+   the description's "12mm", else the default). delivery: % on the
+   materials; ohp: profit %; roundTo: the rate is rounded up to it.
+   The first recipe whose words the description has is used. */
 var RECIPES = [
     { id: "marbleFloor",  words: /marble/i, unit: /m2|m²/i, material: [["marble-tile", 1, 0.05], ["adhesive", 1, 0], ["grout", 1, 0]],
-      labour: [["tiler", 0.6], ["general", 0.3]], plant: [["tile-cutter", 0.15]] },
+      labour: [["tiler", 1, 8], ["general", 1, 16]], plant: [["tile-cutter", 1, 8]] },
     { id: "marbleSkirting", words: /marble.*skirting|skirting.*marble|大理石踢脚/i, unit: /^m$/i, material: [["marble-skirt", 1, 0.05], ["adhesive", 0.15, 0]],
-      labour: [["tiler", 0.25]], plant: [["tile-cutter", 0.05]] },
+      labour: [["tiler", 1, 30]], plant: [["tile-cutter", 1, 60]] },
     { id: "skirting",     words: /skirting|踢脚/i, unit: /^m$/i, material: [["tile-skirt", 1, 0.05], ["adhesive", 0.15, 0]],
-      labour: [["tiler", 0.2]], plant: [["tile-cutter", 0.04]] },
+      labour: [["tiler", 1, 35]], plant: [["tile-cutter", 1, 70]] },
+    { id: "screed",       words: /screed|turapan simen|\bplaster(ing)?\b|\brender|找平|抹灰|批荡/i, unit: /m2|m²/i,
+      mortar: { mix: [["cement", 0.2], ["sand", 0.8]], thickness: 12, waste: 0.3 }, delivery: 10, ohp: 20,
+      labour: [["skilled", 2, 10]], plant: [["tools", 1, 10]] },
     { id: "tileFloor",    words: /tile|瓷砖|地砖/i, unit: /m2|m²/i, material: [["homog-tile", 1, 0.05], ["adhesive", 1, 0], ["grout", 1, 0]],
-      labour: [["tiler", 0.55], ["general", 0.3]], plant: [["tile-cutter", 0.12]] },
-    { id: "pipe",         words: /pipe|drain|upvc|管/i, unit: /^m$/i, material: [["upvc-150", 1, 0.03], ["sand", 0.05, 0.1]],
-      labour: [["plumber", 0.4], ["general", 0.6], ["operator", 0.08]], plant: [["mini-excavator", 0.08], ["plate-compactor", 0.05]] },
+      labour: [["tiler", 1, 10], ["general", 1, 20]], plant: [["tile-cutter", 1, 10]] },
+    { id: "pipe",         words: /pipe|upvc|管/i, unit: /^m$/i, material: [["upvc-150", 1, 0.03], ["sand", 0.05, 0.1]],
+      labour: [["plumber", 1, 30], ["general", 2, 36]], plant: [["backhoe", 1, 36]] },
+    { id: "excavation",   words: /excavat|trench|korek|drain|开挖|挖|沟/i, unit: /^m$/i, material: [], ohp: 10, roundTo: 5,
+      labour: [["general", 2, 36]], plant: [["backhoe", 1, 36], ["lorry-3t", 1, 36]], perUnit: [["diesel", 0.16]] },
     { id: "sump",         words: /sump|manhole|集水井|沙井/i, unit: /no|nr|each|unit/i, material: [["precast-sump", 1, 0], ["concrete-g25", 0.1, 0.05]],
-      labour: [["general", 4], ["plumber", 2], ["operator", 0.75]], plant: [["mini-excavator", 0.75]] },
+      labour: [["general", 2, 2], ["plumber", 1, 4]], plant: [["backhoe", 1, 6]] },
     { id: "ceiling",      words: /ceiling|cove|gypsum|cornice|天花|吊顶/i, unit: /.*/, material: [["gypsum-board", 1, 0.08], ["cove-cornice", 0.4, 0.05]],
-      labour: [["ceiling-fixer", 0.8]], plant: [["scaffold-tower", 0.5]] },
+      labour: [["ceiling-fixer", 1, 12]], plant: [["scaffold-tower", 1, 20]] },
     { id: "concrete",     words: /concrete|混凝土/i, unit: /m3|m³/i, material: [["concrete-g25", 1, 0.03]],
-      labour: [["concretor", 2.5], ["general", 3]], plant: [["poker-vibrator", 0.5]] },
+      labour: [["concretor", 2, 8], ["general", 3, 8]], plant: [["poker-vibrator", 1, 15]] },
     { id: "paint",        words: /paint|emulsion|油漆|涂料/i, unit: /m2|m²/i, material: [["emulsion", 1, 0.05]],
-      labour: [["painter", 0.15]], plant: [] }
+      labour: [["painter", 1, 60]], plant: [] }
 ];
 
 function words(text) {
@@ -123,25 +140,44 @@ function priceListMatch(priceList, ref) {
     return (priceList || []).find(p => {
         const have = words(p.name);
         return ref.words.every(w => have.some(h => h.indexOf(w) === 0)) &&
-               (!p.unit || !ref.unit || String(p.unit).toLowerCase() === ref.unit);
+               (!p.unit || !ref.unit || String(p.unit).toLowerCase() === ref.unit.toLowerCase());
     }) || null;
 }
 
 function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
 
-/* One component, priced: the price list first, else the reference price
-   for the region. */
-function component(refId, qty, waste, project) {
+/* A reference item's price: the price list first, else the reference
+   price for the region (fuel is one price nationwide). */
+function priceOf(refId, project) {
     const ref = REFERENCE_PRICES.find(r => r.id === refId);
     const own = priceListMatch(project && project.priceList, ref);
-    const region = regionOf(project);
-    return {
-        ref: refId, kind: ref.kind,
-        name: own ? own.name : t("buildup.item." + refId),
-        unit: ref.unit, qty: qty, waste: waste || 0,
-        price: own ? round2(own.price) : round2(ref.price * region.factor),
-        source: own ? "priceList" : "reference"
+    const factor = refId === "diesel" ? 1 : regionOf(project).factor;
+    return { ref: ref, own: own, price: own ? round2(own.price) : round2(ref.price * factor) };
+}
+
+/* One component, priced. Without `output` it is quantity × price; with
+   it, a day's work: how many × the day rate (plus fuel and oil) ÷ output. */
+function component(refId, qty, waste, project, day) {
+    const p = priceOf(refId, project);
+    const c = {
+        ref: refId, kind: p.ref.kind,
+        name: p.own ? p.own.name : t("buildup.item." + refId),
+        unit: p.ref.unit, price: p.price,
+        source: p.own ? "priceList" : "reference"
     };
+    if (day) {
+        c.nos = day.nos; c.output = day.output;
+        if (p.ref.fuel !== undefined) { c.fuel = p.ref.fuel; c.fuelPrice = priceOf("diesel", project).price; }
+        if (p.ref.oilYear !== undefined) c.oilYear = p.ref.oilYear;
+    } else { c.qty = qty; c.waste = waste || 0; }
+    return c;
+}
+
+/* "12mm" in the description: the thickness in metres, else the default */
+function thicknessOf(text, mm) {
+    const m = String(text || "").match(/(\d+(?:\.\d+)?)\s*mm\b/i);
+    const v = m ? Number(m[1]) : mm;
+    return v > 0 && v <= 200 ? v / 1000 : mm / 1000;
 }
 
 /* A draft build-up for a measurement row, or null when no recipe fits. */
@@ -150,24 +186,60 @@ function suggestBuildUp(row, project) {
     const unit = String((row && row.unit) || "");
     const recipe = RECIPES.find(r => r.words.test(text) && (!unit || r.unit.test(unit)));
     if (!recipe) return null;
-    return {
-        recipe: recipe.id,
-        items: recipe.material.map(m => component(m[0], m[1], m[2], project))
-            .concat(recipe.labour.map(l => component(l[0], l[1], 0, project)))
-            .concat(recipe.plant.map(p => component(p[0], p[1], 0, project))),
-        ohp: 15
-    };
+    const items = [];
+    if (recipe.mortar) {
+        /* the mix's price per m³ of mortar, laid at the thickness */
+        const parts = recipe.mortar.mix.map(m => ({ id: m[0], part: m[1], price: priceOf(m[0], project).price }));
+        const own = parts.some(x => priceOf(x.id, project).own);
+        items.push({ ref: "mortar", kind: "material", unit: "m3",
+            name: t("buildup.item.mortar", { mix: parts.map(x => t("buildup.item." + x.id) + " " + x.part + " m³ × " + rm(x.price)).join(" + ") }),
+            qty: round2(thicknessOf(text, recipe.mortar.thickness) * 1000) / 1000, waste: recipe.mortar.waste,
+            price: round2(parts.reduce((s, x) => s + x.part * x.price, 0)), source: own ? "priceList" : "reference" });
+    }
+    (recipe.material || []).forEach(m => items.push(component(m[0], m[1], m[2], project)));
+    recipe.labour.forEach(l => items.push(component(l[0], 0, 0, project, { nos: l[1], output: l[2] })));
+    recipe.plant.forEach(l => items.push(component(l[0], 0, 0, project, { nos: l[1], output: l[2] })));
+    (recipe.perUnit || []).forEach(l => items.push(component(l[0], l[1], 0, project)));
+    return { recipe: recipe.id, items: items, delivery: recipe.delivery || 0, ohp: recipe.ohp !== undefined ? recipe.ohp : 15,
+             roundTo: recipe.roundTo !== undefined ? recipe.roundTo : 1 };
 }
 
-/* The rate a build-up gives, with its parts. */
+/* What one item costs per unit of the row. */
+function itemAmount(i) {
+    const n = v => Number(v) || 0;
+    if (n(i.output) > 0) {
+        const perDay = n(i.price) + n(i.fuel) * n(i.fuelPrice) + n(i.oilYear) / 365;
+        return (i.nos === undefined || i.nos === "" ? 1 : n(i.nos)) * perDay / n(i.output);
+    }
+    return n(i.qty) * (1 + n(i.waste)) * n(i.price);
+}
+
+/* Rounded up to the nearest `step` (0: not rounded). */
+function roundUp(v, step) {
+    const s = Number(step) || 0;
+    if (s <= 0) return round2(v);
+    return round2(Math.ceil(round2(v / s) - 1e-9) * s);
+}
+
+/* The rate a build-up gives, with its parts: materials (with waste and
+   delivery), labour, plant, the net cost, the profit, and the rate,
+   rounded up as the build-up says. */
 function buildUpRate(b) {
-    const sum = kind => round2(((b && b.items) || []).filter(i => i.kind === kind)
-        .reduce((s, i) => s + (Number(i.qty) || 0) * (1 + (Number(i.waste) || 0)) * (Number(i.price) || 0), 0));
-    const material = sum("material"), labour = sum("labour"), plant = sum("plant");
+    const items = (b && b.items) || [];
+    const sum = kind => items.filter(i => i.kind === kind).reduce((s, i) => s + itemAmount(i), 0);
+    const deliveryPct = b && b.delivery ? Number(b.delivery) || 0 : 0;
+    const material = round2(sum("material") * (1 + deliveryPct / 100));
+    const delivery = round2(material - sum("material"));
+    const labour = round2(sum("labour")), plant = round2(sum("plant"));
     const net = round2(material + labour + plant);
     const ohpPct = b && b.ohp !== undefined && b.ohp !== "" ? Number(b.ohp) || 0 : 15;
     const ohp = round2(net * ohpPct / 100);
-    return { material: material, labour: labour, plant: plant, net: net, ohpPct: ohpPct, ohp: ohp, rate: round2(net + ohp) };
+    const roundTo = b && b.roundTo !== undefined ? Number(b.roundTo) || 0 : 0;
+    /* carried unrounded, as on the build-up sheet */
+    const netU = sum("material") * (1 + deliveryPct / 100) + sum("labour") + sum("plant");
+    const raw = round2(netU * (1 + ohpPct / 100));
+    return { material: material, deliveryPct: deliveryPct, delivery: delivery, labour: labour, plant: plant, net: net,
+             ohpPct: ohpPct, ohp: ohp, raw: raw, roundTo: roundTo, rate: roundUp(raw, roundTo) };
 }
 
 /* Rent or buy a piece of plant for `months` of use.
@@ -225,22 +297,35 @@ function renderBuildUpCard(vo, project, opts) {
     const num = (k, j, v, step) => '<input type="number" min="0" step="' + step + '" data-bu="' + k + '" data-i="' + j + '" value="' + escapeHtml(String(v)) + '"' + dis + ">";
     const pct = v => Math.round((Number(v) || 0) * 1000) / 10;
     const kindOrder = ["material", "labour", "plant"];
+    const rowUnit = escapeHtml(row.unit || t("buildup.unit"));
+    /* how the item is worked out, as a QS writes it: 0.012 m³ × RM 290.00;
+       2 × RM 120.00 a day ÷ 10 m² a day (+ diesel 70 L × RM 4.72 + oil
+       RM 2,800 a year) */
+    const calc = (it, j) => {
+        if (Number(it.output) > 0) {
+            return '<span class="bu-calc">' + num("nos", j, it.nos === undefined ? 1 : it.nos, "1") + " × RM " + num("price", j, it.price, "0.01") +
+                " " + escapeHtml(t("buildup.perDay")) + " ÷ " + num("output", j, it.output, "0.1") + " " + rowUnit + " " + escapeHtml(t("buildup.perDay")) + "</span>" +
+                (it.fuel !== undefined || it.oilYear !== undefined ? '<span class="bu-calc bu-fuel">+ ' + escapeHtml(t("buildup.diesel")) + " " +
+                    num("fuel", j, it.fuel || 0, "1") + " L × RM " + num("fuelPrice", j, it.fuelPrice || 0, "0.01") +
+                    " + " + escapeHtml(t("buildup.oil")) + " RM " + num("oilYear", j, it.oilYear || 0, "1") + " " + escapeHtml(t("buildup.perYear")) + "</span>" : "");
+        }
+        return '<span class="bu-calc">' + num("qty", j, it.qty, "0.001") + " " + escapeHtml(unitLabel(it.unit)) + " × RM " + num("price", j, it.price, "0.01") + "</span>";
+    };
     const body = kindOrder.map(kind => {
         const list = b.items.map((it, j) => ({ it: it, j: j })).filter(x => x.it.kind === kind);
-        return '<tr class="bu-kind"><th colspan="7">' + escapeHtml(t("buildup.kind." + kind)) + "</th></tr>" +
+        return '<tr class="bu-kind"><th colspan="6">' + escapeHtml(t("buildup.kind." + kind)) + "</th></tr>" +
             list.map(x => "<tr>" +
                 '<td><input type="text" data-bu="name" data-i="' + x.j + '" value="' + escapeHtml(x.it.name) + '"' + dis + "></td>" +
-                "<td>" + num("qty", x.j, x.it.qty, "0.01") + ' <span class="rate-detail">' + escapeHtml(unitLabel(x.it.unit)) + "</span></td>" +
+                "<td>" + calc(x.it, x.j) + "</td>" +
                 "<td>" + (kind === "material" ? num("waste", x.j, pct(x.it.waste), "1") + " %" : "") + "</td>" +
-                "<td>" + num("price", x.j, x.it.price, "0.01") + "</td>" +
                 '<td><span class="bu-src bu-src-' + escapeHtml(x.it.source || "manual") + '">' + escapeHtml(t("buildup.src." + (x.it.source || "manual"))) + "</span></td>" +
-                '<td class="num">' + rm((Number(x.it.qty) || 0) * (1 + (Number(x.it.waste) || 0)) * (Number(x.it.price) || 0)) + "</td>" +
+                '<td class="num">' + rm(itemAmount(x.it)) + "</td>" +
                 "<td>" + (o.editable ? '<button type="button" class="link-button bu-remove" data-i="' + x.j + '" aria-label="' + escapeHtml(t("buildup.remove")) + '">×</button>' : "") + "</td>" +
             "</tr>").join("") +
-            (o.editable ? '<tr><td colspan="7"><button type="button" class="link-button bu-add" data-kind="' + kind + '">' + escapeHtml(t("buildup.add." + kind)) + "</button></td></tr>" : "");
+            (o.editable ? '<tr><td colspan="6"><button type="button" class="link-button bu-add" data-kind="' + kind + '">' + escapeHtml(t("buildup.add." + kind)) + "</button></td></tr>" : "");
     }).join("");
 
-    const plant = b.items.filter(it => it.kind === "plant");
+    const plant = b.items.filter(it => it.kind === "plant" && Number(it.output) > 0 && it.ref !== "tools");
     const rentBlock = plant.length ? fold("bu-rent", escapeHtml(t("buildup.rentTitle")), renderRentOrBuy(plant, o.rent || {})) : "";
     const pl = (project && project.priceList) || [];
     const priceBlock = fold("bu-pricelist", escapeHtml(t("buildup.priceListTitle", { n: pl.length })),
@@ -260,12 +345,16 @@ function renderBuildUpCard(vo, project, opts) {
         (drafted ? '<p class="assistant-note">' + escapeHtml(t("buildup.drafted")) + "</p>" : "") +
         (!b.items.length ? '<p class="assistant-note">' + escapeHtml(t("buildup.noRecipe")) + "</p>" : "") +
         '<div class="table-scroll"><table class="bu-table"><thead><tr>' +
-            ["item", "qty", "waste", "price", "source", "amount", ""].map(h => "<th>" + (h ? escapeHtml(t("buildup.col." + h)) : "") + "</th>").join("") +
+            ["item", "calc", "waste", "source", "amount", ""].map(h => "<th>" + (h ? escapeHtml(t("buildup.col." + h)) : "") + "</th>").join("") +
         "</tr></thead><tbody>" + body + "</tbody></table></div>" +
         '<div class="bu-totals">' +
-            ["material", "labour", "plant", "net"].map(k => "<div><small>" + escapeHtml(t("buildup.total." + k)) + "</small><strong>" + rm(r[k]) + "</strong></div>").join("") +
+            "<div><small>" + escapeHtml(t("buildup.total.material")) + " · " + escapeHtml(t("buildup.total.delivery")) + " " + num("delivery", -1, r.deliveryPct, "1") + " %</small><strong>" + rm(r.material) + "</strong></div>" +
+            ["labour", "plant", "net"].map(k => "<div><small>" + escapeHtml(t("buildup.total." + k)) + "</small><strong>" + rm(r[k]) + "</strong></div>").join("") +
             "<div><small>" + escapeHtml(t("buildup.total.ohp")) + " " + num("ohp", -1, r.ohpPct, "0.5") + " %</small><strong>" + rm(r.ohp) + "</strong></div>" +
-            '<div class="bu-rate"><small>' + escapeHtml(t("buildup.total.rate", { unit: row.unit || t("buildup.unit") })) + "</small><strong>" + rm(r.rate) + "</strong></div>" +
+            '<div class="bu-rate"><small>' + escapeHtml(t("buildup.total.rate", { unit: row.unit || t("buildup.unit") })) + "</small><strong>" + rm(r.rate) + "</strong>" +
+                '<span class="bu-round">' + (r.rate !== r.raw ? escapeHtml(rm(r.raw)) + " → " : "") + escapeHtml(t("buildup.roundTo")) + ' <select data-bu="roundTo" data-i="-1"' + dis + ">" +
+                [0, 0.5, 1, 5, 10].map(v => '<option value="' + v + '"' + (v === r.roundTo ? " selected" : "") + ">" + escapeHtml(v ? "RM " + v : t("buildup.noRound")) + "</option>").join("") +
+                "</select></span></div>" +
         "</div>" +
         (o.useAs ? '<button type="button" class="primary-button" id="buUseRate">' + escapeHtml(t("buildup.use." + o.useAs, { rate: rm(r.rate) })) + "</button>" : "") +
         rentBlock + priceBlock +
@@ -282,7 +371,7 @@ function renderRentOrBuy(plant, state) {
         const ref = REFERENCE_PRICES.find(r => r.id === it.ref) || {};
         const s = state[it.ref || it.name] || {};
         const months = s.months !== undefined ? s.months : 3;
-        const rentPerMonth = s.rentPerMonth !== undefined ? s.rentPerMonth : Math.round((Number(it.price) || 0) * 8 * 22);
+        const rentPerMonth = s.rentPerMonth !== undefined ? s.rentPerMonth : Math.round((Number(it.price) || 0) * (it.unit === "day" ? 22 : 8 * 22));
         const buyPrice = s.buyPrice !== undefined ? s.buyPrice : (ref.buy || 0);
         const resalePct = s.resalePct !== undefined ? s.resalePct : 40;
         const upkeepPctYear = s.upkeepPctYear !== undefined ? s.upkeepPctYear : 10;
@@ -298,6 +387,6 @@ function renderRentOrBuy(plant, state) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, regionOf, priceListMatch, suggestBuildUp, buildUpRate, rentOrBuy, parsePriceList,
+    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, regionOf, priceListMatch, suggestBuildUp, buildUpRate, itemAmount, roundUp, thicknessOf, rentOrBuy, parsePriceList,
         renderBuildUpCard, renderRentOrBuy };
 }
