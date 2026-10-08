@@ -129,7 +129,7 @@ function renderDocList(vo, fieldName, label, role, intro) {
     const docs = vo[fieldName] || [];
 
     const list = docs.length === 0
-        ? '<div class="empty-state">' + escapeHtml(t("vo.docList.empty")) + '</div>'
+        ? '<p class="doc-empty">' + escapeHtml(t("vo.docList.empty")) + "</p>"
         : '<ul class="doc-list">' + docs.map(d => {
             const vCount = versionCount(d);
             return '<li class="file-item" data-doc-id="' + escapeHtml(d.id) + '">' +
@@ -154,17 +154,17 @@ function renderDocList(vo, fieldName, label, role, intro) {
             "</li>";
         }).join("") + "</ul>";
 
+    /* one standard row: the field's name, its upload button, then its files */
     const picker = editable
-        ? '<input type="file" multiple class="doc-picker" data-field="' +
-          escapeHtml(fieldName) + '">' +
-          '<span class="hint">' + escapeHtml(t("vo.docList.hint")) + "</span>"
+        ? '<label class="doc-upload-btn" title="' + escapeHtml(t("vo.docList.hint")) + '">' + escapeHtml(t("vo.docList.add")) +
+          '<input type="file" multiple class="doc-picker" data-field="' + escapeHtml(fieldName) + '" hidden></label>'
         : "";
 
     return '<div class="field doc-field ' + (editable ? "owned" : "locked") + '">' +
-        "<label>" + escapeHtml(label) + "</label>" +
+        '<div class="doc-field-head"><span class="doc-field-label">' + escapeHtml(label) +
+            (docs.length ? ' <span class="doc-count">' + docs.length + "</span>" : "") + "</span>" + picker + "</div>" +
         (intro ? '<span class="hint doc-intro">' + escapeHtml(intro) + "</span>" : "") +
         list +
-        picker +
     "</div>";
 }
 

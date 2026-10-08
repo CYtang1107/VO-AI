@@ -154,7 +154,7 @@ test("seeded VO-001's revised drawing renders its actual file name", () => {
 
 test("a field with no documents renders an empty state rather than a broken list", () => {
     const html = renderDocList(Object.assign({}, vo3, { supportingDocs: [] }), "supportingDocs", "Supporting documents", "contractor");
-    assert.match(html, /empty-state/);
+    assert.match(html, /class="doc-empty"/);
     assert.ok(!/<ul class="doc-list">/.test(html));
 });
 
@@ -215,7 +215,7 @@ test("a VO saved before the contract basis section existed renders it empty, not
     delete legacy.contractDocs;
     const html = renderDocList(legacy, "contractDocs", "Contract basis document", "consultant");
     assert.match(html, /doc-field locked/);
-    assert.match(html, /empty-state/);
+    assert.match(html, /class="doc-empty"/);
 });
 
 test("a star row shows past project rates; only an editable assessment gets the add-to-BQ control", () => {
@@ -263,4 +263,11 @@ test("a row's next step sits on the row: match again when linked by hand; past r
     assert.doesNotMatch(contractor, /add-bq-item-btn/, "only the consultant adds to the BQ");
     assert.match(rowActions(1, { bqItemId: null }, star, suggestion, false, true), /add-bq-item-btn[^>]*data-rate="1080"/);
     assert.strictEqual(rowActions(1, { bqItemId: null }, star, suggestion, false, false), "", "read-only: no buttons");
+});
+
+test("a document field is one standard row: its name, an upload button for whoever owns it, then its files", () => {
+    const html = renderDocList(Object.assign({}, vo3, { supportingDocs: [] }), "supportingDocs", "Supporting documents", "contractor");
+    assert.match(html, /<div class="doc-field-head"><span class="doc-field-label">Supporting documents<\/span><label class="doc-upload-btn"/);
+    assert.match(html, /<input type="file" multiple class="doc-picker" data-field="supportingDocs" hidden>/);
+    assert.doesNotMatch(renderDocList(vo3, "supportingDocs", "Supporting documents", "client"), /doc-upload-btn/);
 });
