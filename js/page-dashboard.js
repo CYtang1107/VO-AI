@@ -130,27 +130,11 @@ if (typeof document !== "undefined") {
                and the row below (the VO list and what needs you) */
             return window.innerHeight - top - 190 - 168 - 32;
         }
-        const moreSlot = document.getElementById("costMoreSlot");
         const dashGrid = document.querySelector(".dash-grid");
-        /* with "More" open the page scrolls: the lower row keeps its height */
-        function noFit() {
-            const open = !!(moreSlot && moreSlot.querySelector("details.cp-more[open]"));
-            if (dashGrid) dashGrid.classList.toggle("no-fit", open);
-        }
-        if (moreSlot) moreSlot.addEventListener("toggle", () => { noFit(); if (typeof fitPanels === "function") fitPanels(); }, true);
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;
             const p = getProject(project.id) || project;
-            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, height: chartHeight(), range: costRange }); });
-            /* "More" opens across the page under the curve and the map,
-               so the map keeps its size */
-            if (moreSlot) {
-                const more = costHost.querySelector("details.cp-more");
-                moreSlot.innerHTML = "";
-                if (more) moreSlot.appendChild(more);
-                moreSlot.hidden = !more;
-                noFit();
-            }
+            keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, height: chartHeight(), range: costRange, detailHref: "costplan.html" }); });
             mountCostChart(costHost, viewCurve(sCurve(p, today()), costRange));
         }
         if (costHost) {

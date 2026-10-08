@@ -392,10 +392,25 @@ function renderCostOverview(project, todayIso, opts) {
     /* in "More": how the project is doing first, then the monthly figures */
     if (curve) chart = chart.replace(MORE_START, MORE_START + renderEarnedValue(earnedValue(project, todayIso), { editable: editable }));
 
+    const inputs = fold("cp-inputs", escapeHtml(t("costplan.inputsTitle", { n: (project.certificates || []).length })), costInputsBody(project, editable));
+    /* everything after the figures (the table, earned value, the
+       programme and certificates) behind one fold, or, on the dashboard,
+       one link to the page that shows it all (costplan.html) */
+    const more = chart.indexOf(MORE_START);
+    const head = more === -1 ? chart : chart.slice(0, more);
+    const rest = (more === -1 ? "" : chart.slice(more + MORE_START.length)) + inputs;
+    const tail = opts && opts.detailHref
+        ? '<a class="cp-detail-link" href="' + escapeHtml(opts.detailHref) + '">' + escapeHtml(t("costplan.detailLink")) + " →</a>"
+        : fold("cp-more", escapeHtml(t("costplan.more")), rest, "cp-more");
+    /* the drafts note and the fold share one line under the figures */
+    return head + '<div class="cp-foot">' + drafts + tail + "</div>";
+}
+
+/* The programme and the interim certificates: those who keep them can change them. */
+function costInputsBody(project, editable) {
     const prog = project.programme || {};
     const certs = (project.certificates || []).slice().sort((a, b) => a.date < b.date ? -1 : 1);
-    const inputs = fold("cp-inputs", escapeHtml(t("costplan.inputsTitle", { n: certs.length })),
-        '<div class="cp-prog"><label>' + escapeHtml(t("costplan.start")) + ' <input type="date" id="cpStart" value="' + escapeHtml(prog.start || "") + '"' + (editable ? "" : " disabled") + "></label>" +
+    return '<div class="cp-prog"><label>' + escapeHtml(t("costplan.start")) + ' <input type="date" id="cpStart" value="' + escapeHtml(prog.start || "") + '"' + (editable ? "" : " disabled") + "></label>" +
         "<label>" + escapeHtml(t("costplan.end")) + ' <input type="date" id="cpEnd" value="' + escapeHtml(prog.end || "") + '"' + (editable ? "" : " disabled") + "></label></div>" +
         '<ul class="cp-certs">' + certs.map((c, i) => "<li>" + escapeHtml(t("costplan.certLine", { n: i + 1, date: c.date })) + " — <strong>" + rm(c.amount) + "</strong>" +
             (c.actual !== undefined && c.actual !== null && c.actual !== "" ? ' <span class="rate-detail">' + escapeHtml(t("costplan.actualLine", { amount: rm(Number(c.actual)) })) + "</span>" : "") +
@@ -404,14 +419,42 @@ function renderCostOverview(project, todayIso, opts) {
             '<input type="number" min="0" step="0.01" id="cpCertAmount" placeholder="' + escapeHtml(t("costplan.certAmount")) + '">' +
             '<input type="number" min="0" step="0.01" id="cpCertActual" placeholder="' + escapeHtml(t("costplan.certActual")) + '">' +
             '<button type="button" class="secondary-button" id="cpCertAdd">' + escapeHtml(t("costplan.certAdd")) + "</button></div>" : "") +
-        '<p class="assistant-note">' + escapeHtml(t(editable ? "costplan.inputsNote" : "costplan.inputsReadOnly")) + "</p>");
-    /* everything after the figures (the table, earned value, the
-       programme and certificates) behind one fold */
-    const more = chart.indexOf(MORE_START);
-    const head = more === -1 ? chart : chart.slice(0, more);
-    const rest = (more === -1 ? "" : chart.slice(more + MORE_START.length)) + inputs;
-    /* the drafts note and the fold share one line under the figures */
-    return head + '<div class="cp-foot">' + drafts + fold("cp-more", escapeHtml(t("costplan.more")), rest, "cp-more") + "</div>";
+        '<p class="assistant-note">' + escapeHtml(t(editable ? "costplan.inputsNote" : "costplan.inputsReadOnly")) + "</p>";
+}
+
+/* The S-curve page (costplan.html): one view at a time, so each fits the
+   screen — the curve with its figures, how the project is doing, the
+   monthly figures, and the programme with its certificates. */
+var COST_TABS = ["curve", "health", "table", "inputs"];
+
+function renderCostDetail(project, todayIso, opts) {
+    const editable = opts && opts.editable;
+    const tab = COST_TABS.indexOf(opts && opts.tab) === -1 ? "curve" : opts.tab;
+    const curve = sCurve(project, todayIso);
+    const tabs = '<div class="cd-tabs" role="tablist">' + COST_TABS.map(k =>
+        '<button type="button" role="tab" class="cd-tab' + (k === tab ? " on" : "") + '" data-tab="' + k + '" aria-selected="' + (k === tab) + '">' +
+        escapeHtml(t("costplan.tab." + k, { n: (project.certificates || []).length })) + "</button>").join("") + "</div>";
+    let body;
+    if (tab === "curve" || !curve) {
+        const full = renderCostOverview(project, todayIso, Object.assign({}, opts, { detailHref: "#" }));
+        body = full.slice(0, full.indexOf('<div class="cp-foot">'));
+        const o = costOverview(project);
+        if (o.nDraft) body += '<p class="assistant-note">' + escapeHtml(t("costplan.drafts", { n: o.nDraft, amount: rm(o.draft) })) + "</p>";
+        if (!curve && tab !== "curve") body += costInputsBody(project, editable);
+    } else if (tab === "health") {
+        /* every figure open beside the three cards: the page has the room */
+        body = renderEarnedValue(earnedValue(project, todayIso), { editable: editable })
+            .replace('<details class="fold" data-fold="evm-figures">', '<details class="fold" data-fold="evm-figures" open>');
+    } else if (tab === "table") {
+        body = '<div class="table-scroll cd-scroll" data-fit data-fit-gap="40"><table class="cp-table"><thead><tr><th>' + escapeHtml(t("costplan.col.month")) + "</th><th>" +
+            escapeHtml(t("costplan.series.planned")) + "</th><th>" + escapeHtml(t("costplan.series.forecast")) + "</th><th>" +
+            escapeHtml(t("costplan.series.actual")) + "</th></tr></thead><tbody>" +
+            curve.points.map(p => "<tr><td>" + escapeHtml(shortMonth(p.date)) + "</td><td>" + rm(p.planned) + "</td><td>" + rm(p.forecast) +
+                "</td><td>" + (p.actual === null ? "—" : rm(p.actual)) + "</td></tr>").join("") + "</tbody></table></div>";
+    } else {
+        body = '<div class="cd-scroll" data-fit data-fit-gap="40">' + costInputsBody(project, editable) + "</div>";
+    }
+    return tabs + '<div class="cd-pane cd-' + tab + '">' + body + "</div>";
 }
 
 /* The crosshair: snaps to the nearest month, lists all three series. */
@@ -447,5 +490,5 @@ function mountCostChart(host, curve) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderSCurveSvg, niceStep };
+    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, niceStep };
 }

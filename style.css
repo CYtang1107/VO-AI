@@ -3591,8 +3591,7 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 /* With the cost overview (contractor, design team, client): S-curve | map
    on top, VO list | what needs you below, the rows lined up */
 @media (min-width: 1001px) {
-    .dash-has-cost .dash-grid { grid-template-areas: "cost map" "more more" "list attn"; align-items: stretch; }
-    .dash-has-cost .cost-more-slot { grid-area: more; }
+    .dash-has-cost .dash-grid { grid-template-areas: "cost map" "list attn"; align-items: stretch; }
     .dash-has-cost .dash-main, .dash-has-cost .dash-side { display: contents; }
     .dash-has-cost .cost-plan-card { grid-area: cost; }
     .dash-has-cost .recent-card { grid-area: list; }
@@ -3638,6 +3637,11 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .register-layout { margin-bottom: 0; }
     .register-side { gap: 14px; }
     .register-side .site-map { height: max(170px, calc(100vh - 402px)); }
+    /* the consultant also has the site search under the map */
+    .register-side .site-map-card:has(.site-map-set) .site-map { height: max(140px, calc(100vh - 470px)); }
+    .register-side .site-map-set { margin-top: 8px; }
+    .register-side .site-map-set .assistant-note { display: none; } /* the dashboard map says it */
+    .register-side .site-map-card .card-body { padding-bottom: 12px; }
     .register-summary-card .card-body.stats-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 10px; gap: 8px; }
     .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: 1 / -1; }
     .stats-compact .stat-card p { white-space: nowrap; }
@@ -3792,12 +3796,6 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .toolbar-quiet:hover { text-decoration: underline; color: var(--accent); }
 
 /* the cost overview's "More", across the page under the curve and the map */
-.cost-more-slot { padding: 0; overflow: hidden; }
-.cost-more-slot[hidden] { display: none !important; }
-.cost-more-slot > .cp-more { margin: 0; }
-.cost-more-slot > .cp-more > summary { border-radius: 0; }
-.cost-more-slot > .cp-more > .fold-body { padding: 4px 18px 16px; }
-body:not(.dash-has-cost) .cost-more-slot { display: none !important; }
 
 /* Documents: each VO as a ticket — a numbered stub, a tear line, its title,
    status and file counts; its files open on a click */
@@ -3820,3 +3818,27 @@ body:not(.dash-has-cost) .cost-more-slot { display: none !important; }
 .doc-ticket[open] .tk-count::after { content: " ▾"; }
 .tk-body { border-top: 1px dashed var(--rule); padding: 10px 16px 14px; }
 .tk-open { color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; margin-top: 8px; text-align: right; }
+
+/* the dashboard's link to the S-curve page */
+.cp-detail-link { margin-left: auto; font-weight: 600; font-size: 14px; color: var(--accent); text-decoration: none;
+    padding: 6px 12px; border-radius: 8px; background: #e6ecfb; }
+.cp-detail-link:hover { text-decoration: underline; }
+
+/* the S-curve page (costplan.html): one view at a time */
+.cd-card .card-body { padding-top: 12px; }
+.cd-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
+.cd-tab { border: 1px solid var(--rule); background: var(--paper); color: var(--ink-3); border-radius: 999px;
+    padding: 7px 16px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cd-tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cd-scroll { overflow: auto; }
+.cd-table .cp-table { width: 100%; }
+.cd-table .cp-table th { position: sticky; top: 0; background: var(--paper-sunk); }
+@media (min-width: 1001px) {
+    .cd-health { display: grid; grid-template-columns: minmax(280px, 2fr) 3fr; column-gap: 20px; align-items: start; }
+    .cd-health > * { grid-column: 1; }
+    .cd-health > details[data-fold="evm-figures"] { grid-column: 2; grid-row: 1 / span 8; margin-top: 0; }
+    .cd-health > details[data-fold="evm-figures"] > .fold-body { max-height: calc(100vh - 290px); overflow: auto; }
+    .cd-health .evm-cards { grid-template-columns: 1fr; }
+}
+.cd-inputs .cp-certs { columns: 2; column-gap: 32px; }
+@media (max-width: 760px) { .cd-inputs .cp-certs { columns: 1; } }

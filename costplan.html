@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VO-AI | VO Report</title>
+    <title>VO-AI | S-curve</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="style.css?v=20261009r">
 </head>
@@ -16,20 +16,16 @@
 
     <section class="welcome">
         <div>
-            <h2 data-i18n="report.title">VO Report</h2>
+            <h2 data-i18n="costplan.detailTitle">S-curve and cost</h2>
         </div>
-        <div class="page-actions report-actions" style="margin:0">
-            <select id="reportMode" style="padding:11px;border-radius:8px;border:1px solid #dfe3e8">
-                <option value="single" data-i18n="report.mode.single">Single VO report</option>
-                <option value="summary" data-i18n="report.mode.summary">All VO summary report</option>
-                <option value="instruction" data-i18n="report.mode.instruction">Instruction (AI / EI)</option>
-            </select>
-            <select id="voPicker" style="padding:11px;border-radius:8px;border:1px solid #dfe3e8"></select>
-            <button class="primary-button" id="printBtn" data-i18n="report.print">Print / Save as PDF</button>
+        <div class="page-actions" style="margin:0">
+            <a class="secondary-button" href="dashboard.html" data-i18n="costplan.back">← Dashboard</a>
         </div>
     </section>
 
-    <div id="reportHost" class="report-scroll" data-fit data-fit-gap="20"></div>
+    <div class="card tone-purple cost-plan-card cd-card">
+        <div class="card-body" id="costDetail"></div>
+    </div>
 </main>
 
 <script src="js/i18n.js?v=20261009r"></script>
@@ -50,7 +46,8 @@
 <script src="js/sitemap.js?v=20261009r"></script>
 <script src="js/claimcheck.js?v=20261009r"></script>
 <script src="js/instruction.js?v=20261009r"></script>
-<script src="js/page-report.js?v=20261009r"></script>
+<script src="js/costplan.js?v=20261009r"></script>
+<script src="js/page-costplan.js?v=20261009r"></script>
 
 </body>
 </html>

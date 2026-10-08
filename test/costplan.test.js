@@ -182,3 +182,30 @@ test("the cost overview is for the contractor, the design team and the client; t
     assert.deepStrictEqual(["contractor", "administrator", "consultant", "client"].map(c.costOverviewVisible), [true, true, false, true]);
     assert.deepStrictEqual(["contractor", "administrator", "consultant", "client"].map(c.costOverviewEditable), [false, true, false, true]);
 });
+
+test("the dashboard links to the S-curve page instead of folding everything under the curve", () => {
+    const html = c.renderCostOverview(project(), "2026-09-12", { editable: true, detailHref: "costplan.html" });
+    assert.match(html, /<a class="cp-detail-link" href="costplan.html">See full details →<\/a>/);
+    assert.doesNotMatch(html, /data-fold="cp-more"/);
+    assert.doesNotMatch(html, /cpCertAdd/);
+});
+
+test("the S-curve page: one view at a time — the curve, how the project is doing, the months, the programme", () => {
+    const at = (tab, editable) => c.renderCostDetail(project(), "2026-09-12", { tab: tab, editable: editable, width: 1000 });
+    assert.deepStrictEqual(c.COST_TABS, ["curve", "health", "table", "inputs"]);
+    let html = at("curve");
+    assert.match(html, /class="cd-tab on" data-tab="curve"/);
+    assert.match(html, /class="sc-svg/);
+    assert.match(html, /Forecast final cost/);
+    assert.doesNotMatch(html, /cp-detail-link|cp-foot/);
+    html = at("health");
+    assert.match(html, /data-fold="evm-figures" open/);
+    assert.match(html, /class="evm-cards"/);
+    html = at("table");
+    assert.match(html, /class="cp-table"/);
+    assert.strictEqual((html.match(/<tr><td>/g) || []).length, 18, "every month");
+    assert.match(at("inputs", true), /id="cpCertAdd"/);
+    assert.doesNotMatch(at("inputs", false), /cpCertAdd/);
+    assert.match(at("inputs"), /Programme and certificates \(6\)/);
+    assert.match(at("nonsense"), /class="cd-tab on" data-tab="curve"/);
+});
