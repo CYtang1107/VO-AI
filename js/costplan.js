@@ -287,11 +287,25 @@ function renderEarnedValue(e, opts) {
         '<td class="evm-formula">' + escapeHtml(formula) + '</td><td class="num">' + value + "</td><td>" + (flag || "") + "</td></tr>";
     const group = key => '<tr class="evm-group"><th colspan="4">' + escapeHtml(t("evm.group." + key)) + "</th></tr>";
     const table = rows => '<div class="table-scroll"><table class="evm-table"><tbody>' + rows + "</tbody></table></div>";
-    /* shown: the baseline, the three variances and the two estimates;
-       the figures they come from (PV, EV, AC) and the indices (SPI, CPI)
-       are one click away */
+    /* first, three cards in plain words: cost, schedule, at completion;
+       every figure (the baseline, variances, estimates, PV / EV / AC and
+       the indices) is one click away */
+    const card = (labelKey, state, headKey, line) => '<div class="evm-card evm-' + state + '"><small>' + escapeHtml(t(labelKey)) + "</small>" +
+        "<strong>" + escapeHtml(t(headKey)) + "</strong><span>" + escapeHtml(line) + "</span></div>";
+    const sign = v => v === null ? "none" : v > 0 ? "good" : v < 0 ? "bad" : "level";
+    const costCard = e.cpi === null
+        ? card("evm.card.cost", "none", "evm.card.costUnknown", t("evm.needAc"))
+        : card("evm.card.cost", sign(e.cv), e.cv > 0 ? "evm.under" : e.cv < 0 ? "evm.over" : "evm.onBudget",
+            t("evm.card.costLine", { rate: rm(e.cpi) }));
+    const timeCard = e.spi === null ? "" :
+        card("evm.card.time", sign(e.sv), e.sv > 0 ? "evm.ahead" : e.sv < 0 ? "evm.behind" : "evm.onSchedule",
+            t("evm.card.timeLine", { pct: (e.spi * 100).toFixed(0) }));
+    const endCard = e.eac === null ? "" :
+        card("evm.card.end", sign(e.vac), e.vac > 0 ? "evm.underrun" : e.vac < 0 ? "evm.overrun" : "evm.onBudget",
+            t(e.vac < 0 ? "evm.card.endOver" : "evm.card.endUnder", { eac: rm(e.eac), bac: rm(e.bac), amount: rm(Math.abs(e.vac)) }));
     return '<h4 class="evm-title">' + escapeHtml(t("evm.title")) + "</h4>" +
-        table(
+        '<div class="evm-cards">' + costCard + timeCard + endCard + "</div>" +
+        fold("evm-figures", escapeHtml(t("evm.allFigures")), table(
             group("baseline") +
             row("BAC", t("evm.f.BAC"), rm(e.bac)) +
             group("variance") +
@@ -300,13 +314,14 @@ function renderEarnedValue(e, opts) {
             row("VAC", "BAC − EAC", money(e.vac), e.vac === null ? "" : e.vac === 0 ? level("evm.onBudget") : verdict(e.vac > 0, "evm.underrun", "evm.overrun")) +
             group("estimate") +
             row("EAC", f[0], money(e.eac)) +
-            row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc))) +
-        fold("evm-detail", escapeHtml(t("evm.detail")), table(
+            row("ETC", f[1].indexOf("evm.") === 0 ? t(f[1]) : f[1], money(e.etc)) +
+            group("source") +
             row("PV", t("evm.f.PV"), money(e.pv)) +
             row("EV", t("evm.f.EV", { pct: e.pctComplete.toFixed(1) }), rm(e.ev)) +
             row("AC", t("evm.f.AC"), money(e.ac)) +
             row("SPI", "EV / PV", e.spi === null ? "—" : e.spi.toFixed(2), e.spi === null ? "" : e.spi === 1 ? level("evm.onSchedule") : verdict(e.spi > 1, "evm.ahead", "evm.behind")) +
-            row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : e.cpi === 1 ? level("evm.onBudget") : verdict(e.cpi > 1, "evm.under", "evm.over")))) +
+            row("CPI", "EV / AC", e.cpi === null ? "—" : e.cpi.toFixed(2), e.cpi === null ? "" : e.cpi === 1 ? level("evm.onBudget") : verdict(e.cpi > 1, "evm.under", "evm.over"))) +
+            '<p class="assistant-note">' + escapeHtml(t("evm.note")) + "</p>") +
         /* the EAC situation: an advanced choice, folded away (BAC / CPI by default) */
         fold("evm-advanced", escapeHtml(t("evm.advanced", { method: t("evm.method." + e.method) })),
         '<div class="evm-method"><label for="evmMethod">' + escapeHtml(t("evm.methodLabel")) + "</label>" +
@@ -317,8 +332,7 @@ function renderEarnedValue(e, opts) {
         "</div>" +
         '<p class="assistant-note">' + escapeHtml(t("evm.methodNote." + e.method)) + "</p>") +
         (e.missingAc && e.method !== "plan" ? '<p class="assistant-note">' + escapeHtml(t("evm.needAc")) + "</p>" : "") +
-        (e.missingEtc ? '<p class="assistant-note">' + escapeHtml(t("evm.needEtc")) + "</p>" : "") +
-        '<p class="assistant-note">' + escapeHtml(t("evm.note")) + "</p>";
+        (e.missingEtc ? '<p class="assistant-note">' + escapeHtml(t("evm.needEtc")) + "</p>" : "");
 }
 
 function tile(label, value, sub, cls) {
@@ -375,7 +389,8 @@ function renderCostOverview(project, todayIso, opts) {
                     "</td><td>" + (p.actual === null ? "—" : rm(p.actual)) + "</td></tr>").join("") + "</tbody></table></div>");
     }
 
-    if (curve) chart += renderEarnedValue(earnedValue(project, todayIso), { editable: editable });
+    /* in "More": how the project is doing first, then the monthly figures */
+    if (curve) chart = chart.replace(MORE_START, MORE_START + renderEarnedValue(earnedValue(project, todayIso), { editable: editable }));
 
     const prog = project.programme || {};
     const certs = (project.certificates || []).slice().sort((a, b) => a.date < b.date ? -1 : 1);
