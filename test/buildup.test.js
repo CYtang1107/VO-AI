@@ -164,3 +164,59 @@ test("the rate is rounded up as chosen", () => {
     assert.strictEqual(bu.thicknessOf("screed 25mm thick", 12), 0.025);
     assert.strictEqual(bu.thicknessOf("screed", 12), 0.012);
 });
+
+test("the team's templates: drawn up from the description, each reproducing its BUR sheet", () => {
+    const cases = [
+        ["200mm MS pipe", "m", "msPipe", 282.66, 285],
+        ["Reinforced concrete grade 25", "m3", "concrete", 521.21],
+        ["Y12 high tensile bar", "kg", "rebar", 5.33],
+        ["R6 mild steel bar", "kg", "rebar", 4.54],
+        ["Y32 high tensile bar", "kg", "rebar", 5.67],
+        ["Formwork to beam sides", "m2", "formwork", 79.17],
+        ["Formwork to column", "m2", "formwork", 54.79],
+        ["Formwork to soffit of slab", "m2", "formwork", 64.14],
+        ["BRC A7 mesh", "m2", "brc", 21.56],
+        ["20mm cement and sand (1:3) paving", "m2", "paving", 8.98],
+        ["5mm plainface skim coat", "m2", "plainface", 22.32],
+        ["Emulsion paint 3 coats to walls", "m2", "emulsion", 14.23],
+        ["Enamel paint to steelwork", "m2", "enamel", 23.65],
+        ["75mm handrail", "m", "handrail", 325.07]
+    ];
+    cases.forEach(([d, u, id, raw, rate]) => {
+        const b = bu.suggestBuildUp({ description: d, unit: u }, {});
+        assert.strictEqual(b.recipe, id, d);
+        const r = bu.buildUpRate(b);
+        assert.strictEqual(r.raw, raw, d);
+        assert.strictEqual(r.rate, rate === undefined ? raw : rate, d);
+    });
+});
+test("200mm MS pipe: backhoe with diesel and hydraulic oil, butt fusion, generator with RON95 and engine oil; two general workers; the pipe and 5 % wastage; profit 10 %", () => {
+    const b = bu.suggestBuildUp({ description: "200mm MS pipe", unit: "m" }, {});
+    const m = b.sections.machinery;
+    assert.deepStrictEqual(m.map(l => l.type), ["day", "day", "day"]);
+    assert.deepStrictEqual(m[0].subs.map(s => [s.qty, s.price, s.per]), [[70, 4.72, "day"], [1, 2800, "year"]]);
+    assert.deepStrictEqual(m[2].subs.map(s => [s.qty, s.price]), [[40, 3.82], [0.06, 30]]);
+    assert.deepStrictEqual(b.sections.material.map(l => l.type === "pct" ? l.pct : l.price), [210, 5]);
+    assert.deepStrictEqual([b.sections.labour[0].nos, b.sections.labour[0].price, b.sections.labour[0].output], [2, 85, 36]);
+    const r = bu.buildUpRate(b);
+    assert.deepStrictEqual([r.machinery, r.labour, r.material, r.net, r.ohp], [31.74, 4.72, 220.5, 256.96, 25.7]);
+    assert.strictEqual(bu.suggestBuildUp({ description: "100mm MS pipe", unit: "m" }, {}).sections.material[0].price, 105, "the pipe pro rata to its diameter");
+    assert.strictEqual(bu.suggestBuildUp({ description: "uPVC pipe 150mm", unit: "m" }, {}).recipe, "pipe", "a uPVC pipe keeps the general recipe");
+});
+test("templates read the size, type, grade, mix and coats; the price list comes first; a row in tonnes is not converted", () => {
+    assert.strictEqual(bu.suggestBuildUp({ description: "钢筋 Y16", unit: "kg" }, {}).sections.material[0].price, 3279.87);
+    assert.strictEqual(bu.suggestBuildUp({ description: "BRC B5", unit: "m2" }, {}).sections.material[0].price, 152.43);
+    const g20 = bu.suggestBuildUp({ description: "Concrete grade 20", unit: "m3" }, {});
+    assert.deepStrictEqual(g20.sections.material.slice(1, 3).map(l => l.qty), [2, 4]);
+    assert.strictEqual(bu.suggestBuildUp({ description: "Emulsion paint 2 coats", unit: "m2" }, {}).sections.material[1].qty, 0.08);
+    const t = bu.suggestBuildUp({ description: "Y12 high tensile bar", unit: "t" }, {});
+    assert.ok(!t.sections.material.some(l => l.type === "unit"));
+    const own = bu.suggestBuildUp({ description: "Concrete grade 25", unit: "m3" }, { priceList: [{ name: "Cement OPC", unit: "bag", price: 24 }] });
+    assert.deepStrictEqual([own.sections.material[0].price, own.sections.material[0].source], [24, "priceList"]);
+    assert.strictEqual(bu.suggestBuildUp({ description: "Precast concrete sump", unit: "no" }, {}).recipe, "sump");
+});
+test("a labour line by the hour: how many × the day rate ÷ 8 × the hours", () => {
+    assert.strictEqual(bu.lineAmount({ type: "hr", nos: 1, price: 120, hrs: 1.15 }, 0), 17.25);
+    assert.strictEqual(bu.lineAmount({ type: "unit", factor: 1, per: 4 }, 100), -75);
+    assert.strictEqual(bu.newLine("hr:labour").type, "hr");
+});

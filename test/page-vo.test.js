@@ -296,3 +296,15 @@ test("the architect's instruction becomes measurement rows: each item matched to
     assert.strictEqual(z.replaced, 1);
     assert.deepStrictEqual(z.rows.map(x => code(x.bqItemId)), ["C/2.3", null, "B/5.1", "D/1.2"], "Chinese wording matches the English BQ");
 });
+
+test("a short fragment of the instruction stays with its item; a typed or picked description is matched as the instruction words it", () => {
+    const { instructionParts } = require("../js/analysis.js");
+    const { autoFillRow } = require("../js/page-vo.js");
+    assert.deepStrictEqual(instructionParts("新开门洞并安装实木平板门、内墙批荡、油漆、地面水泥砂浆找平"),
+        ["新开门洞并安装实木平板门", "内墙批荡、油漆", "地面水泥砂浆找平"]);
+    const p = seedDB().projects[0];
+    const row = { description: "内墙批荡、油漆", unit: "", qty: 0, rate: 0 };
+    assert.ok(autoFillRow(row, p.bq, []));
+    assert.strictEqual(p.bq.find(b => b.id === row.bqItemId).code, "B/5.1", "Chinese wording to the English BQ");
+    assert.deepStrictEqual([row.unit, row.rate], ["m2", 34]);
+});
