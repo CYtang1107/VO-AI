@@ -3591,11 +3591,10 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 /* With the cost overview (contractor, design team, client): S-curve | VO
    numbers on top, VO list | what needs you below, the rows lined up */
 @media (min-width: 1001px) {
-    .dash-has-cost .dash-grid { grid-template-areas: "cost map" "list attn"; align-items: stretch; }
+    .dash-has-cost .dash-grid { grid-template-areas: "kpi kpi" "cost attn" "list attn"; align-items: stretch; }
     .dash-has-cost .dash-main, .dash-has-cost .dash-side { display: contents; }
     .dash-has-cost .cost-plan-card { grid-area: cost; }
     .dash-has-cost .recent-card { grid-area: list; }
-    .dash-has-cost .dash-stats-card { grid-area: map; display: flex; flex-direction: column; }
     .dash-has-cost .ai-card { grid-area: attn; }
     body:not(.dash-has-cost) .dash-main .recent-card .table-scroll { max-height: calc(100vh - 170px); overflow: auto; }
 }
@@ -3919,21 +3918,6 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .wf-reject { display: flex; gap: 8px; align-items: center; }
 .wf-reject input { flex: 1; padding: 9px 12px; border-radius: 8px; border: 1px solid #dfe3e8; font: inherit; }
 
-/* the dashboard's VO numbers (in place of the site map): four cards, two by two */
-.dash-stats-card .card-body.stats-compact { margin: 0; padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; align-content: stretch; }
-.dash-stats-card .stat-card { padding: 12px; display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 4px; }
-.dash-stats-card .stat-card > div:not(.stat-icon) { display: contents; }
-.dash-stats-card .stat-card h2 { grid-column: 1 / -1; font-size: 24px; margin: 0; white-space: nowrap; }
-.dash-stats-card .stat-card p { font-size: 14px; margin: 0; white-space: nowrap; }
-.dash-stats-card .stat-card small { grid-column: 1 / -1; font-size: 11px; color: var(--ink-3); }
-.dash-stats-card .stat-icon { width: 26px; height: 26px; font-size: 11px; border-radius: 6px; }
-.dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 20px; }
-/* three counts in one row, the total value across the row below */
-.dash-stats-card .card-body.stats-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 1fr auto; }
-.dash-stats-card .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: 1 / -1; }
-.dash-stats-card .stat-card { padding: 10px; }
-.dash-stats-card .stat-card p { font-size: 13px; }
-.dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 24px; }
 
 /* the monthly figures: upload a cash-flow sheet, or type over a cell */
 .cd-cf-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin-bottom: 8px; }
@@ -3950,7 +3934,44 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 @media (min-width: 1001px) {
     .dash-has-cost .dash-grid { grid-template-columns: minmax(0, 1fr) minmax(330px, 36%); }
 }
-.dash-stats-card .stat-card { align-content: center; row-gap: 8px; }
-.dash-stats-card .stat-card h2 { font-size: 28px; }
 /* room for "变更单-001" on the ticket's stub */
 .tk-stub { width: 116px; font-size: 14px; padding: 0 6px; white-space: nowrap; }
+
+/* the dashboard, laid out: the VO numbers in a slim row across the top;
+   below, the cost overview and the recent VOs on the left and what needs
+   you down the whole right side */
+@media (min-width: 1001px) {
+    .dash-grid { grid-template-areas: "kpi kpi" "list attn"; align-items: stretch; grid-template-rows: auto; }
+    .dash-main, .dash-side { display: contents; }
+    .dash-grid .recent-card { grid-area: list; }
+    .dash-grid .ai-card { grid-area: attn; }
+    .dash-has-cost .dash-grid { grid-template-rows: auto auto minmax(0, 1fr); }
+    .dash-grid .dash-stats-card { grid-area: kpi; }
+    .dash-grid .ai-card { display: flex; flex-direction: column; }
+    .dash-grid .ai-card #actionList { overflow: auto; min-height: 0; }
+}
+.dash-stats-card { padding: 8px 10px; }
+.dash-stats-card .stats-compact { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.dash-stats-card .stat-card { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 10px; min-height: 0; }
+.dash-stats-card .stat-card > div:not(.stat-icon) { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex: 1; min-width: 0; }
+.dash-stats-card .stat-card p { margin: 0; font-size: 14px; white-space: nowrap; }
+.dash-stats-card .stat-card h2 { margin: 0; font-size: 22px; white-space: nowrap; }
+.dash-stats-card .stat-card small { display: none; }
+.dash-stats-card .stat-icon { width: 28px; height: 28px; font-size: 12px; border-radius: 7px; flex: none; }
+@media (max-width: 760px) { .dash-stats-card .stats-compact { grid-template-columns: 1fr 1fr; } }
+/* the recent VOs: one line each */
+.recent-card td.recent-desc { max-width: 0; width: 46%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-stats-card .stats-compact .stat-card:has(.stat-icon.purple) { grid-column: auto; }
+/* the link to the analysis page sits in the cost card's title bar */
+@media (min-width: 1001px) {
+    .dash-grid .cost-plan-card { position: relative; }
+    .dash-grid .cost-plan-card .cp-foot { position: absolute; top: 7px; right: 16px; }
+    .dash-grid .cost-plan-card .cp-detail-link { padding: 4px 12px; font-size: 13px; }
+}
+.dash-stats-card .stats-compact { grid-template-columns: 1fr 1fr 1fr 1.45fr; }
+.dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 20px; }
+@media (min-width: 1001px) {
+    /* the consultant (no cost overview): the list and what needs you fill the screen */
+    body:not(.dash-has-cost) .dash-grid { grid-template-rows: auto minmax(0, 1fr); min-height: calc(100vh - 118px); }
+}
+@media (max-width: 760px) { .dash-stats-card .stats-compact { grid-template-columns: 1fr 1fr; } }
