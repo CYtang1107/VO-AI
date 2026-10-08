@@ -499,12 +499,13 @@ function renderCostOverview(project, todayIso, opts) {
     const range = opts && opts.range === "all" ? "all" : "toDate";
     const tiles = '<div class="cp-tiles">' +
         tile(t("costplan.contractSum"), rm(o.contractSum)) +
-        tile(t("costplan.approved"), rm(o.approved), t("costplan.nVos", { n: o.nApproved })) +
-        tile(t("costplan.pending"), rm(o.pending), t("costplan.nVos", { n: o.nPending })) +
-        tile(t("costplan.forecast"), rm(o.forecast), t("costplan.change", { sign: o.change >= 0 ? "+" : "−", amount: rm(Math.abs(o.change)), pct: Math.abs(o.changePct).toFixed(1) }), "cp-key") +
-        tile(t("costplan.certified"), rm(o.certified), t("costplan.certifiedPct", { pct: o.certifiedPct.toFixed(1) })) +
+        /* the amounts alone: the counts and percentages are on the register and the analysis page */
+        tile(t("costplan.approved"), rm(o.approved)) +
+        tile(t("costplan.pending"), rm(o.pending)) +
+        tile(t("costplan.forecast"), rm(o.forecast), "", "cp-key") +
+        tile(t("costplan.certified"), rm(o.certified)) +
     "</div>";
-    const drafts = o.nDraft ? '<p class="assistant-note">' + escapeHtml(t("costplan.drafts", { n: o.nDraft, amount: rm(o.draft) })) + "</p>" : "";
+    const drafts = "";
 
     let chart;
     /* the figures sit under the S-curve */
@@ -585,7 +586,6 @@ function renderCostDetail(project, todayIso, opts) {
         const full = renderCostOverview(project, todayIso, Object.assign({}, opts, { detailHref: "#" }));
         body = full.slice(0, full.indexOf('<div class="cp-foot">'));
         const o = costOverview(project);
-        if (o.nDraft) body += '<p class="assistant-note">' + escapeHtml(t("costplan.drafts", { n: o.nDraft, amount: rm(o.draft) })) + "</p>";
         if (!curve && tab !== "curve") body += costInputsBody(project, editable);
     } else if (tab === "health") {
         /* every figure open beside the three cards: the page has the room */
