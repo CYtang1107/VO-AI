@@ -646,7 +646,7 @@ function analyse(vo, project) {
    of construction terms, so it matches an English BQ too. */
 var INSTRUCTION_GLOSSARY = [
     [/瓷砖|地砖/, "ceramic floor tiles"], [/大理石/, "marble"], [/踢脚/, "skirting"],
-    [/批荡|抹灰|粉刷/, "plaster"], [/油漆|涂料|刷漆|喷漆/, "paint"], [/内墙/, "internal walls"], [/墙/, "walls"],
+    [/批荡|抹灰|粉刷/, "plaster"], [/油漆|涂料|刷漆|喷漆/, "paint"], [/内墙/, "internal walls"], [/外墙/, "external walls"], [/墙/, "walls"],
     [/平板门/, "flush door"], [/实木|木/, "timber"], [/门/, "door"], [/五金/, "ironmongery"],
     [/排水管/, "drainage pipe"], [/排水/, "drainage"], [/管/, "pipe"], [/沟槽|沟/, "trench"],
     [/吊顶|天花/, "suspended ceiling"], [/石膏板/, "plasterboard"], [/龙骨/, "framing"],
@@ -700,6 +700,26 @@ function matchInstructionItem(part, bq, used) {
     return best ? best.item : null;
 }
 
+/* A row described in a word or two ("油漆", "paint", "skirting"): the BQ
+   item that has every one of its words, the one in the row's unit first,
+   then the plainest (fewest words). Null when the row says more, or no
+   item has them all. */
+var KEYWORD_PLACES = new Set(["wall", "floo", "ceil", "area", "room", "livi", "inte", "exte", "side", "edge"]);
+
+function keywordBqItem(text, bq, unit) {
+    const own = instructionWords(text).filter(w => /^[a-z0-9]+$/.test(w) && !/^\d/.test(w));
+    /* where ("wall", "floor") is not what: a row has to name the work */
+    if (!own.length || own.length > 3 || own.every(w => KEYWORD_PLACES.has(w))) return null;
+    /* every word of the row is one of the item's: nothing it says goes unmatched */
+    if (significantWords(String(text || "").replace(/[一-鿿]+/g, " ")).filter(w => !/^\d/.test(w) && !INSTRUCTION_SMALL_WORDS.has(w)).length > own.length) return null;
+    const u = x => String(x || "").toLowerCase().replace("²", "2").replace("³", "3").trim();
+    const hits = (bq || []).map(item => ({ item: item, words: instructionWords(item.description) }))
+        .filter(h => own.every(w => h.words.indexOf(w) !== -1));
+    if (!hits.length) return null;
+    hits.sort((a, b) => (u(b.item.unit) === u(unit)) - (u(a.item.unit) === u(unit)) || a.words.length - b.words.length);
+    return hits[0].item;
+}
+
 function instructionItems(text, bq, isWork) {
     const used = new Set();
     const items = [];
@@ -717,6 +737,6 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         RATE_TOLERANCE, checkRate, rateSummary, matchBqItem, suggestBqForChange, describesWork,
         classifyVariation, affectedWork, classificationBasis, analyse,
-        elementAnalysis, instructionItems, instructionParts, matchInstructionItem
+        elementAnalysis, instructionItems, instructionParts, matchInstructionItem, keywordBqItem
     };
 }

@@ -3,7 +3,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
     var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER, voStage, infoRequestKey } = require("./permissions.js");
-    var { checkRate, analyse, matchBqItem, suggestBqForChange, instructionItems, instructionParts, matchInstructionItem } = require("./analysis.js");
+    var { checkRate, analyse, matchBqItem, suggestBqForChange, instructionItems, instructionParts, matchInstructionItem, keywordBqItem } = require("./analysis.js");
     var { escapeHtml, statusPill, fileLink, fold, seedText, originalText } = require("./ui.js");
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
@@ -252,13 +252,18 @@ function autoFillRow(row, bq, pastSources) {
         const theirs = pastRateWords(it.description).filter(w => MATERIAL_WORDS.has(w));
         return theirs.length === 0 || mine.length === 0 || mine.every(w => theirs.indexOf(w) !== -1);
     };
-    const list = (bq || []).filter(fits);
+    /* nor is an external item the internal one (外墙 is not 内墙) */
+    const side = text => /\binternal\b|内墙|室内/i.test(text) ? "in" : /\bexternal\b|外墙|室外/i.test(text) ? "out" : "";
+    const mySide = side(row.description);
+    const list = (bq || []).filter(it => fits(it) && !(mySide && side(it.description) && side(it.description) !== mySide));
     const strict = matchBqItem(Object.assign({}, row, { unit: "" }), list);
     const loose = strict ? null : suggestBqForChange(row.description, list);
     /* worded as the instruction words it, Chinese too (js/analysis.js) */
     const worded = strict || (loose && !loose.weak) || typeof matchInstructionItem !== "function" ? null : matchInstructionItem(row.description, list);
-    const item = strict ? strict.item : (loose && !loose.weak ? loose.item : worded);
-    const basis = strict ? strict.basis : (loose && !loose.weak ? loose.matched.join(", ") : worded ? t("vo.row.fromInstructionBasis") : "");
+    /* a word or two ("油漆"): the BQ item that has them, in the row's unit first */
+    const keyed = strict || (loose && !loose.weak) || worded || typeof keywordBqItem !== "function" ? null : keywordBqItem(row.description, list, row.unit);
+    const item = strict ? strict.item : (loose && !loose.weak ? loose.item : worded || keyed);
+    const basis = strict ? strict.basis : (loose && !loose.weak ? loose.matched.join(", ") : worded || keyed ? t("vo.row.fromInstructionBasis") : "");
     const before = JSON.stringify([row.bqItemId, row.unit, row.rate, row.auto]);
     const prevAuto = row.auto || {};
     const auto = {};
@@ -268,7 +273,11 @@ function autoFillRow(row, bq, pastSources) {
         auto.code = item.code;
         auto.basis = basis;
         if (!String(row.unit || "").trim() || prevAuto.unit) { row.unit = item.unit; auto.unit = true; }
-        if (!(Number(row.rate) > 0) || prevAuto.rate) { row.rate = Number(item.rate) || 0; auto.rate = "bq"; }
+        /* the BQ rate is for its unit: a row measured otherwise (paint by
+           the metre, the item by the m²) is priced on its own */
+        const sameUnit = String(row.unit || "").trim().toLowerCase().replace("²", "2").replace("³", "3") === String(item.unit || "").trim().toLowerCase().replace("²", "2").replace("³", "3");
+        if (sameUnit && (!(Number(row.rate) > 0) || prevAuto.rate)) { row.rate = Number(item.rate) || 0; auto.rate = "bq"; }
+        else if (!sameUnit && prevAuto.rate) row.rate = 0;
     } else {
         if (prevAuto.code) row.bqItemId = null;   /* an earlier auto-link no longer fits */
         if (prevAuto.unit) row.unit = "";
@@ -1225,7 +1234,8 @@ if (typeof document !== "undefined") {
                 /* a hand-made choice ends the automatic one */
                 if (row.auto && col === "bqItemId") delete row.auto;
                 if (row.auto && col === "rate") { delete row.auto.rate; if (!Object.keys(row.auto).length) delete row.auto; }
-                if (row.auto && col === "unit") { delete row.auto.unit; }
+                /* a unit typed over the BQ item's: its rate no longer fits */
+                if (row.auto && col === "unit") { delete row.auto.unit; autoFillRow(row, (getProject(project.id) || project).bq, pastRateSources(loadDB(), project.id)); }
                 if (col === "description" && autoFillRow(row, (getProject(project.id) || project).bq, pastRateSources(loadDB(), project.id)) && row.auto) {
                     autoNote = row.auto.code ? t("vo.row.autoToast", { code: row.auto.code })
                         : row.auto.rate === "past" ? t("vo.row.autoToastPast") : "";
