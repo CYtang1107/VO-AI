@@ -185,7 +185,7 @@ test("the cost overview is for the contractor, the design team and the client; t
 
 test("the dashboard links to the S-curve page instead of folding everything under the curve", () => {
     const html = c.renderCostOverview(project(), "2026-09-12", { editable: true, detailHref: "costplan.html" });
-    assert.match(html, /<a class="cp-detail-link" href="costplan.html">See full details →<\/a>/);
+    assert.match(html, /<a class="cp-detail-link" href="costplan.html">Cost and schedule performance analysis →<\/a>/);
     assert.doesNotMatch(html, /data-fold="cp-more"/);
     assert.doesNotMatch(html, /cpCertAdd/);
 });
