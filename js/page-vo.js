@@ -453,10 +453,6 @@ function renderMeasurementRows(vo, project, role, pastSources) {
     }).join("");
 }
 
-/* The element checklist (js/elements.js) — the
-   detected element(s) and the other elements that commonly need
-   re-measurement alongside them, each with the reason. A prompt to
-   confirm, never an assertion. */
 /* The standard form's clause for this kind of change: its wording and
    the evidence it asks for, one click away under the contract check. */
 function renderStdClause(a) {
@@ -468,25 +464,6 @@ function renderStdClause(a) {
         originalText([a.clause.title, a.clause.entitlement, a.clause.evidence]));
 }
 
-function renderElementsBlock(a) {
-    const els = a.elements;
-    if (!els || els.detected.length === 0) return "";
-
-    const detectedHtml = els.detected.map(el =>
-        '<span class="element-tag">' + escapeHtml(t("element." + el.id + ".name")) + "</span>").join(" ");
-
-    const relatedHtml = els.related.length === 0 ? "" :
-        els.related.map(r =>
-            '<div class="finding element-check"><label><input type="checkbox"> ' +
-            '<span class="element-tag element-tag-related">' + escapeHtml(t("element." + r.element.id + ".name")) +
-            "</span> — " + escapeHtml(t("element." + r.because + ".note")) + "</label></div>").join("");
-
-    return '<div class="result-row"><span class="result-label">' + escapeHtml(t("vo.result.detectedElements")) + '</span>' +
-        '<span class="result-value">' + detectedHtml + "</span></div>" +
-        (els.related.length === 0 ? "" :
-            '<p class="rate-detail" style="margin-top:10px"><strong>' + escapeHtml(t("vo.result.confirmRelated")) +
-            "</strong></p>" + relatedHtml);
-}
 
 /* -----------------------------------------------------------
    The workflow card: where this VO is, and what the signed-in role does
@@ -782,7 +759,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, rowsFromInstruction, wholeInstructionRow, renderPastRates, rowSummary, renderElementsBlock, renderStdClause, rowActions,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, rowsFromInstruction, wholeInstructionRow, renderPastRates, rowSummary, renderStdClause, rowActions,
         renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel,
         renderWorkflow, renderStepper
@@ -922,7 +899,6 @@ if (typeof document !== "undefined") {
             document.getElementById("measurementBody").innerHTML =
                 renderMeasurementRows(v, fresh, role, pastRateSources(loadDB(), project.id));
             /* what else a change like this usually needs measured */
-            document.getElementById("measureElements").innerHTML = renderElementsBlock(analyse(v, fresh));
             /* The contract is read once, the first time it is needed;
                the panel redraws when the reading is in. */
             if (typeof ensureContractReadings === "function") {
