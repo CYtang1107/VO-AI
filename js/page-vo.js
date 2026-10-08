@@ -3,7 +3,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
     var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER, voStage, infoRequestKey } = require("./permissions.js");
-    var { checkRate, analyse, matchBqItem, suggestBqForChange, instructionItems } = require("./analysis.js");
+    var { checkRate, analyse, matchBqItem, suggestBqForChange, instructionItems, instructionParts, matchInstructionItem } = require("./analysis.js");
     var { escapeHtml, statusPill, fileLink, fold, seedText, originalText } = require("./ui.js");
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
@@ -255,8 +255,10 @@ function autoFillRow(row, bq, pastSources) {
     const list = (bq || []).filter(fits);
     const strict = matchBqItem(Object.assign({}, row, { unit: "" }), list);
     const loose = strict ? null : suggestBqForChange(row.description, list);
-    const item = strict ? strict.item : (loose && !loose.weak ? loose.item : null);
-    const basis = strict ? strict.basis : (loose && !loose.weak ? loose.matched.join(", ") : "");
+    /* worded as the instruction words it, Chinese too (js/analysis.js) */
+    const worded = strict || (loose && !loose.weak) || typeof matchInstructionItem !== "function" ? null : matchInstructionItem(row.description, list);
+    const item = strict ? strict.item : (loose && !loose.weak ? loose.item : worded);
+    const basis = strict ? strict.basis : (loose && !loose.weak ? loose.matched.join(", ") : worded ? t("vo.row.fromInstructionBasis") : "");
     const before = JSON.stringify([row.bqItemId, row.unit, row.rate, row.auto]);
     const prevAuto = row.auto || {};
     const auto = {};
@@ -415,7 +417,7 @@ function renderMeasurementRows(vo, project, role, pastSources) {
             : "";
 
         return '<tr data-row="' + i + '">' +
-            '<td class="m-desc" data-label="' + lbl.description + '"><input data-col="description" value="' + escapeHtml(seedText(row.description)) +
+            '<td class="m-desc" data-label="' + lbl.description + '"><input data-col="description" list="instrParts" value="' + escapeHtml(seedText(row.description)) +
                 '"' + conDis + (conEdit ? ' class="owned"' : "") + ' style="width:220px"></td>' +
             '<td class="m-bq" data-label="' + lbl.bqItem + '"><select data-col="bqItemId"' + conDis + (conEdit ? ' class="owned"' : "") +
                 ">" + bqOptions(project, row.bqItemId) + "</select></td>" +
@@ -909,6 +911,8 @@ if (typeof document !== "undefined") {
 
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
+            const dl = document.getElementById("instrParts");
+            if (dl) dl.innerHTML = instructionParts(v.description).filter(x => !/instruct|as per|according to|指示|依照|根据|按照/i.test(x)).map(x => '<option value="' + escapeHtml(x) + '">').join("");
             document.getElementById("fromInstructionBtn").hidden = !(role === "contractor" && canEdit("measurement", v, role) && String(v.description || "").trim());
             document.getElementById("deleteVoBtn").hidden = !canDeleteVO(v, role);
             drawWorkflow(v, fresh);
@@ -1359,11 +1363,18 @@ if (typeof document !== "undefined") {
 
         document.getElementById("fromInstructionBtn").addEventListener("click", () => { fillFromInstruction(true); draw(); });
 
+        /* a new row takes the next item of the instruction not yet a row
+           (matched to the BQ), else starts empty */
         document.getElementById("addRowBtn").addEventListener("click", () => {
+            const cur = voNow();
+            const next = rowsFromInstruction(Object.assign({}, cur, { measurement: (cur.measurement || []).slice() }),
+                getProject(project.id).bq || [], () => true, () => uid("M"));
+            const fresh = next.added ? next.rows[next.rows.length - next.added] : null;
             updateVO(project.id, voId, v => {
-                v.measurement.push({ id: uid("M"), bqItemId: null, description: "",
+                v.measurement.push(fresh || { id: uid("M"), bqItemId: null, description: "",
                     unit: "", qty: 0, rate: 0, assessedQty: "", assessedRate: "" });
             });
+            if (fresh) toast(fresh.auto ? t("vo.row.autoToast", { code: fresh.auto.code }) : t("vo.row.fromInstructionAdded"));
             draw();
         });
 

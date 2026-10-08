@@ -664,32 +664,48 @@ function instructionWords(text) {
 }
 
 function instructionParts(text) {
-    return String(text || "").split(/[,，;；。:：、\n]+/)
+    const parts = String(text || "").split(/[,，;；。:：、\n]+/)
         .map(p => p.trim()
             .replace(/^(and|also|then|plus|with)\s+/i, "")
             .replace(/^(a|an|the)\s+/i, "")
             .replace(/^(并|及|和|另|再|然后|以及)\s*/, "")
             .replace(/[.。]+$/, "").trim())
-        .filter(p => p.length >= 3);
+        .filter(Boolean);
+    /* a fragment too short to stand alone ("油漆" in "内墙批荡、油漆") stays
+       with the item before it */
+    const weight = p => (p.match(/[一-鿿]/g) || []).length + 2 * (p.match(/[A-Za-z0-9]{3,}/g) || []).length;
+    const out = [];
+    parts.forEach(p => {
+        if (out.length && weight(p) < 4) out[out.length - 1] += (/[一-鿿]/.test(p) ? "、" : ", ") + p;
+        else out.push(p);
+    });
+    return out.filter(p => p.length >= 3);
+}
+
+/* The BQ item a part of the instruction names, or null. `used`: item
+   ids already taken by other parts. */
+function matchInstructionItem(part, bq, used) {
+    const words = new Set(instructionWords(part));
+    let best = null;
+    (bq || []).forEach(item => {
+        if (used && used.has(item.id)) return;
+        const cand = instructionWords(item.description);
+        if (!cand.length) return;
+        const overlap = cand.filter(w => words.has(w)).length;
+        const score = overlap / cand.length;
+        /* most of the BQ item's own words are in the part */
+        if (overlap >= 3 ? score < 0.4 : overlap < 2 || score < 0.5) return;
+        if (!best || score > best.score) best = { item: item, score: score };
+    });
+    return best ? best.item : null;
 }
 
 function instructionItems(text, bq, isWork) {
     const used = new Set();
     const items = [];
     instructionParts(text).forEach(part => {
-        const words = new Set(instructionWords(part));
-        let best = null;
-        (bq || []).forEach(item => {
-            if (used.has(item.id)) return;
-            const cand = instructionWords(item.description);
-            if (!cand.length) return;
-            const overlap = cand.filter(w => words.has(w)).length;
-            const score = overlap / cand.length;
-            /* most of the BQ item's own words are in the part */
-            if (overlap >= 3 ? score < 0.4 : overlap < 2 || score < 0.5) return;
-            if (!best || score > best.score) best = { item: item, score: score };
-        });
-        if (best) { used.add(best.item.id); items.push({ description: part.charAt(0).toUpperCase() + part.slice(1), bqItem: best.item }); }
+        const hit = matchInstructionItem(part, bq, used);
+        if (hit) { used.add(hit.id); items.push({ description: part.charAt(0).toUpperCase() + part.slice(1), bqItem: hit }); }
         /* who instructed it and why ("as instructed by the Architect…")
            is the instruction's preamble, not an item of work */
         else if (!/instruct|as per|according to|指示|依照|根据|按照/i.test(part) && typeof isWork === "function" && isWork(part)) items.push({ description: part.charAt(0).toUpperCase() + part.slice(1), bqItem: null });
@@ -701,6 +717,6 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         RATE_TOLERANCE, checkRate, rateSummary, matchBqItem, suggestBqForChange, describesWork,
         classifyVariation, affectedWork, classificationBasis, analyse,
-        elementAnalysis, instructionItems, instructionParts
+        elementAnalysis, instructionItems, instructionParts, matchInstructionItem
     };
 }
