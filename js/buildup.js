@@ -164,17 +164,22 @@ function priceOf(refId, project) {
            sub-items: quantity × price a day, or a year (÷ 365): diesel, oil
      pct   a percentage of the subtotal so far (delivery, wastage,
            shrinkage; profit, overhead)
-     unit  the subtotal so far × a factor: into the row's unit (a mortar
-           priced per m³ × 0.012 m thick = per m²)
+     hr    how many × the day rate ÷ 8 hours × the hours a unit takes
+           (the team's sheets: "120/8 × 1.15 hr"); `of`: the unit the
+           hours are for, when not the row's (a tonne of bar)
+     unit  the subtotal so far × a factor (÷ `per`, when it has one): into
+           the row's unit (a mortar priced per m³ × 0.012 m thick = per m²;
+           a tonne × 0.001 = per kg; plywood ÷ 3 uses)
    Profit's lines start from the net cost (materials + machinery + labour).
    The rate is the net cost plus profit, rounded up to `roundTo`. */
 var SECTIONS = ["material", "machinery", "labour", "profit"];
+var HOURS_A_DAY = 8;
 
 /* what each section's "+ add" offers: format:preset */
 var ADD_FORMATS = {
     material:  ["item:material", "pct:wastage", "pct:shrinkage", "pct:delivery", "unit:unit", "pct:percent"],
     machinery: ["day:machine", "item:perUnit", "pct:percent", "unit:unit"],
-    labour:    ["day:labour", "item:perUnit", "pct:percent", "unit:unit"],
+    labour:    ["day:labour", "hr:labour", "item:perUnit", "pct:percent", "unit:unit"],
     profit:    ["pct:profit", "pct:overhead", "item:lump"]
 };
 var SUB_FORMATS = ["diesel", "oil", "other"];
@@ -187,6 +192,7 @@ function newLine(code) {
     }
     if (format === "unit") return { type: "unit", name: t("buildup.preset.unit"), factor: 1, from: "", to: "" };
     if (format === "day") return { type: "day", name: "", nos: 1, price: 0, output: 1, subs: [], source: "manual" };
+    if (format === "hr") return { type: "hr", name: "", nos: 1, price: 0, hrs: 1, source: "manual" };
     return { type: "item", name: "", qty: 1, unit: "", price: 0, source: "manual" };
 }
 
@@ -208,7 +214,8 @@ function subPerDay(sb) {
 function lineAmount(line, running) {
     if (!line) return 0;
     if (line.type === "pct") return running * num0(line.pct) / 100;
-    if (line.type === "unit") return running * (num0(line.factor) - 1);
+    if (line.type === "unit") return running * (num0(line.factor) / (num0(line.per) > 0 ? num0(line.per) : 1) - 1);
+    if (line.type === "hr") return (line.nos === undefined || line.nos === "" ? 1 : num0(line.nos)) * num0(line.price) / HOURS_A_DAY * num0(line.hrs);
     if (line.type === "day") {
         if (!(num0(line.output) > 0)) return 0;
         const perDay = num0(line.price) + (line.subs || []).reduce((s, sb) => s + subPerDay(sb), 0);
@@ -297,10 +304,235 @@ function thicknessOf(text, mm) {
     return v > 0 && v <= 200 ? v / 1000 : mm / 1000;
 }
 
+/* ---------- the team's own build-up sheets ----------
+   Each a template drawn up from the row's description (BUR Frame, BUR
+   Upper Floor, BUR Staircase and the drainage sheet): the items the sheet
+   always has, priced as the sheet prices them (× the region's factor), or
+   at the contractor's own price list when it has the item. A size, a bar
+   type, a grade, a mix, a thickness or the coats in the description choose
+   the figures. They come before the general RECIPES.
+
+   TEMPLATE_PRICES: id: [unit, the sheet's price, price-list words (null:
+   sized, no match), true when one price nationwide (fuel)] */
+var TEMPLATE_PRICES = {
+    "ms-pipe":       ["m",   210,     null],
+    "butt-fusion":   ["day", 135,     ["butt", "fusion"]],
+    "generator":     ["day", 40,      ["generator"]],
+    "ron95":         ["L",   3.82,    ["ron95"], true],
+    "engine-oil":    ["L",   30,      ["engine", "oil"]],
+    "general":       ["day", 100,     ["general", "worker"]],
+    "skilled":       ["day", 120,     ["skilled", "worker"]],
+    "cement-bag":    ["bag", 26.80,   ["cement"]],
+    "sand":          ["m3",  108.33,  ["sand"]],
+    "aggregate":     ["m3",  100,     ["aggregate"]],
+    "mixer":         ["day", 12.64,   ["mixer"]],
+    "mixer-diesel":  ["L",   2.94,    ["diesel"], true],
+    "lubricant":     ["L",   14.80,   ["lubricant"]],
+    "concretor":     ["day", 120,     ["concretor"]],
+    "bar":           ["t",   0,       null],
+    "tying-wire":    ["kg",  7.13,    ["tying", "wire"]],
+    "barbender":     ["day", 120,     ["barbender"]],
+    "plywood":       ["pc",  54.67,   ["plywood"]],
+    "wrot-timber":   ["m3",  1836.07, ["timber"]],
+    "carpenter":     ["day", 120,     ["carpenter"]],
+    "brc":           ["pc",  0,       null],
+    "pavior":        ["day", 120,     ["pavior"]],
+    "skim-coat":     ["kg",  0.89,    ["skim"]],
+    "plasterer":     ["day", 120,     ["plasterer"]],
+    "sealer":        ["L",   10.22,   ["sealer"]],
+    "emulsion-paint":["L",   27.53,   ["emulsion"]],
+    "primer":        ["L",   26.03,   ["primer"]],
+    "undercoat":     ["L",   35.55,   ["undercoat"]],
+    "enamel":        ["L",   33.73,   ["enamel"]],
+    "painter":       ["day", 120,     ["painter"]],
+    "handrail":      ["m",   0,       null],
+    "fabricator":    ["day", 120,     ["fabricator"]]
+};
+
+/* reinforcement bar a tonne (RM), by type and diameter */
+var BAR_PRICES = {
+    ms: { 6: 2531.98, 10: 3317.37, 12: 3269.72 },
+    ht: { 10: 3410.97, 12: 3467.95, 16: 3279.87, 20: 3163.47, 25: 3427.80, 32: 3499.00 }
+};
+var BRC_PRICES = { A6: 110.87, A7: 156.71, B5: 152.43 };
+var BRC_SHEET_M2 = 13.2;   /* 2.2 × 6 m */
+/* concrete mixes by grade: cement (one part, 28 bags) : sand : aggregate */
+var CONCRETE_MIXES = { 15: [3, 6], 20: [2, 4], 25: [1.5, 3], 30: [1, 2] };
+
+function tplName(id, vars, task) {
+    return t("buildup.tpl." + id, vars || {}) + (task ? " – " + t("buildup.task." + task, vars || {}) : "");
+}
+
+/* a template line: the sheet's price (or `price`), the price list first */
+function tp(id, project, fields, o) {
+    const d = TEMPLATE_PRICES[id], opt = o || {};
+    const own = d[2] ? priceListMatch(project && project.priceList, { unit: d[0], words: d[2] }) : null;
+    const base = opt.price !== undefined ? opt.price : d[1];
+    return Object.assign({ name: own ? own.name + (opt.task ? " – " + t("buildup.task." + opt.task, opt.vars || {}) : "") : tplName(id, opt.vars, opt.task),
+        unit: d[0], price: own ? round2(own.price) : round2(base * (d[3] ? 1 : regionOf(project).factor)),
+        source: own ? "priceList" : "template" }, fields);
+}
+const tItem = (id, qty, p, o) => tp(id, p, { type: "item", qty: qty }, o);
+const tHr = (id, nos, hrs, p, o) => tp(id, p, { type: "hr", nos: nos, hrs: hrs }, o);
+const tDay = (id, nos, output, p, subs, o) => tp(id, p, { type: "day", nos: nos, output: output, subs: subs || [] }, o);
+const pctLine = (key, pct, vars) => ({ type: "pct", name: t("buildup.preset." + key, vars || {}), pct: pct });
+const unitLine = (key, factor, per, vars, from, to) => ({ type: "unit", name: t("buildup.preset." + key, vars || {}), factor: factor, per: per || 1, from: from || "", to: to || "" });
+const sub = (key, qty, unit, price, per) => ({ name: t("buildup.sub." + key), qty: qty, unit: unit, price: price, per: per || "day" });
+
+/* "200mm", "Y12", "T16", "R10", "Ø25" in the description */
+function diameterOf(text) {
+    const m = String(text || "").match(/(?:^|[^a-z0-9])[rytho](\d{1,2})\b/i) || String(text || "").match(/(?:ø|dia\.?\s*)(\d+)/i) ||
+              String(text || "").match(/(\d+(?:\.\d+)?)\s*mm\b/i);
+    return m ? Number(m[1]) : 0;
+}
+function nearest(table, d, dflt) {
+    const sizes = Object.keys(table).map(Number);
+    if (!d) return dflt;
+    return sizes.reduce((a, b) => Math.abs(b - d) < Math.abs(a - d) ? b : a, sizes[0]);
+}
+function coatsOf(text, dflt) {
+    const m = String(text || "").match(/(\d)\s*(?:coats?|道)/i);
+    return m && Number(m[1]) > 0 ? Number(m[1]) : dflt;
+}
+
+const U_M = /^(m|lm|m run|rm|米)$/i, U_M2 = /^(m2|m²|sq\.?\s*m|sqm|平方米)$/i, U_M3 = /^(m3|m³|cu\.?\s*m|立方米)$/i, U_KG = /^(kg|t|tonne|ton|公斤|吨)$/i;
+
+var TEMPLATES = [
+    /* reinforcement bar: the bar and 5 % wastage, tying wire; unloading,
+       cutting and bending, fixing by the hour a tonne; × 0.001 to a kg */
+    { id: "rebar", words: /rebar|reinforc|\bbars?\b|钢筋/i, not: /mesh|brc|fabric|钢筋网/i, unit: U_KG, build(text, unit, p) {
+        const type = /mild steel|\bms\b|(?:^|[^a-z0-9])r\d|圆钢/i.test(text) ? "ms" : "ht";
+        const d = nearest(BAR_PRICES[type], diameterOf(text), 12);
+        const wire = d <= 12 ? 10 : d <= 25 ? 6 : 5;
+        const cut = d <= 6 ? 30 : d <= 16 ? 20 : d <= 25 ? 15 : 30;
+        const fix = d <= 6 ? 50 : d <= 16 ? 40 : d <= 25 ? 35 : 50;
+        const perKg = !/^(t|tonne|ton|吨)$/i.test(unit);
+        const toKg = perKg ? [unitLine("tonneToKg", 0.001, 1, {}, "t", "kg")] : [];
+        return { sections: {
+            material: [tItem("bar", 1, p, { price: BAR_PRICES[type][d], vars: { d: d, type: t("buildup.tpl.bar." + type) } }), pctLine("wastage", 5),
+                       tItem("tying-wire", wire, p)].concat(toKg),
+            machinery: [],
+            labour: [tHr("general", 1, 1.5, p, { task: "unload" }), tHr("barbender", 1, cut, p, { task: "cutBend" }),
+                     tHr("barbender", 1, fix, p, { task: "fix" })].map(l => Object.assign(l, { of: "t" })).concat(toKg),
+            profit: [pctLine("profit", 15)] }, roundTo: 0 };
+    } },
+    /* BRC mesh: a sheet ÷ its 13.2 m², laps and wastage; fixing */
+    { id: "brc", words: /brc|wire mesh|fabric reinforc|钢筋网/i, unit: U_M2, build(text, unit, p) {
+        const m = text.match(/\b([AB])\s*(\d{1,2})\b/i);
+        const ref = m && BRC_PRICES[(m[1] + m[2]).toUpperCase()] ? (m[1] + m[2]).toUpperCase() : "A7";
+        return { sections: {
+            material: [tItem("brc", 1, p, { price: BRC_PRICES[ref], vars: { ref: ref } }), unitLine("perSheet", 1, BRC_SHEET_M2, { m2: BRC_SHEET_M2 }, "pc", "m2"),
+                       pctLine("lapsWastage", 20)],
+            machinery: [],
+            labour: [tHr("skilled", 1, 0.3, p, { task: "fixMesh" })],
+            profit: [pctLine("profit", 15)] }, roundTo: 0 };
+    } },
+    /* formwork: plywood (a sheet ÷ 2.88 m²) and wrot timber, ÷ 3 uses,
+       nails, wastage; a carpenter and a helper by the hour */
+    { id: "formwork", words: /formwork|shutter|模板/i, unit: U_M2, build(text, unit, p) {
+        const kind = /column|柱/i.test(text) ? "column" : /beam|梁/i.test(text) ? "beam" : "soffit";
+        const timber = { beam: 0.06, column: 0.03, soffit: 0.05 }[kind];
+        const hrs = kind === "soffit" ? 0.75 : 1.15;
+        return { sections: {
+            material: [tItem("plywood", 1, p), unitLine("perSheet", 1, 2.88, { m2: 2.88 }, "pc", "m2"), tItem("wrot-timber", timber, p),
+                       unitLine("uses", 1, 3, { n: 3 }), pctLine("nails", 5), pctLine("wastage", 10)],
+            machinery: [],
+            labour: [tHr("carpenter", 1, hrs, p), tHr("general", 1, 0.15, p)],
+            profit: [pctLine("profit", 15)] }, roundTo: 0 };
+    } },
+    /* site-mixed concrete: cement, sand and aggregate for the grade's mix,
+       shrinkage, compaction and wastage, ÷ the parts to a m³; a mixer with
+       its diesel and lubricant; the concreting gang, placing */
+    { id: "concrete", words: /concrete|混凝土|砼/i, not: /precast|sump|预制/i, unit: U_M3, build(text, unit, p) {
+        const g = text.match(/\b(?:g|grade\s*|c)(\d{2})\b/i);
+        const grade = g && CONCRETE_MIXES[g[1]] ? Number(g[1]) : /lean|blinding|垫层/i.test(text) ? 15 : 25;
+        const mix = CONCRETE_MIXES[grade], parts = 1 + mix[0] + mix[1];
+        const mixName = "1:" + mix[0] + ":" + mix[1];
+        return { sections: {
+            material: [tItem("cement-bag", 28, p), tItem("sand", mix[0], p), tItem("aggregate", mix[1], p),
+                       pctLine("shrinkCompact", 50), unitLine("parts", 1, parts, { n: parts, mix: mixName }, "", "m3")],
+            machinery: [tDay("mixer", 1, 26, p, [sub("diesel", 14.4, "L", tp("mixer-diesel", p).price), sub("lubricant", 0.56, "L", tp("lubricant", p).price)])],
+            labour: [tDay("concretor", 1, 26, p), tDay("general", 4, 26, p), tDay("general", 1, 1, p, [], { task: "place" })],
+            profit: [pctLine("profit", 15)] }, roundTo: 0, grade: grade };
+    } },
+    /* handrail: the rail and 5 % wastage; a fabricator and a helper */
+    { id: "handrail", words: /handrail|hand rail|railing|扶手|栏杆/i, unit: U_M, build(text, unit, p) {
+        const d = diameterOf(text) && diameterOf(text) <= 60 ? 50 : 75;
+        return { sections: {
+            material: [tItem("handrail", 1, p, { price: d === 50 ? 293.96 : 263.97, vars: { d: d } }), pctLine("wastage", 5)],
+            machinery: [],
+            labour: [tHr("fabricator", 1, 0.2, p), tHr("general", 1, 0.2, p)],
+            profit: [pctLine("profit", 15)] }, roundTo: 0 };
+    } },
+    /* enamel paint to steelwork: primer, undercoat, enamel; preparing and
+       applying, brushes; overhead and profit */
+    { id: "enamel", words: /enamel|gloss|磁漆|调和漆|(paint|油漆).*(steel|metal|钢|铁)|(steel|metal|钢|铁).*(paint|油漆)/i, unit: U_M2, build(text, unit, p) {
+        const coats = Math.max(3, coatsOf(text, 4));
+        return { sections: {
+            material: [tItem("primer", 0.08, p), tItem("undercoat", 0.08, p), tItem("enamel", round2((coats - 2) * 0.08), p), pctLine("wastage", 5)],
+            machinery: [],
+            labour: [tHr("painter", 1, 0.02, p, { task: "prepare" }), tHr("painter", 1, round2(coats * 0.1), p, { task: "apply", vars: { n: coats } }), pctLine("brushes", 3)],
+            profit: [pctLine("overhead", 5), pctLine("profit", 30)] }, roundTo: 0 };
+    } },
+    /* emulsion paint: a sealer and the emulsion coats; preparing and
+       applying, brushes; overhead and profit */
+    { id: "emulsion", words: /emulsion|paint|油漆|涂料|乳胶漆/i, unit: U_M2, build(text, unit, p) {
+        const coats = Math.max(2, coatsOf(text, 3));
+        return { sections: {
+            material: [tItem("sealer", 0.08, p), tItem("emulsion-paint", round2((coats - 1) * 0.08), p), pctLine("wastage", 5)],
+            machinery: [],
+            labour: [tHr("painter", 1, 0.02, p, { task: "prepare" }), tHr("painter", 1, round2(coats * 0.1), p, { task: "apply", vars: { n: coats } }), pctLine("brushes", 3)],
+            profit: [pctLine("overhead", 5), pctLine("profit", 30)] }, roundTo: 0 };
+    } },
+    /* plainface: a skim coat, 9 kg a m² at 5 mm; a plasterer and a helper */
+    { id: "plainface", words: /plain\s*face|skim|批灰|腻子/i, unit: U_M2, build(text, unit, p) {
+        const mm = Math.round(thicknessOf(text, 5) * 1000 * 10) / 10;
+        return { sections: {
+            material: [tItem("skim-coat", round2(9 * mm / 5), p, { vars: { mm: mm } }), pctLine("wastage", 5)],
+            machinery: [],
+            labour: [tHr("plasterer", 1, 0.4, p), tHr("general", 1, 0.4, p)],
+            profit: [pctLine("profit", 15)] }, roundTo: 0 };
+    } },
+    /* cement and sand paving: a m³ of the mix with ⅓ wastage, mixed and
+       laid; then at the thickness to a m² */
+    { id: "paving", words: /paving|cement\s*(and|&)?\s*sand|水泥砂浆|铺地/i, not: /screed|turapan simen|plaster|render|找平|抹灰|批荡/i, unit: U_M2, build(text, unit, p) {
+        const m = text.match(/1\s*:\s*(\d+(?:\.\d+)?)/);
+        const sand = m ? Number(m[1]) : 3;
+        const th = thicknessOf(text, 20), mm = Math.round(th * 1000 * 10) / 10;
+        const at = unitLine("thickness", th, 1, { mm: mm }, "m3", unit || "m2");
+        return { sections: {
+            material: [tItem("cement-bag", 28, p), tItem("sand", sand, p), pctLine("wastage", 33.33), unitLine("parts", 1, 1 + sand, { n: 1 + sand, mix: "1:" + sand }, "", "m3"), at],
+            machinery: [],
+            labour: [tHr("general", 1, 2, p, { task: "mix" }), tHr("pavior", 1, 0.25, p), tHr("general", 1, 0.25, p)].map(l => Object.assign(l, { of: "m3" }))
+                .concat([Object.assign({}, at)]),
+            profit: [pctLine("profit", 15)] }, roundTo: 0 };
+    } },
+    /* steel pipe (the drainage sheet): the pipe and 5 % wastage; a backhoe
+       with its diesel and hydraulic oil, a butt-fusion machine, a generator
+       with RON95 and engine oil, at 36 m a day; two general workers;
+       profit 10 %, rounded up to RM 5 */
+    { id: "msPipe", words: /(\bms\b|mild steel|steel|\bgi\b|钢).*(pipe|管)|(pipe|管).*(\bms\b|mild steel|steel|钢)/i, unit: U_M, build(text, unit, p) {
+        const d = diameterOf(text) || 200;
+        return { sections: {
+            material: [tItem("ms-pipe", 1, p, { price: round2(210 * d / 200), vars: { d: d } }), pctLine("wastage", 5)],
+            machinery: [dayLine("backhoe", 1, 36, p), tDay("butt-fusion", 1, 36, p),
+                        tDay("generator", 1, 36, p, [sub("ron95", 40, "L", tp("ron95", p).price), sub("engineOil", 0.06, "L", tp("engine-oil", p).price)])],
+            labour: [tDay("general", 2, 36, p, [], { price: 85 })],
+            profit: [pctLine("profit", 10)] }, roundTo: 5 };
+    } }
+];
+
+/* The team's template for a row, or null. */
+function templateFor(text, unit) {
+    return TEMPLATES.find(x => x.words.test(text) && !(x.not && x.not.test(text)) && (!unit || x.unit.test(unit))) || null;
+}
+
 /* A draft build-up for a measurement row, or null when no recipe fits. */
 function suggestBuildUp(row, project) {
     const text = String((row && row.description) || "");
-    const unit = String((row && row.unit) || "");
+    const unit = String((row && row.unit) || "").trim();
+    const tpl = templateFor(text, unit);
+    if (tpl) return Object.assign({ recipe: tpl.id, template: true }, tpl.build(text, unit, project));
     const recipe = RECIPES.find(r => r.words.test(text) && (!unit || r.unit.test(unit)));
     if (!recipe) return null;
     const material = [];
@@ -396,8 +628,11 @@ function renderBuildUpCard(vo, project, opts) {
     /* how a line is worked out, as the QS writes it */
     function calc(sec, j, l, before) {
         if (l.type === "pct") return num(sec, j, "pct", l.pct, "0.1", undefined, "bu-n-s") + " % × " + escapeHtml(rm(before));
-        if (l.type === "unit") return "× " + num(sec, j, "factor", l.factor, "0.001") + " " +
+        if (l.type === "unit") return "× " + num(sec, j, "factor", l.factor, "0.001") + (num0(l.per) > 0 && num0(l.per) !== 1 ? " ÷ " + num(sec, j, "per", l.per, "0.01", undefined, "bu-n-s") : "") + " " +
             txt(sec, j, "from", l.from, t("buildup.unitFrom"), undefined, "bu-u") + " → " + txt(sec, j, "to", l.to, rowUnit, undefined, "bu-u");
+        if (l.type === "hr") return '<span class="bu-calc">' + num(sec, j, "nos", l.nos === undefined ? 1 : l.nos, "1", undefined, "bu-n-s") + " × RM " + num(sec, j, "price", l.price, "0.01") +
+            " " + escapeHtml(t("buildup.perDay")) + " ÷ " + HOURS_A_DAY + " " + escapeHtml(t("buildup.unitHr")) + " × " + num(sec, j, "hrs", l.hrs, "0.01", undefined, "bu-n-s") +
+            " " + escapeHtml(t("buildup.unitHr")) + "/" + (l.of ? escapeHtml(l.of) : rowUnit) + "</span>";
         if (l.type === "day") {
             const subs = (l.subs || []).map((sb, k) => '<div class="bu-sub">+ ' + txt(sec, j, "name", sb.name, t("buildup.namePh"), k, "bu-t bu-t-s") + " " +
                 num(sec, j, "qty", sb.qty, "0.01", k, "bu-n-s") + " " + txt(sec, j, "unit", sb.unit, "", k, "bu-u") + " × RM " + num(sec, j, "price", sb.price, "0.01", k) +
@@ -542,7 +777,7 @@ function renderRentOrBuy(plant, state) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
+    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, TEMPLATES, templateFor, diameterOf, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
         lineAmount, runSection, newLine, newSub, editBuildUp, roundUp, thicknessOf, rentOrBuy, parsePriceList,
         renderBuildUpCard, renderBuildUpSummary, renderRentOrBuy };
 }
