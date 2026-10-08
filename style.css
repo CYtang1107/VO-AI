@@ -3988,3 +3988,7 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .dash-stats-card .stat-card:has(.stat-icon.purple) h2 { font-size: 18px; }
     .dash-stats-card .stat-icon { width: 24px; height: 24px; font-size: 11px; }
 }
+/* what needs you narrower; the cost overview and the VOs wider */
+@media (min-width: 1001px) {
+    .dash-grid, .dash-has-cost .dash-grid { grid-template-columns: minmax(0, 1fr) minmax(250px, 24%); }
+}
