@@ -508,7 +508,7 @@ if (typeof document !== "undefined") {
                     sub: escapeHtml(isConsultant ? t("projects.emptyConsultant") : t("projects.emptyOther"))
                   }) +
                   "</div>"
-                : db.projects.map(p => renderProjectCard(p, session)).join("");
+                : db.projects.map(p => renderProjectCard(typeof forViewer === "function" ? forViewer(p, session) : p, session)).join("");
 
             list.querySelectorAll(".project-card").forEach(card => {
                 const project = db.projects.find(p => p.id === card.dataset.project);

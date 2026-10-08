@@ -295,3 +295,14 @@ test("a register saved before the demo conditions of contract existed gets it ad
     assert.strictEqual(up.projects[0].documents.filter(d => d.id === "D3").length, 1);
     assert.strictEqual(upgradeDemo(up).projects[0].documents.filter(d => d.id === "D3").length, 1);
 });
+
+test("the client sees a VO only once the consultant QS has passed it on; the others see every VO", () => {
+    const { forViewer } = require("../js/store.js");
+    const p = seedDB().projects[0];
+    const seen = role => forViewer(p, { role: role }).vos.map(v => v.no);
+    assert.deepStrictEqual(seen("client"), ["VO-001"], "certified; VO-002 is with the QS, VO-003 a draft");
+    assert.deepStrictEqual(seen("consultant"), ["VO-001", "VO-002", "VO-003"]);
+    const withClient = Object.assign({}, p, { vos: p.vos.map(v => v.no === "VO-002" ? Object.assign({}, v, { evaluateStatus: "Approved" }) : v) });
+    assert.deepStrictEqual(forViewer(withClient, { role: "client" }).vos.map(v => v.no), ["VO-001", "VO-002"], "waiting for the client's approval");
+    assert.strictEqual(p.vos.length, 3, "the stored project is unchanged");
+});

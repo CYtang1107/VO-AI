@@ -498,7 +498,22 @@ function createProject(data, session) {
 }
 
 function getProject(projectId) {
-    return loadDB().projects.find(p => p.id === projectId) || null;
+    const p = loadDB().projects.find(p => p.id === projectId) || null;
+    return p ? forViewer(p) : null;
+}
+
+/* The client (业主) sees a VO once the consultant QS has approved it and
+   passed it on: waiting for their approval, approved or rejected. Drafts
+   and VOs still with the contractor, the design team or the QS are not
+   theirs to see. The stored project is unchanged (updateProject). */
+function clientSees(vo) {
+    /* the stages "client", "done" and "closed" of permissions.js voStage */
+    return !!vo && (vo.certifiedStatus === "Approved" || vo.certifiedStatus === "Rejected" || vo.evaluateStatus === "Approved");
+}
+function forViewer(project, session) {
+    const s = session || (typeof getSession === "function" ? getSession() : null);
+    if (!project || !s || s.role !== "client") return project;
+    return Object.assign({}, project, { vos: (project.vos || []).filter(clientSees) });
 }
 
 function updateProject(projectId, mutator) {
@@ -908,7 +923,7 @@ function placeDemoMedia(vo) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         DB_KEY, CLOUD_DB_KEY, cloudSession, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
-        loadDB, saveDB, resetDB, demoDB, upgradeDemo, nextVoNumber, deleteVO, SEED_ZH, shiftIsoDays, DEMO_FILES,
+        loadDB, saveDB, resetDB, demoDB, upgradeDemo, forViewer, clientSees, nextVoNumber, deleteVO, SEED_ZH, shiftIsoDays, DEMO_FILES,
         getSession, setSession, clearSession,
         isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,
         passcodeSupported,
