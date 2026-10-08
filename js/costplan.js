@@ -202,7 +202,15 @@ function viewCurve(curve, range) {
     return Object.assign({}, curve, { points: pts.slice(0, Math.max(2, end)) });
 }
 
-function renderSCurveSvg(curve, width, height) {
+/* A stretch of the curve: months i0 to i1 (zoomed in on the chart). */
+function zoomCurve(curve, i0, i1) {
+    if (!curve) return curve;
+    const n = curve.points.length;
+    const a = Math.max(0, Math.min(n - 2, Math.round(i0))), b = Math.max(a + 1, Math.min(n - 1, Math.round(i1)));
+    return Object.assign({}, curve, { points: curve.points.slice(a, b + 1), zoomed: a > 0 || b < n - 1 });
+}
+
+function renderSCurveSvg(curve, width, height, opts) {
     /* drawn at the width it is shown at, so text stays 11px on a phone;
        taller on a wide screen, so the lines do not flatten; `height`, when
        given, fits the chart to the screen (the dashboard: the whole curve in
@@ -211,16 +219,23 @@ function renderSCurveSvg(curve, width, height) {
     const H = height ? Math.max(130, Math.min(460, Math.round(height)))
         : Math.max(240, Math.min(440, Math.round(W * 0.4))), L = 70, R = 14, T = 16, B = 34;
     const pts = curve.points;
-    const max = Math.max.apply(null, pts.map(p => Math.max(p.planned, p.forecast, p.actual || 0))) || 1;
-    /* about one gridline per 55 px of height */
-    const step = niceStep(max / Math.max(4, Math.floor((H - T - B) / 55)));
-    const top = Math.ceil(max / step) * step;
+    const vals = [];
+    pts.forEach(p => { vals.push(p.planned, p.forecast); if (p.actual !== null) vals.push(p.actual); });
+    const max = Math.max.apply(null, vals) || 1;
+    /* zoomed in (opts.fitY): the money axis covers only what is in view,
+       so the gap between the three lines shows; otherwise from RM 0 */
+    const fit = !!(opts && opts.fitY);
+    const min = fit ? Math.min.apply(null, vals) : 0;
+    const lines = Math.max(4, Math.floor((H - T - B) / 55)); /* about one gridline per 55 px */
+    const step = niceStep(Math.max(1, (max - min) * (fit ? 1.1 : 1)) / lines);
+    const bottom = fit ? Math.max(0, Math.floor(min / step) * step) : 0;
+    const top = Math.max(bottom + step, Math.ceil(max / step) * step);
     const x = i => L + (pts.length === 1 ? 0 : i * (W - L - R) / (pts.length - 1));
-    const y = v => T + (H - T - B) * (1 - v / top);
+    const y = v => T + (H - T - B) * (1 - (v - bottom) / (top - bottom));
     const path = key => pts.map((p, i) => p[key] === null ? null : [x(i), y(p[key])]).filter(Boolean)
         .map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" ");
     const grid = [];
-    for (let v = 0; v <= top + 1; v += step) {
+    for (let v = bottom; v <= top + 1; v += step) {
         grid.push('<line class="sc-grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '"/>' +
             '<text class="sc-tick" x="' + (L - 8) + '" y="' + (y(v) + 4).toFixed(1) + '" text-anchor="end">' + escapeHtml(money(v)) + "</text>");
     }
@@ -233,7 +248,7 @@ function renderSCurveSvg(curve, width, height) {
         '<text class="sc-tick" x="' + x(i).toFixed(1) + '" y="' + (H - 12) + '" text-anchor="' + (i === pts.length - 1 ? "end" : i === 0 ? "start" : "middle") + '">' +
         escapeHtml(shortMonth(p.date)) + "</text>").join("");
     let today = "";
-    if (curve.todayX !== null && curve.todayX >= 0 && curve.todayX <= 1 && curve.today <= pts[pts.length - 1].date) {
+    if (curve.todayX !== null && curve.todayX >= 0 && curve.todayX <= 1 && curve.today <= pts[pts.length - 1].date && curve.today >= pts[0].date) {
         /* on the same month scale as the points: between the two
            month-ends today falls between */
         const d = dayNo(curve.today);
@@ -457,38 +472,104 @@ function renderCostDetail(project, todayIso, opts) {
     return tabs + '<div class="cd-pane cd-' + tab + '">' + body + "</div>";
 }
 
-/* The crosshair: snaps to the nearest month, lists all three series. */
-function mountCostChart(host, curve) {
-    const svg = host.querySelector(".sc-svg"), tip = host.querySelector(".sc-tip");
-    if (!svg || !tip || !curve) return;
-    const cross = svg.querySelector(".sc-cross"), hit = svg.querySelector(".sc-hit");
-    const L = +svg.dataset.left, R = +svg.dataset.right, W = +svg.dataset.width;
-    const n = curve.points.length;
-    function show(evt) {
-        const box = svg.getBoundingClientRect();
-        const sx = (evt.clientX - box.left) * W / box.width;
-        const i = Math.max(0, Math.min(n - 1, Math.round((sx - L) / ((W - L - R) / Math.max(1, n - 1)))));
-        const px = L + i * (W - L - R) / Math.max(1, n - 1);
-        cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.style.display = "";
-        const p = curve.points[i];
-        tip.textContent = "";
-        const head = document.createElement("div"); head.className = "sc-tip-head"; head.textContent = shortMonth(p.date); tip.appendChild(head);
-        [["planned", p.planned], ["forecast", p.forecast], ["actual", p.actual]].forEach(r => {
-            const row = document.createElement("div"); row.className = "sc-tip-row";
-            const k = document.createElement("i"); k.className = "k k-" + r[0]; row.appendChild(k);
-            const v = document.createElement("strong"); v.textContent = r[1] === null ? "—" : rm(r[1]); row.appendChild(v);
-            const l = document.createElement("span"); l.textContent = t("costplan.series." + r[0]); row.appendChild(l);
-            tip.appendChild(row);
-        });
-        tip.hidden = false;
-        const left = (px / W) * box.width;
-        tip.style.left = Math.min(box.width - 190, Math.max(0, left + 12)) + "px";
+/* The crosshair: snaps to the nearest month, lists all three series.
+   Scroll on the chart zooms in and out around the pointer (the money axis
+   then covers only what is in view, so the three lines separate); drag
+   moves along; a double-click or "reset" shows it all again. */
+function mountCostChart(host, full) {
+    const wrap = host.querySelector(".sc-wrap"), tip = host.querySelector(".sc-tip");
+    if (!wrap || !tip || !full) return;
+    const first = wrap.querySelector(".sc-svg");
+    if (!first) return;
+    const vb = first.getAttribute("viewBox").split(" ").map(Number);
+    const W0 = vb[2], H0 = vb[3];
+    const N = full.points.length;
+    let i0 = 0, i1 = N - 1;
+    let reset = wrap.querySelector(".sc-reset");
+    if (!reset) {
+        reset = document.createElement("button");
+        reset.type = "button"; reset.className = "sc-reset"; reset.hidden = true;
+        reset.textContent = t("costplan.zoomReset");
+        wrap.appendChild(reset);
+        const hint = document.createElement("span");
+        hint.className = "sc-hint"; hint.textContent = t("costplan.zoomHint");
+        wrap.appendChild(hint);
     }
-    hit.addEventListener("pointermove", show);
-    hit.addEventListener("pointerdown", show);
-    hit.addEventListener("pointerleave", () => { cross.style.display = "none"; tip.hidden = true; });
+    function redraw() {
+        const view = zoomCurve(full, i0, i1);
+        const old = wrap.querySelector(".sc-svg");
+        const tmp = document.createElement("div");
+        tmp.innerHTML = renderSCurveSvg(view, W0, H0, { fitY: view.zoomed });
+        old.replaceWith(tmp.firstChild);
+        reset.hidden = !view.zoomed;
+        wire(view);
+    }
+    function wire(curve) {
+        const svg = wrap.querySelector(".sc-svg");
+        const cross = svg.querySelector(".sc-cross"), hit = svg.querySelector(".sc-hit");
+        const L = +svg.dataset.left, R = +svg.dataset.right, W = +svg.dataset.width;
+        const n = curve.points.length;
+        const at = evt => {
+            const box = svg.getBoundingClientRect();
+            const sx = (evt.clientX - box.left) * W / box.width;
+            return { box: box, f: Math.max(0, Math.min(1, (sx - L) / (W - L - R))) };
+        };
+        function show(evt) {
+            const a = at(evt), box = a.box;
+            const i = Math.max(0, Math.min(n - 1, Math.round(a.f * Math.max(1, n - 1))));
+            const px = L + i * (W - L - R) / Math.max(1, n - 1);
+            cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.style.display = "";
+            const p = curve.points[i];
+            tip.textContent = "";
+            const head = document.createElement("div"); head.className = "sc-tip-head"; head.textContent = shortMonth(p.date); tip.appendChild(head);
+            [["planned", p.planned], ["forecast", p.forecast], ["actual", p.actual]].forEach(r => {
+                const row = document.createElement("div"); row.className = "sc-tip-row";
+                const k = document.createElement("i"); k.className = "k k-" + r[0]; row.appendChild(k);
+                const v = document.createElement("strong"); v.textContent = r[1] === null ? "—" : rm(r[1]); row.appendChild(v);
+                const l = document.createElement("span"); l.textContent = t("costplan.series." + r[0]); row.appendChild(l);
+                tip.appendChild(row);
+            });
+            tip.hidden = false;
+            const left = (px / W) * box.width;
+            tip.style.left = Math.min(box.width - 190, Math.max(0, left + 12)) + "px";
+        }
+        let drag = null;
+        hit.addEventListener("pointermove", evt => {
+            if (drag) {
+                const span = i1 - i0;
+                const shift = Math.round((drag.x - evt.clientX) / (drag.w / Math.max(1, span)));
+                if (shift) {
+                    const a = Math.max(0, Math.min(N - 1 - span, drag.i0 + shift));
+                    if (a !== i0) { i0 = a; i1 = a + span; drag.moved = true; redraw(); return; }
+                }
+            }
+            show(evt);
+        });
+        hit.addEventListener("pointerdown", evt => {
+            drag = { x: evt.clientX, w: svg.getBoundingClientRect().width * (W - L - R) / W, i0: i0 };
+            show(evt);
+        });
+        hit.addEventListener("pointerup", () => { drag = null; });
+        hit.addEventListener("pointerleave", () => { drag = null; cross.style.display = "none"; tip.hidden = true; });
+        hit.addEventListener("dblclick", () => { i0 = 0; i1 = N - 1; redraw(); });
+        svg.addEventListener("wheel", evt => {
+            if (N < 3) return;
+            evt.preventDefault();
+            const f = at(evt).f;
+            const span = i1 - i0;
+            const next = evt.deltaY < 0 ? Math.max(2, Math.round(span * 0.7)) : Math.min(N - 1, Math.max(span + 1, Math.round(span / 0.7)));
+            if (next === span) return;
+            const centre = i0 + f * span;
+            let a = Math.round(centre - f * next);
+            a = Math.max(0, Math.min(N - 1 - next, a));
+            i0 = a; i1 = a + next;
+            redraw();
+        }, { passive: false });
+    }
+    reset.onclick = () => { i0 = 0; i1 = N - 1; redraw(); };
+    wire(full);
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, niceStep };
+    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep };
 }

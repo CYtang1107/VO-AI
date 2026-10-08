@@ -3890,3 +3890,12 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     .dash-side .ai-card #actionList .finding { padding: 8px 10px; margin-bottom: 6px; }
     .dash-side .ai-card .empty-state { padding: 12px; }
 }
+
+/* the S-curve zooms: scroll to zoom, drag to move, "show all" to reset */
+.sc-wrap .sc-svg { touch-action: pan-y; cursor: crosshair; }
+.sc-reset { position: absolute; top: 4px; right: 16px; font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--accent); background: #fff; color: var(--accent); cursor: pointer; }
+.sc-reset[hidden] { display: none; }
+.sc-hint { position: absolute; top: 6px; right: 16px; font-size: 11px; color: var(--ink-3); pointer-events: none; opacity: .75; }
+.sc-reset:not([hidden]) ~ .sc-hint { display: none; }
+@media (hover: none) { .sc-hint { display: none; } }
