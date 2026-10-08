@@ -3798,6 +3798,17 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 }
 
 /* earned value in plain words: three cards, green when good, red when not */
+/* 项目绩效概览: two short tables, cost and schedule */
+.evm-sums { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin: 6px 0 12px; }
+.evm-sum h4 { margin: 0 0 6px; font-size: 15px; }
+.evm-sum-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.evm-sum-table th, .evm-sum-table td { padding: 9px 4px; border-bottom: 1px solid var(--rule); text-align: left; font-weight: normal; }
+.evm-sum-table th, .evm-sum-table td { background: none !important; }
+.evm-sum-table thead th { font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--rule-strong); }
+.evm-sum-table .num { text-align: right; white-space: nowrap; }
+.evm-sum-table tr.evm-sum-strong th, .evm-sum-table tr.evm-sum-strong td { font-weight: 700; }
+.evm-sum-table td.evm-v-bad { color: var(--verdict-diff); }
+.evm-sum-table td.evm-v-good { color: var(--verdict-same); }
 .evm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 6px 0 10px; }
 .evm-card { border: 1px solid var(--rule); border-left-width: 4px; border-radius: 10px; padding: 10px 12px; display: grid; gap: 3px; background: var(--paper); }
 .evm-card small { font-size: 12px; color: var(--ink-3); }

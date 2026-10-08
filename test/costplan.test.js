@@ -92,8 +92,8 @@ test("earned value of the demo: behind schedule and slightly over budget", () =>
     assert.strictEqual(e.cpi, 0.96);
     assert.ok(e.vac < 0, "an overrun is forecast");
     const html = c.renderEarnedValue(e);
-    assert.match(html, /Schedule performance index <abbr>SPI<\/abbr>[\s\S]*0\.86[\s\S]*Schedule delay/);
-    assert.match(html, /BAC \/ CPI/);
+    assert.match(html, /Schedule performance index \(SPI\)<\/th><td class="num evm-v-bad">0\.86/);
+    assert.match(html, /Forecast cost overrun \(VAC\)/);
 });
 
 test("without an actual cost on every certificate, only the schedule figures are worked out", () => {
@@ -129,7 +129,6 @@ test("the EAC situation: as planned, CPI continues, past variances won't recur, 
 test("the EAC choice is shown with its formula; only those who keep the figures can change it", () => {
     const p = Object.assign(project(), { eacMethod: "atypical" });
     let html = c.renderEarnedValue(c.earnedValue(p, "2026-09-12"), { editable: true });
-    assert.match(html, /<td class="evm-formula">AC \+ \(BAC − EV\)<\/td>/);
     assert.match(html, /<option value="atypical" selected>/);
     assert.match(html, /equals BAC \/ CPI, since AC = EV \/ CPI/);
     assert.doesNotMatch(html, /id="evmMethod" disabled/);
@@ -141,8 +140,8 @@ test("the EAC choice is shown with its formula; only those who keep the figures 
 
 test("a variance of exactly zero reads as on budget, not under budget", () => {
     const html = c.renderEarnedValue(c.earnedValue(Object.assign(project(), { eacMethod: "plan" }), "2026-09-12"), {});
-    assert.match(html, /<abbr>VAC<\/abbr>[\s\S]*?RM 0\.00[\s\S]*?= on budget/);
-    assert.doesNotMatch(html, /Forecast cost underrun/);
+    assert.match(html, /Variance at completion \(VAC\)<\/th><td class="num">RM 0</);
+    assert.doesNotMatch(html, /Forecast cost (overrun|saving)/);
 });
 
 test("the EAC choice sits in a folded Advanced section that names the current choice", () => {
@@ -164,18 +163,16 @@ test("the S-curve zoomed to date ends the month after today; the whole programme
 });
 
 
-test("earned value opens with three plain-language cards; every figure is one click away, in order", () => {
+test("project performance: two short tables, cost then schedule, each figure named with its abbreviation", () => {
     const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), {});
-    const shown = html.slice(0, html.indexOf('data-fold="evm-figures"'));
-    assert.match(shown, /class="evm-cards"/);
-    ["Cost performance", "Schedule performance", "Forecast at completion"].forEach(k => assert.ok(shown.includes("<small>" + k + "</small>"), k + " card"));
-    assert.match(shown, /For every RM 1\.00 spent, the budgeted value of work completed is RM [\d.]+\./);
-    assert.ok(!shown.includes("<abbr>"), "no abbreviation before the fold");
-    const folded = html.slice(html.indexOf('data-fold="evm-figures"'));
-    const order = ["Cost baseline", "<abbr>BAC</abbr>", "Performance variance analysis", "<abbr>CV</abbr>", "<abbr>SV</abbr>", "<abbr>VAC</abbr>", "Cost forecast at completion", "<abbr>EAC</abbr>", "<abbr>ETC</abbr>",
-                   "<abbr>PV</abbr>", "<abbr>EV</abbr>", "<abbr>AC</abbr>", "<abbr>SPI</abbr>", "<abbr>CPI</abbr>"];
+    const order = ["1. Cost management and forecast", "Budget at completion (BAC)", "Cost variance (CV)", "Cost performance index (CPI)",
+                   "Estimate at completion (EAC)", "Forecast cost overrun (VAC)",
+                   "2. Schedule management and forecast", "Schedule performance index (SPI)", "Behind schedule now", "Forecast completion delay"];
     let at = -1;
-    order.forEach(k => { const i = folded.indexOf(k); assert.ok(i > at, k + " in order"); at = i; });
+    order.forEach(k => { const i = html.indexOf(k); assert.ok(i > at, k + " in order"); at = i; });
+    assert.match(html, /RM 12,555,856</, "whole ringgit");
+    assert.match(html, /Behind schedule now<\/th><td class="num evm-v-bad">\d+ days</);
+    assert.doesNotMatch(html, /evm-cards|data-fold="evm-figures"/);
 });
 
 test("the cost overview is for the contractor, the design team and the client; the design team and the client keep it", () => {
@@ -199,8 +196,7 @@ test("the S-curve page: one view at a time — the curve, how the project is doi
     assert.match(html, /Forecast final cost/);
     assert.doesNotMatch(html, /cp-detail-link|cp-foot/);
     html = at("health");
-    assert.match(html, /data-fold="evm-figures" open/);
-    assert.match(html, /class="evm-cards"/);
+    assert.match(html, /class="evm-sums"/);
     html = at("table");
     assert.match(html, /class="cp-table"/);
     assert.strictEqual((html.match(/<tr><td>/g) || []).length, 18, "every month");
@@ -253,17 +249,19 @@ test("the team's own monthly figures stand in for the model's, and the planned v
     assert.doesNotMatch(c.renderCostDetail(p, "2026-09-12", { tab: "table", editable: false }), /cfFile|data-cf-key/);
 });
 
-test("in Chinese the performance figures go by their Chinese names, formulas too — no English abbreviations", () => {
+test("in Chinese the performance figures go by their Chinese names, the abbreviation in brackets", () => {
     const store = {};
     const had = globalThis.localStorage;
     globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
     require("../js/i18n.js").setLang("zh");
     try {
         const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), { editable: true });
-        const text = html.replace(/<[^>]+>/g, " ");
-        assert.doesNotMatch(text, /\b(BAC|PV|EV|AC|CV|SV|CPI|SPI|EAC|ETC|VAC)\b/);
-        assert.match(html, /<td class="evm-formula">挣值 − 计划值<\/td>/);
-        assert.match(html, /<td class="evm-formula">完工预算 ÷ 成本绩效指数<\/td>/);
+        assert.match(html, /<h4>1\. 成本管理与预测<\/h4>/);
+        assert.match(html, /<th>完工预算（BAC）<\/th>/);
+        assert.match(html, /<th>预计成本超支（VAC）<\/th>/);
+        assert.match(html, /<h4>2\. 进度管理与预测<\/h4>/);
+        assert.match(html, /<th>当前进度滞后<\/th><td class="num evm-v-bad">\d+ 天<\/td>/);
+        assert.match(html, /<th>预计完工延误<\/th>/);
     } finally { globalThis.localStorage = had; }
 });
 
