@@ -18,7 +18,7 @@
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t } = require("./i18n.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, seedText } = require("./ui.js");
     var { prettyDate } = require("./calc.js");
 }
 
@@ -78,7 +78,7 @@ function renderMediaField(vo, field, opts) {
             : (src ? '<a href="' + escapeHtml(src) + '" target="_blank" rel="noopener">' : '<a href="#" class="file-open" data-file-id="' + escapeHtml(d.id) + '">') +
               '<img alt=""' + at + "></a>";
         return '<figure class="media-thumb' + (isVideoDoc(d) ? " is-video" : "") + '">' + body +
-            '<figcaption>' + (isVideoDoc(d) ? "🎬 " : "") + escapeHtml(d.name) + (d.geo ? ' <span title="' + escapeHtml(t("capture.geo.placed")) + '">📍</span>' : "") +
+            '<figcaption>' + (isVideoDoc(d) ? "🎬 " : "") + escapeHtml(typeof seedText === "function" ? seedText(d.name) : d.name) + (d.geo ? ' <span title="' + escapeHtml(t("capture.geo.placed")) + '">📍</span>' : "") +
                 (d.at ? '<small>' + escapeHtml(prettyDate(d.at)) + "</small>" : "") + "</figcaption>" +
             (editable ? '<button type="button" class="media-remove" data-media="' + field + '" data-doc-id="' + escapeHtml(d.id) + '" aria-label="' +
                 escapeHtml(t("capture.removePhoto")) + '">×</button>' : "") +

@@ -624,7 +624,7 @@ function renderWorkflow(vo, project, role, ui) {
     } else if (role === "consultant" && stage === "consultant") {
         const answered = vo.infoResponse && vo.infoResponse.forRequest === infoRequestKey(vo);
         body += "<h4>" + escapeHtml(t("wf.q.title")) + "</h4>" +
-            '<ol class="wf-todo"><li>' + escapeHtml(t("wf.q.todo1")) + "</li><li>" + escapeHtml(t("wf.q.todo2")) + "</li><li>" + escapeHtml(t("wf.q.todo3")) + "</li></ol>" +
+
             (answered ? wfNote(t("wf.q.answered", { date: prettyDate(vo.infoResponse.at), text: vo.infoResponse.text || "—" }), "ok") : "") +
             /* before and after, and what the AI saw in the completed photos */
             '<div class="media-pair">' + renderMediaField(vo, "beforeMedia", {}) + renderMediaField(vo, "afterMedia", {}) + "</div>" + wfPhotoCheck() +

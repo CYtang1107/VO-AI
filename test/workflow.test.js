@@ -13,7 +13,7 @@ test("the demo VOs: VO-001 done, VO-002 with the consultant QS, VO-003 being des
 });
 
 test("the contractor describes (step 1), the contract agent checks (step 2), then it can be sent", () => {
-    const v = draft();
+    const v = Object.assign(draft(), { beforeMedia: [] });
     let html = renderWorkflow(v, project(), "contractor", { step: 1 });
     /* the site before the work: a photo is required, a video optional */
     assert.match(html, /data-media="beforeMedia" accept="image\/\*" capture="environment"/);
