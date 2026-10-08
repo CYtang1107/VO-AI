@@ -28,8 +28,8 @@ import {
 // The vision models may live elsewhere than the text models: VISION_BASE_URL
 // and VISION_API_KEY (e.g. Qwen Cloud), else AI_BASE_URL and
 // DASHSCOPE_API_KEY, else DashScope international.
-const DASHSCOPE = Deno.env.get("VISION_BASE_URL") || Deno.env.get("AI_BASE_URL") ||
-    "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+const DASHSCOPE = (Deno.env.get("VISION_BASE_URL") || Deno.env.get("AI_BASE_URL") ||
+    "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
 const VISION_KEY = Deno.env.get("VISION_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 const VISION_MODELS = (Deno.env.get("VISION_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
@@ -68,7 +68,9 @@ async function vision(messages: Message[]): Promise<{ text: string; model: strin
             });
             const json = await res.json().catch(() => ({}));
             if (!res.ok) {
-                const err = new Error("DashScope " + res.status + ": " + (json?.error?.message || res.statusText));
+                // Gemini wraps its error in a list: [{ error: {…} }]
+                const detail = (Array.isArray(json) ? json[0] : json)?.error?.message;
+                const err = new Error(new URL(DASHSCOPE).host + " " + res.status + ": " + (detail || res.statusText));
                 (err as Error & { status?: number }).status = res.status;
                 throw err;
             }
