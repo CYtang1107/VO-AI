@@ -3939,3 +3939,5 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .cd-table .cd-cell input:hover, .cd-table .cd-cell input:focus { border-color: #cfd5df; background: #fff; }
 .cd-table .cd-cell { text-align: right; }
 .cd-table .cd-own, .cd-table .cd-own input { background: #fff8e1; }
+.measure-head-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.measure-head-actions [hidden] { display: none; }

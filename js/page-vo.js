@@ -3,7 +3,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, lineTotal } = require("./calc.js");
     var { canEdit, canDeleteVO, lockReason, fieldLabel, FIELD_OWNER, voStage, infoRequestKey } = require("./permissions.js");
-    var { checkRate, analyse, matchBqItem, suggestBqForChange } = require("./analysis.js");
+    var { checkRate, analyse, matchBqItem, suggestBqForChange, instructionItems } = require("./analysis.js");
     var { escapeHtml, statusPill, fileLink, fold, seedText, originalText } = require("./ui.js");
     var { deadlinesFor, clockPeriods, daysBetween } = require("./deadlines.js");
     var { currentVersion, versionCount, addVersion } = require("./documents.js");
@@ -279,6 +279,34 @@ function autoFillRow(row, bq, pastSources) {
     }
     if (Object.keys(auto).length) row.auto = auto; else delete row.auto;
     return JSON.stringify([row.bqItemId, row.unit, row.rate, row.auto]) !== before;
+}
+
+/* The measurement rows the architect's instruction names (the VO's
+   description, js/analysis.js instructionItems): each matched to its BQ
+   item (unit and rate with it, the quantity left to measure), or a star
+   row for work the BQ does not have. Rows already there are not
+   repeated. A row that only copies the whole instruction, unpriced (a
+   site record's first line), gives way to them. `isWork` says whether a
+   part is work that can be priced (the built-up rate's recipes). */
+function wholeInstructionRow(vo, row) {
+    const d = String(vo.description || "").trim(), r = String(row.description || "").trim();
+    return !row.bqItemId && !(Number(row.rate) > 0) && !!r && (r === d || d.endsWith(r) || r.endsWith(d));
+}
+
+function rowsFromInstruction(vo, bq, isWork, newId) {
+    const rows = (vo.measurement || []).filter(r => !wholeInstructionRow(vo, r));
+    const haveBq = new Set(rows.map(r => r.bqItemId).filter(Boolean));
+    const haveText = new Set(rows.map(r => String(r.description || "").trim().toLowerCase()));
+    const added = instructionItems(vo.description, bq, isWork)
+        .filter(it => it.bqItem ? !haveBq.has(it.bqItem.id) : !haveText.has(it.description.toLowerCase()))
+        .map(it => {
+            const row = { id: newId(), bqItemId: it.bqItem ? it.bqItem.id : null, description: it.description,
+                unit: it.bqItem ? it.bqItem.unit : "", qty: 0, rate: it.bqItem ? Number(it.bqItem.rate) || 0 : 0,
+                assessedQty: "", assessedRate: "", fromInstruction: true };
+            if (it.bqItem) row.auto = { code: it.bqItem.code, basis: t("vo.row.fromInstructionBasis"), unit: true, rate: "bq" };
+            return row;
+        });
+    return { rows: rows.concat(added), added: added.length, replaced: (vo.measurement || []).length - rows.length };
 }
 
 function rowSummary(check, linkedItem, suggestion, row) {
@@ -691,6 +719,7 @@ function translateHistoryAction(action) {
     if (a === "Instruction returned to contractor") return t("history.instructionReturned");
     if ((m = a.match(/^Contract agent: (claimable|needsInfo|notClaimable)$/))) return t("history.claimCheck", { verdict: t("claim.verdict." + m[1]) });
     if ((m = a.match(/^Built-up rate RM ([\d.]+) used for row (\d+)$/))) return t("history.buildUpUsed", { rate: m[1], row: m[2] });
+    if ((m = a.match(/^Measurement rows from the instruction: (\d+)$/))) return t("history.fromInstruction", { n: m[1] });
     if ((m = a.match(/^Past projects' rate RM ([\d.]+) used for row (\d+)$/))) return t("history.pastRateUsed", { rate: m[1], row: m[2] });
     if ((m = a.match(/^Row (\d+) matched automatically again(?: — (.+))?$/))) return m[2] ? t("history.rematched", { row: m[1], code: m[2] }) : t("history.rematchedNone", { row: m[1] });
     if (a === "Sent to design team") return t("history.sentToDesign");
@@ -753,7 +782,7 @@ function renderHistory(vo) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
-        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, renderPastRates, rowSummary, renderElementsBlock, renderStdClause, rowActions,
+        field, renderDocList, renderDocRevisions, renderMeasurementRows, autoFillRow, rowsFromInstruction, wholeInstructionRow, renderPastRates, rowSummary, renderElementsBlock, renderStdClause, rowActions,
         renderHistory, translateHistoryAction,
         renderDeadlinesPanel, renderInfoRequestControl, renderClientInfoRequestControl, panelLockNote, renderAdministratorPanel,
         renderWorkflow, renderStepper
@@ -793,9 +822,30 @@ if (typeof document !== "undefined") {
             if (typeof announceStep === "function") announceStep(project.id, before, voNow());
         }
 
+        /* the instruction's items as measurement rows: once, when the
+           contractor first measures; again from the button */
+        const buIsWork = part => typeof suggestBuildUp === "function" && !!suggestBuildUp({ description: part, unit: "" }, getProject(project.id));
+        function fillFromInstruction(manual) {
+            const cur = voNow();
+            const r = rowsFromInstruction(cur, getProject(project.id).bq || [], buIsWork, () => uid("M"));
+            if (r.added || r.replaced || !cur.instructionRows) {
+                updateVO(project.id, voId, x => {
+                    x.measurement = r.rows;
+                    x.instructionRows = today();
+                    if (r.added) logHistory(x, session, "Measurement rows from the instruction: " + r.added);
+                });
+            }
+            if (manual || r.added) toast(r.added ? t("vo.fromInstruction.added", { n: r.added }) : t("vo.fromInstruction.none"), r.added ? undefined : "warn");
+        }
         function drawNow() {
-            const fresh = getProject(project.id);
-            const v = fresh.vos.find(x => x.id === voId);
+            let fresh = getProject(project.id);
+            let v = fresh.vos.find(x => x.id === voId);
+            if (role === "contractor" && voStage(v) === "measure" && canEdit("measurement", v, role) && !v.instructionRows &&
+                (v.measurement || []).every(r => wholeInstructionRow(v, r))) {
+                fillFromInstruction(false);
+                fresh = getProject(project.id);
+                v = fresh.vos.find(x => x.id === voId);
+            }
             if (typeof drawPhotoCheck === "function") drawPhotoCheck();
 
             const titleEl = document.getElementById("voTitle");
@@ -883,6 +933,7 @@ if (typeof document !== "undefined") {
 
             document.getElementById("addRowBtn").style.display =
                 canEdit("measurement", v, role) ? "" : "none";
+            document.getElementById("fromInstructionBtn").hidden = !(role === "contractor" && canEdit("measurement", v, role) && String(v.description || "").trim());
             document.getElementById("deleteVoBtn").hidden = !canDeleteVO(v, role);
             drawWorkflow(v, fresh);
         }
@@ -1329,6 +1380,8 @@ if (typeof document !== "undefined") {
             toast(t("vo.delete.done", { no: v.no }));
             window.location.href = "register.html";
         });
+
+        document.getElementById("fromInstructionBtn").addEventListener("click", () => { fillFromInstruction(true); draw(); });
 
         document.getElementById("addRowBtn").addEventListener("click", () => {
             updateVO(project.id, voId, v => {
