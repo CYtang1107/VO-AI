@@ -3463,6 +3463,7 @@ body.has-bottom-tabs .notify-popup { bottom: 84px; }
 .bu-totals small { font-size: 12px; color: var(--ink-2); }
 .bu-totals input { width: 56px; padding: 3px; border: 1px solid #dfe3e8; border-radius: 6px; }
 .bu-totals .bu-rate { background: var(--accent); color: #fff; }
+.bu-totals.bu-totals-rate { grid-template-columns: minmax(220px, 340px); }
 .bu-totals .bu-rate small { color: #dbe4ff; }
 .bu-rent-item { padding: 10px 0; border-bottom: 1px dashed var(--rule); }
 .bu-rent-inputs { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0; font-size: 12px; }
@@ -3889,9 +3890,17 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 /* the build-up: materials, machinery, labour, profit — each with its lines and an add */
 .bu-secs { display: grid; gap: 10px; }
 .bu-sec { border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px 10px; background: var(--paper); }
-.bu-sec-head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 6px; }
+.bu-sec-head { display: flex; align-items: baseline; gap: 10px; width: 100%; }
 .bu-sec-head strong { font-size: 14px; }
-.bu-sec-head > span:last-child { margin-left: auto; font-weight: 700; }
+.bu-sec-head .bu-sec-total { margin-left: auto; font-weight: 700; }
+/* a section: its name and total, its lines on 展开 */
+.bu-sec details.bu-sec-fold { margin: 0; }
+.bu-sec details.bu-sec-fold > summary { background: none; padding: 4px 0; gap: 12px; }
+.bu-sec details.bu-sec-fold > summary .fold-summary { flex: 1; }
+.bu-sec details.bu-sec-fold[open] > summary { border-bottom: 1px solid var(--rule); margin-bottom: 6px; }
+/* the row a built-up rate was just used for */
+#measurementBody tr.row-flash > td { animation: rowFlash 2.4s ease-out; }
+@keyframes rowFlash { 0%, 40% { background: #fff1c2; } 100% { background: transparent; } }
 .bu-sec-material { border-left: 4px solid #2546c4; }
 .bu-sec-machinery { border-left: 4px solid #b45309; }
 .bu-sec-labour { border-left: 4px solid #0b6b3b; }

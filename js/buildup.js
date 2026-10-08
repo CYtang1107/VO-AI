@@ -675,17 +675,17 @@ function renderBuildUpCard(vo, project, opts) {
         const start = sec === "profit" ? runSection(b.sections.material, 0).end + runSection(b.sections.machinery, 0).end + runSection(b.sections.labour, 0).end : 0;
         const run = runSection(lines, start);
         const total = sec === "profit" ? run.end - start : run.end;
-        return '<div class="bu-sec bu-sec-' + sec + '">' +
-            '<div class="bu-sec-head"><strong>' + escapeHtml(t("buildup.sec." + sec)) + "</strong>" +
+        /* each section shows its total; its lines open on 展开 */
+        const head = '<span class="bu-sec-head"><strong>' + escapeHtml(t("buildup.sec." + sec)) + "</strong>" +
                 (sec === "profit" ? '<span class="rate-detail">' + escapeHtml(t("buildup.netStart", { amount: rm(net) })) + "</span>" : "") +
-                "<span>" + escapeHtml(rm(total)) + "</span></div>" +
-            (lines.length ? '<table class="bu-table"><tbody>' + lines.map((l, j) => '<tr class="bu-line bu-' + escapeHtml(l.type || "item") + '">' +
+                '<span class="bu-sec-total">' + escapeHtml(rm(total)) + "</span></span>";
+        return '<div class="bu-sec bu-sec-' + sec + '">' + fold("bu-sec-" + sec, head, (lines.length ? '<table class="bu-table"><tbody>' + lines.map((l, j) => '<tr class="bu-line bu-' + escapeHtml(l.type || "item") + '">' +
                 "<td>" + txt(sec, j, "name", l.name, t("buildup.namePh")) + src(l) + "</td>" +
                 "<td>" + calc(sec, j, l, run.rows[j].before) + "</td>" +
                 '<td class="num">' + (l.type === "unit" ? "→ " + escapeHtml(rm(run.rows[j].after)) : escapeHtml(rm(run.rows[j].amount))) + "</td>" +
                 '<td class="bu-act">' + up(sec, j) + del(sec, j) + "</td></tr>").join("") + "</tbody></table>" : "") +
             (o.editable ? '<select class="bu-add-line" data-sec="' + sec + '"><option value="">' + escapeHtml(t("buildup.addLine")) + "</option>" +
-                ADD_FORMATS[sec].map(f => '<option value="' + f + '">' + escapeHtml(t("buildup.fmt." + f.replace(":", "."))) + "</option>").join("") + "</select>" : "") +
+                ADD_FORMATS[sec].map(f => '<option value="' + f + '">' + escapeHtml(t("buildup.fmt." + f.replace(":", "."))) + "</option>").join("") + "</select>" : ""), "bu-sec-fold") +
         "</div>";
     }).join("");
 
@@ -706,9 +706,8 @@ function renderBuildUpCard(vo, project, opts) {
         (o.stars && o.stars.has(i) ? '<p class="assistant-note">' + escapeHtml(t("buildup.starNote")) + "</p>" : "") +
         (drafted && o.editable ? '<p class="assistant-note">' + escapeHtml(t(suggestBuildUp(row, project) ? "buildup.drafted" : "buildup.noRecipe")) + "</p>" : "") +
         '<div class="bu-secs">' + sections + "</div>" +
-        '<div class="bu-totals">' +
-            ["material", "machinery", "labour"].map(k => "<div><small>" + escapeHtml(t("buildup.sec." + k)) + "</small><strong>" + rm(r[k]) + "</strong></div>").join("") +
-            "<div><small>" + escapeHtml(t("buildup.sec.profit")) + " (" + r.ohpPct + " %)</small><strong>" + rm(r.ohp) + "</strong></div>" +
+        /* the four sections show their totals above: here only the rate */
+        '<div class="bu-totals bu-totals-rate">' +
             '<div class="bu-rate"><small>' + escapeHtml(t("buildup.total.rate", { unit: row.unit || t("buildup.unit") })) + "</small><strong>" + rm(r.rate) + "</strong>" +
                 '<span class="bu-round">' + (r.rate !== r.raw ? escapeHtml(rm(r.raw)) + " → " : "") + escapeHtml(t("buildup.roundTo")) + ' <select data-k="roundTo"' + dis + ">" +
                 [0, 0.5, 1, 5, 10].map(v => '<option value="' + v + '"' + (v === r.roundTo ? " selected" : "") + ">" + escapeHtml(v ? "RM " + v : t("buildup.noRound")) + "</option>").join("") +

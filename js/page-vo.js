@@ -1160,6 +1160,12 @@ if (typeof document !== "undefined") {
                 });
                 toast(t("buildup.used", { rate: rm(rate), row: bu.rowIndex + 1 }));
                 draw();
+                /* back to the row it was built up for */
+                const tr = document.querySelector('#measurementBody tr[data-row="' + bu.rowIndex + '"]');
+                if (tr) {
+                    tr.scrollIntoView({ behavior: "smooth", block: "center" });
+                    tr.classList.remove("row-flash"); void tr.offsetWidth; tr.classList.add("row-flash");
+                }
                 return;
             }
             if (e.target.id === "findSuppliersBtn") {
