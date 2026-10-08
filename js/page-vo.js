@@ -11,7 +11,8 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
     var { renderIssueForm, renderIssued, instructionProblem } = require("./instruction.js");
-    var { renderBuildUpCard, suggestBuildUp, buildUpRate, parsePriceList } = require("./buildup.js");
+    var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList } = require("./buildup.js");
+    var { buildUpKey, buildUpSummary } = require("./private.js");
 }
 
 /* An <option> VALUE is always the raw English data value (evaluateStatus,
@@ -942,13 +943,29 @@ if (typeof document !== "undefined") {
         }
 
         /* Cost planning: the built-up rate (js/buildup.js). The contractor
-           builds up the rate they claim, the consultant QS the rate they
-           assess; the build-up is kept on the measurement row. */
+           builds up the rate they claim; the working is theirs alone
+           (js/private.js) and the team sees its summary on the row
+           (row.buildUpSummary) once the rate is used. The consultant QS
+           sees that summary and may build up their own check, also private. */
         const bu = { rowIndex: null, rent: {}, suppliers: null };
+        const buOwn = role === "contractor" || role === "consultant";
         function buEditable(v) { return canEdit("measurement", v, role) || canEdit("assessment", v, role); }
+        /* this person's own prices, kept privately; the project for the region */
+        function buProject() {
+            return Object.assign({}, getProject(project.id), { priceList: getPrivate(project.id, "pricelist") || [] });
+        }
+        function buKey(v) { const row = v.measurement[bu.rowIndex]; return buildUpKey(v.id, row && row.id); }
+        /* a build-up written on the row before it was kept privately: the
+           contractor's, moved to their own copy */
+        function adoptLegacyBuildUps(v) {
+            if (role !== "contractor" || !(v.measurement || []).some(r => r.buildUp)) return;
+            v.measurement.forEach(r => { if (r.buildUp && !getPrivate(project.id, buildUpKey(v.id, r.id))) setPrivate(project.id, buildUpKey(v.id, r.id), r.buildUp); });
+            updateVO(project.id, voId, x => (x.measurement || []).forEach(r => { delete r.buildUp; }));
+        }
         function drawBuildUp(v, fresh) {
             const host = document.getElementById("buildUpPanel");
             if (!host || typeof renderBuildUpCard !== "function") return;
+            adoptLegacyBuildUps(v);
             const bq = fresh.bq || [];
             const stars = new Set();
             (v.measurement || []).forEach((r, k) => { if (checkRate(r, bq).state === "star") stars.add(k); });
@@ -956,26 +973,30 @@ if (typeof document !== "undefined") {
                 bu.rowIndex = stars.size ? Math.min.apply(null, Array.from(stars)) : 0;
             }
             const useAs = canEdit("assessment", v, role) ? "assessed" : canEdit("measurement", v, role) ? "claimed" : null;
-            host.innerHTML = renderBuildUpCard(v, fresh, { rowIndex: bu.rowIndex, stars: stars, editable: buEditable(v),
-                useAs: useAs, rent: bu.rent, suppliers: bu.suppliers,
-                canEditPriceList: role === "contractor" || role === "consultant" });
+            const full = () => renderBuildUpCard(v, buProject(), { rowIndex: bu.rowIndex, stars: stars, editable: buEditable(v),
+                buildUp: (v.measurement || []).length ? getPrivate(project.id, buKey(v)) : null,
+                hideRow: role !== "contractor", privateNote: "buildup.private." + role,
+                useAs: useAs, rent: bu.rent, suppliers: bu.suppliers, canEditPriceList: buOwn });
+            if (role === "contractor") host.innerHTML = full();
+            else {
+                host.innerHTML = renderBuildUpSummary(v, { rowIndex: bu.rowIndex, stars: stars }) +
+                    (role === "consultant" && (v.measurement || []).length ? fold("bu-own", escapeHtml(t("buildup.ownCheck")), full()) : "");
+            }
         }
         /* the row's build-up as shown (the drafted one until first edited) */
         function currentBuildUp(v) {
             const row = v.measurement[bu.rowIndex];
-            return JSON.parse(JSON.stringify(row.buildUp || suggestBuildUp(row, getProject(project.id)) || { items: [], ohp: 15 }));
+            return getPrivate(project.id, buKey(v)) || suggestBuildUp(row, buProject()) || { items: [], ohp: 15 };
         }
-        function saveBuildUp(change, logLine) {
+        function saveBuildUp(change) {
             const v = voNow();
-            if (!buEditable(v)) return;
+            if (!buOwn || !buEditable(v)) return;
             const b = currentBuildUp(v);
             change(b);
-            updateVO(project.id, voId, x => {
-                x.measurement[bu.rowIndex].buildUp = b;
-                if (logLine) logHistory(x, session, logLine);
-            });
+            setPrivate(project.id, buKey(v), b);
             draw();
         }
+        window.addEventListener("voai:privatechanged", () => draw());
         const buPanel = document.getElementById("buildUpPanel");
         buPanel.addEventListener("change", e => {
             const el = e.target;
@@ -1016,11 +1037,15 @@ if (typeof document !== "undefined") {
                 const b = currentBuildUp(v);
                 const rate = buildUpRate(b).rate;
                 const assessed = canEdit("assessment", v, role);
+                setPrivate(project.id, buKey(v), b);
                 updateVO(project.id, voId, x => {
                     const row = x.measurement[bu.rowIndex];
-                    row.buildUp = b;
                     if (assessed) { row.assessedRate = rate; if (row.assessedQty === "" || row.assessedQty === null || row.assessedQty === undefined) row.assessedQty = row.qty; }
-                    else row.rate = rate;
+                    else {
+                        row.rate = rate;
+                        /* the team sees the five figures, never the lines */
+                        row.buildUpSummary = buildUpSummary(b, today());
+                    }
                     logHistory(x, session, "Built-up rate RM " + rate.toFixed(2) + " used for row " + (bu.rowIndex + 1));
                 });
                 toast(t("buildup.used", { rate: rm(rate), row: bu.rowIndex + 1 }));
@@ -1039,14 +1064,13 @@ if (typeof document !== "undefined") {
             if (e.target.id === "buPriceListSave") {
                 const parsed = parsePriceList(document.getElementById("buPriceListInput").value);
                 if (!parsed.items.length) { toast(t("buildup.priceListNone"), "error"); return; }
-                updateProject(project.id, p => {
-                    const list = p.priceList || [];
-                    parsed.items.forEach(it => {
-                        const same = list.find(x => x.name.toLowerCase() === it.name.toLowerCase() && x.unit === it.unit);
-                        if (same) same.price = it.price; else list.push(it);
-                    });
-                    p.priceList = list;
+                /* this person's own prices: kept privately */
+                const list = getPrivate(project.id, "pricelist") || [];
+                parsed.items.forEach(it => {
+                    const same = list.find(x => x.name.toLowerCase() === it.name.toLowerCase() && x.unit === it.unit);
+                    if (same) same.price = it.price; else list.push(it);
                 });
+                setPrivate(project.id, "pricelist", list);
                 toast(t("buildup.priceListSaved", { n: parsed.items.length }) + (parsed.bad.length ? " " + t("buildup.priceListBad", { lines: parsed.bad.join(", ") }) : ""),
                       parsed.bad.length ? "warn" : undefined);
                 draw();

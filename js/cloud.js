@@ -19,8 +19,23 @@
 
 /* ---------- pure helpers (tested in test/cloud.test.js) ---------- */
 
-/* Fields the browser adds to a project that are not project data. */
-var CLOUD_LOCAL_FIELDS = ["vos", "cloudRole", "members"];
+/* Fields the browser adds to a project that are not project data; and
+   priceList, which is its author's alone (js/private.js). */
+var CLOUD_LOCAL_FIELDS = ["vos", "cloudRole", "members", "priceList"];
+
+/* A VO as shared: a row's build-up working stays with its author
+   (js/private.js); its summary (row.buildUpSummary) is shared. */
+function sharedVo(vo) {
+    if (!vo || !Array.isArray(vo.measurement) || !vo.measurement.some(function (r) { return r && r.buildUp; })) return vo;
+    var out = Object.assign({}, vo);
+    out.measurement = vo.measurement.map(function (r) {
+        if (!r || !r.buildUp) return r;
+        var c = Object.assign({}, r);
+        delete c.buildUp;
+        return c;
+    });
+    return out;
+}
 
 function projectData(project) {
     var out = {};
@@ -36,7 +51,7 @@ function cloudRows(db) {
     var projects = {}, vos = {};
     ((db && db.projects) || []).forEach(function (p) {
         projects[p.id] = projectData(p);
-        (p.vos || []).forEach(function (vo) { vos[p.id + "/" + vo.id] = vo; });
+        (p.vos || []).forEach(function (vo) { vos[p.id + "/" + vo.id] = sharedVo(vo); });
     });
     return { projects: projects, vos: vos };
 }
@@ -252,7 +267,30 @@ var Cloud = (function () {
         var db = dbFromRows(projects, vos, members, s && s.userId);
         writeJson(CACHE_KEY, db);
         writeJson(SNAPSHOT_KEY, cloudRows(db));
+        await pullPrivate(c);
         return db;
+    }
+
+    /* This member's own notes (js/private.js): only theirs come back. */
+    async function pullPrivate(c) {
+        if (typeof replacePrivate !== "function") return;
+        try {
+            var rows = check(await c.from("private_notes").select("project_id, key, data"));
+            if (replacePrivate(rows)) {
+                try { window.dispatchEvent(new CustomEvent("voai:privatechanged")); } catch (e) { /* old browser */ }
+            }
+        } catch (e) { /* not set up on this server yet: the copy in this browser stands */ }
+    }
+
+    async function savePrivate(projectId, key, data) {
+        var c = await client();
+        if (data === null) {
+            check(await c.from("private_notes").delete().eq("project_id", projectId).eq("key", key));
+            return true;
+        }
+        var s = getSession();
+        check(await c.from("private_notes").upsert({ project_id: projectId, owner: s.userId, key: key, data: data, updated_at: new Date().toISOString() }));
+        return true;
     }
 
     async function pushNow() {
@@ -496,11 +534,11 @@ var Cloud = (function () {
         signIn: signIn, signUp: signUp, signOut: signOut,
         pull: pull, push: push, schedulePush: schedulePush, flush: flush,
         uploadFile: uploadFile, downloadFile: downloadFile,
-        addMember: addMember, removeMember: removeMember,
+        addMember: addMember, removeMember: removeMember, savePrivate: savePrivate,
         ask: ask, invoke: invoke, deleteVO: deleteVO, knowledgeRows: knowledgeRows, knowledgeText: knowledgeText, notify: notify
     };
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { canonicalJson, sameJson, cloudRows, patchOf, cloudChanges, dbFromRows, signInRole, projectData, Cloud };
+    module.exports = { canonicalJson, sameJson, cloudRows, patchOf, cloudChanges, dbFromRows, signInRole, projectData, sharedVo, Cloud };
 }
