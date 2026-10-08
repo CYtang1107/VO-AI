@@ -92,3 +92,9 @@ test("rows made before units were filled in get the unit their description says;
     assert.strictEqual(fillMissingUnits(rows), 2);
     assert.deepStrictEqual(rows.map(r => r.unit || ""), ["m", "m3", "t", "", ""]);
 });
+test("a substitution in the instruction is two items: the omitted one at its BQ rate, the new one a new rate", () => {
+    const { instructionItems } = require("../js/analysis.js");
+    const items = instructionItems("Change living room floor finish from ceramic tiles to polished marble", project.bq, () => true);
+    assert.deepStrictEqual(items.map(i => [i.description, i.bqItem ? code(i.bqItem.id) : null]),
+        [["Omit Change living room floor finish ceramic tiles", "B/4.1"], ["Change living room floor finish polished marble", null]]);
+});

@@ -405,7 +405,7 @@ const WORDING = {
     quantity: /remeasure|remeasurement|quantity variation|approximate quantit|provisional quantit|重新计量|重新测量|数量变更|暂定数量|估计数量/i,
     omission: /\bomit|omission|delete|remove\b|删除|删减|取消|拆除|省略|减少/i,
     design: /redesign|design revision|revised design|revision to|重新设计|设计修改|设计变更|修改设计|修订设计/i,
-    addition: /additional|extra work|add\b|new\b|增加|新增|追加|额外|加建|加装|加设|加一/i
+    addition: /additional|extra work|add\b|new\b|install|provide|增加|新增|追加|额外|加建|加装|加设|加一|新开|新建|安装|铺设|装设|设置/i
 };
 
 function affectedWork(text) {
@@ -722,11 +722,24 @@ function keywordBqItem(text, bq, unit) {
     return hits[0].item;
 }
 
+/* "地面由瓷砖改为大理石" / "floor tiles changed from ceramic to marble": a
+   substitution is two items, the one omitted (at its BQ rate) and the one
+   added (a new rate): [omitted, added], or null. */
+function substitutionParts(part) {
+    let m = String(part).match(/^(.*?)由\s*(.+?)\s*(?:改为|改成|换成|更换为|替换为)\s*(.+)$/);
+    if (!m) m = String(part).match(/^(.*?)\bfrom\s+(.+?)\s+to\s+(.+)$/i);
+    /* the added item is matched to the BQ on what it becomes alone */
+    return m ? [{ text: t("instr.omitPrefix") + m[1] + m[2] }, { text: m[1] + m[3], matchText: m[3] }] : null;
+}
+
 function instructionItems(text, bq, isWork) {
     const used = new Set();
     const items = [];
-    instructionParts(text).forEach(part => {
-        const hit = matchInstructionItem(part, bq, used);
+    const parts = [];
+    instructionParts(text).forEach(part => { const sub = substitutionParts(part); if (sub) parts.push(sub[0], sub[1]); else parts.push({ text: part }); });
+    parts.forEach(p => {
+        const part = p.text;
+        const hit = matchInstructionItem(p.matchText || part, bq, used);
         if (hit) { used.add(hit.id); items.push({ description: part.charAt(0).toUpperCase() + part.slice(1), bqItem: hit }); }
         /* who instructed it and why ("as instructed by the Architect…")
            is the instruction's preamble, not an item of work */
@@ -739,6 +752,6 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         RATE_TOLERANCE, checkRate, rateSummary, matchBqItem, suggestBqForChange, describesWork,
         classifyVariation, affectedWork, classificationBasis, analyse,
-        elementAnalysis, instructionItems, instructionParts, matchInstructionItem, keywordBqItem
+        elementAnalysis, instructionItems, instructionParts, substitutionParts, matchInstructionItem, keywordBqItem
     };
 }
