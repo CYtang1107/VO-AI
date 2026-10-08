@@ -3899,3 +3899,12 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .sc-hint { position: absolute; top: 6px; right: 16px; font-size: 11px; color: var(--ink-3); pointer-events: none; opacity: .75; }
 .sc-reset:not([hidden]) ~ .sc-hint { display: none; }
 @media (hover: none) { .sc-hint { display: none; } }
+
+/* a long VO title stays on one line (the full text on hover); the buttons beside it keep their size */
+.topbar-left { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+.topbar-left > * { min-width: 0; max-width: 100%; }
+.topbar-left .topbar-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-actions { flex-shrink: 0; }
+.top-actions button, .top-actions .secondary-button, .top-actions .primary-button, .top-actions a { white-space: nowrap; }
+@media (max-width: 700px) { .topbar-left .topbar-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; } }
+@media (max-width: 1000px) { #voTitle { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } }
