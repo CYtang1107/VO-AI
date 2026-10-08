@@ -412,6 +412,7 @@ var I18N_EN = {
     "vo.field.clientInfoRequestedAt": "Client's request for further information",
 
     "vo.docList.empty": "No documents attached.",
+    "vo.docList.add": "+ Upload files",
     "vo.docList.uploadNewVersion": "Upload new version",
     "vo.docList.remove": "Remove",
     "vo.docList.contractIntro": "Upload the signed contract for this VO.",
@@ -1989,7 +1990,8 @@ var I18N_ZH = {
     "vo.field.infoRequestedAt": "补充资料请求",
     "vo.field.clientInfoRequestedAt": "业主的补充资料请求",
 
-    "vo.docList.empty": "尚未附加任何文件。",
+    "vo.docList.empty": "尚未附加文件。",
+    "vo.docList.add": "＋ 上传文件",
     "vo.docList.uploadNewVersion": "上传新版本",
     "vo.docList.remove": "移除",
     "vo.docList.contractIntro": "上传此变更单所依据的已签合同。",

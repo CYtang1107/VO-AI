@@ -10,7 +10,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { suggestPastRate, pastRateSources, pastRateWords, MATERIAL_WORDS } = require("./ratehistory.js");
     var { t } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
-    var { renderIssueForm, renderIssued, instructionProblem } = require("./instruction.js");
+    var { renderIssueForm, renderIssued, instructionProblem, proposedInstruction, nextInstructionNo } = require("./instruction.js");
     var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine } = require("./buildup.js");
     var { buildUpKey, buildUpSummary } = require("./private.js");
 }
@@ -129,7 +129,7 @@ function renderDocList(vo, fieldName, label, role, intro) {
     const docs = vo[fieldName] || [];
 
     const list = docs.length === 0
-        ? '<div class="empty-state">' + escapeHtml(t("vo.docList.empty")) + '</div>'
+        ? '<p class="doc-empty">' + escapeHtml(t("vo.docList.empty")) + "</p>"
         : '<ul class="doc-list">' + docs.map(d => {
             const vCount = versionCount(d);
             return '<li class="file-item" data-doc-id="' + escapeHtml(d.id) + '">' +
@@ -154,17 +154,17 @@ function renderDocList(vo, fieldName, label, role, intro) {
             "</li>";
         }).join("") + "</ul>";
 
+    /* one standard row: the field's name, its upload button, then its files */
     const picker = editable
-        ? '<input type="file" multiple class="doc-picker" data-field="' +
-          escapeHtml(fieldName) + '">' +
-          '<span class="hint">' + escapeHtml(t("vo.docList.hint")) + "</span>"
+        ? '<label class="doc-upload-btn" title="' + escapeHtml(t("vo.docList.hint")) + '">' + escapeHtml(t("vo.docList.add")) +
+          '<input type="file" multiple class="doc-picker" data-field="' + escapeHtml(fieldName) + '" hidden></label>'
         : "";
 
     return '<div class="field doc-field ' + (editable ? "owned" : "locked") + '">' +
-        "<label>" + escapeHtml(label) + "</label>" +
+        '<div class="doc-field-head"><span class="doc-field-label">' + escapeHtml(label) +
+            (docs.length ? ' <span class="doc-count">' + docs.length + "</span>" : "") + "</span>" + picker + "</div>" +
         (intro ? '<span class="hint doc-intro">' + escapeHtml(intro) + "</span>" : "") +
         list +
-        picker +
     "</div>";
 }
 
@@ -1390,15 +1390,14 @@ if (typeof document !== "undefined") {
             }
             if (id === "issueInstrBtn") {
                 /* the design team approves: issues the AI / EI */
-                const kind = document.getElementById("instrKind").value;
-                const no = document.getElementById("instrNo").value.trim().toUpperCase();
-                const note = document.getElementById("instrNote").value.trim();
-                const problem = instructionProblem(fresh, cur, kind, no);
-                if (problem) { toast(problem, "error"); return; }
+                /* the kind and the number are the system's: the one the
+                   contractor quoted, else the next free one */
+                const p = proposedInstruction(fresh, cur);
+                const kind = p.kind;
+                const no = (instructionProblem(fresh, cur, kind, p.no) ? nextInstructionNo(fresh, kind) : p.no).toUpperCase();
                 step(v => {
-                    v.issuedInstruction = { kind: kind, no: no, date: today(), by: session.name, note: note };
+                    v.issuedInstruction = { kind: kind, no: no, date: today(), by: session.name, note: "" };
                     v.instructionStatus = "Confirmed";
-                    if (note) v.instructionNote = note;
                 }, "Design team approved — " + no, t("wf.toast.approved", { no: no }));
                 return;
             }

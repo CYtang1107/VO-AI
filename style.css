@@ -3381,7 +3381,7 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .claim-card .claim-checks + .assistant-note, .claim-card .assistant-note { margin-top: 10px; }
 
 /* the design team issues the AI / EI (js/instruction.js) */
-.instr-issue { display: grid; gap: 8px; margin: 6px 0 14px; padding: 12px; border: 1px dashed var(--line, #cfd5df); border-radius: 10px; }
+.instr-issue { margin: 6px 0 14px; }
 .instr-issue-row { display: grid; grid-template-columns: 1fr 140px; gap: 8px; }
 .instr-issue select, .instr-issue input, .instr-issue textarea { padding: 9px; border-radius: 8px; border: 1px solid #dfe3e8; font: inherit; width: 100%; box-sizing: border-box; }
 .instr-issued { margin: 6px 0 14px; }
@@ -3908,3 +3908,20 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .top-actions button, .top-actions .secondary-button, .top-actions .primary-button, .top-actions a { white-space: nowrap; }
 @media (max-width: 700px) { .topbar-left .topbar-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; } }
 @media (max-width: 1000px) { #voTitle { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } }
+
+/* a document field, one standard row: name and count, the upload button, then the files */
+.doc-field { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 14px; background: var(--paper); margin-bottom: 10px; }
+.doc-field.owned { background: #fffdf5; border-color: #f1d9a6; }
+.doc-field-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.doc-field-label { font-weight: 700; font-size: 14px; color: var(--ink); }
+.doc-count { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--tag-bg); font-size: 12px; text-align: center; font-weight: 600; }
+.doc-upload-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--accent);
+    color: var(--accent); background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.doc-upload-btn:hover { background: #eef2ff; }
+.doc-field .doc-empty { margin: 6px 0 0; font-size: 13px; color: var(--ink-3); }
+.doc-field .doc-list { margin: 8px 0 0; }
+.doc-field .doc-intro { margin: 4px 0 0; }
+/* the design team's approve and return, together under the documents */
+.instr-issue { margin: 12px 0 8px; }
+.wf-reject { display: flex; gap: 8px; align-items: center; }
+.wf-reject input { flex: 1; padding: 9px 12px; border-radius: 8px; border: 1px solid #dfe3e8; font: inherit; }
