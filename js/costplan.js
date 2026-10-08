@@ -24,7 +24,7 @@
    Pure functions, plus the chart's SVG and its hover readout. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { t } = require("./i18n.js");
+    var { t, getLang } = require("./i18n.js");
     var { rm, contractorTotal, assessedTotal } = require("./calc.js");
     var { escapeHtml, fold } = require("./ui.js");
 }
@@ -411,16 +411,26 @@ var EAC_FORMULA = {
 };
 
 /* opts: { editable } — whether the EAC situation (and a fresh ETC) can be changed */
+/* In Chinese the figures go by their Chinese names alone, formulas too
+   (挣值 − 计划值), never the English abbreviations. */
+var EVM_ABBR = /\b(BAC|PV|EV|AC|CV|SV|CPI|SPI|EAC|ETC|VAC)\b/g;
+function evmChinese() { return typeof getLang === "function" && getLang() === "zh"; }
+function evmFormula(text) {
+    if (!evmChinese()) return text;
+    return String(text).replace(EVM_ABBR, a => t("evm.name." + a)).replace(/ \/ /g, " ÷ ");
+}
+
 function renderEarnedValue(e, opts) {
     const editable = opts && opts.editable;
+    const zh = evmChinese();
     const f = EAC_FORMULA[e.method];
     const money = v => v === null ? "—" : (v < 0 ? "−" : "") + rm(Math.abs(v));
     const verdict = (good, keyGood, keyBad) => good === null ? "" :
         '<span class="evm-flag ' + (good ? "evm-good" : "evm-bad") + '">' + (good ? "✓ " : "! ") + escapeHtml(t(good ? keyGood : keyBad)) + "</span>";
     /* exactly on plan: neither good nor bad */
     const level = key => '<span class="evm-flag evm-level">= ' + escapeHtml(t(key)) + "</span>";
-    const row = (abbr, formula, value, flag) => "<tr><th>" + escapeHtml(t("evm.name." + abbr)) + ' <abbr>' + abbr + "</abbr></th>" +
-        '<td class="evm-formula">' + escapeHtml(formula) + '</td><td class="num">' + value + "</td><td>" + (flag || "") + "</td></tr>";
+    const row = (abbr, formula, value, flag) => "<tr><th>" + escapeHtml(t("evm.name." + abbr)) + (zh ? "" : ' <abbr>' + abbr + "</abbr>") + "</th>" +
+        '<td class="evm-formula">' + escapeHtml(evmFormula(formula)) + '</td><td class="num">' + value + "</td><td>" + (flag || "") + "</td></tr>";
     const group = key => '<tr class="evm-group"><th colspan="4">' + escapeHtml(t("evm.group." + key)) + "</th></tr>";
     const table = rows => '<div class="table-scroll"><table class="evm-table"><tbody>' + rows + "</tbody></table></div>";
     /* first, three cards in plain words: cost, schedule, at completion;

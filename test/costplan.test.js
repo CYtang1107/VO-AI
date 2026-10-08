@@ -252,3 +252,17 @@ test("the team's own monthly figures stand in for the model's, and the planned v
     assert.match(html, /class="cd-cell cd-own"><input type="text" inputmode="decimal" data-cf-key="2026-09" data-cf-k="planned" value="4,000,000.00"/);
     assert.doesNotMatch(c.renderCostDetail(p, "2026-09-12", { tab: "table", editable: false }), /cfFile|data-cf-key/);
 });
+
+test("in Chinese the performance figures go by their Chinese names, formulas too — no English abbreviations", () => {
+    const store = {};
+    const had = globalThis.localStorage;
+    globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    require("../js/i18n.js").setLang("zh");
+    try {
+        const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), { editable: true });
+        const text = html.replace(/<[^>]+>/g, " ");
+        assert.doesNotMatch(text, /\b(BAC|PV|EV|AC|CV|SV|CPI|SPI|EAC|ETC|VAC)\b/);
+        assert.match(html, /<td class="evm-formula">挣值 − 计划值<\/td>/);
+        assert.match(html, /<td class="evm-formula">完工预算 ÷ 成本绩效指数<\/td>/);
+    } finally { globalThis.localStorage = had; }
+});
