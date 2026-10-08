@@ -155,22 +155,139 @@ function priceOf(refId, project) {
     return { ref: ref, own: own, price: own ? round2(own.price) : round2(ref.price * factor) };
 }
 
-/* One component, priced. Without `output` it is quantity × price; with
-   it, a day's work: how many × the day rate (plus fuel and oil) ÷ output. */
-function component(refId, qty, waste, project, day) {
+/* ---------- the build-up: four sections, each a list of lines ----------
+   Materials, machinery, labour, profit — in that order, then the rate.
+   Each section works down its lines with a running subtotal, the way the
+   QS's sheet does:
+     item  quantity × price                (a material; diesel a metre)
+     day   how many × (the day rate + its sub-items a day) ÷ output a day
+           sub-items: quantity × price a day, or a year (÷ 365): diesel, oil
+     pct   a percentage of the subtotal so far (delivery, wastage,
+           shrinkage; profit, overhead)
+     unit  the subtotal so far × a factor: into the row's unit (a mortar
+           priced per m³ × 0.012 m thick = per m²)
+   Profit's lines start from the net cost (materials + machinery + labour).
+   The rate is the net cost plus profit, rounded up to `roundTo`. */
+var SECTIONS = ["material", "machinery", "labour", "profit"];
+
+/* what each section's "+ add" offers: format:preset */
+var ADD_FORMATS = {
+    material:  ["item:material", "pct:wastage", "pct:shrinkage", "pct:delivery", "unit:unit", "pct:percent"],
+    machinery: ["day:machine", "item:perUnit", "pct:percent", "unit:unit"],
+    labour:    ["day:labour", "item:perUnit", "pct:percent", "unit:unit"],
+    profit:    ["pct:profit", "pct:overhead", "item:lump"]
+};
+var SUB_FORMATS = ["diesel", "oil", "other"];
+
+function newLine(code) {
+    const parts = String(code || "").split(":"), format = parts[0], preset = parts[1] || "";
+    if (format === "pct") {
+        const pct = { wastage: 5, shrinkage: 5, delivery: 10, profit: 15, overhead: 5 }[preset] || 0;
+        return { type: "pct", name: t("buildup.preset." + preset), pct: pct };
+    }
+    if (format === "unit") return { type: "unit", name: t("buildup.preset.unit"), factor: 1, from: "", to: "" };
+    if (format === "day") return { type: "day", name: "", nos: 1, price: 0, output: 1, subs: [], source: "manual" };
+    return { type: "item", name: "", qty: 1, unit: "", price: 0, source: "manual" };
+}
+
+function newSub(kind) {
+    if (kind === "diesel") return { name: t("buildup.sub.diesel"), qty: 0, unit: "L", price: 4.72, per: "day" };
+    if (kind === "oil") return { name: t("buildup.sub.oil"), qty: 1, unit: "", price: 0, per: "year" };
+    return { name: "", qty: 1, unit: "", price: 0, per: "day" };
+}
+
+const num0 = v => Number(v) || 0;
+
+/* a sub-item's cost a day */
+function subPerDay(sb) {
+    const v = num0(sb.qty) * num0(sb.price);
+    return sb.per === "year" ? v / 365 : v;
+}
+
+/* what a line adds to its section, given the subtotal before it */
+function lineAmount(line, running) {
+    if (!line) return 0;
+    if (line.type === "pct") return running * num0(line.pct) / 100;
+    if (line.type === "unit") return running * (num0(line.factor) - 1);
+    if (line.type === "day") {
+        if (!(num0(line.output) > 0)) return 0;
+        const perDay = num0(line.price) + (line.subs || []).reduce((s, sb) => s + subPerDay(sb), 0);
+        return (line.nos === undefined || line.nos === "" ? 1 : num0(line.nos)) * perDay / num0(line.output);
+    }
+    return num0(line.qty) * num0(line.price);
+}
+
+/* a section's lines with the subtotal before and after each */
+function runSection(lines, start) {
+    let running = start || 0;
+    const rows = (lines || []).map(line => {
+        const before = running, amount = lineAmount(line, running);
+        running += amount;
+        return { before: before, amount: amount, after: running };
+    });
+    return { rows: rows, end: running };
+}
+
+/* A build-up written before the sections (a list of items): the same
+   figures, in sections. */
+function asSections(b) {
+    if (b && b.sections) return b;
+    const items = (b && b.items) || [];
+    const out = { sections: { material: [], machinery: [], labour: [], profit: [] }, roundTo: b && b.roundTo !== undefined ? b.roundTo : 0 };
+    items.forEach(it => {
+        const sec = it.kind === "material" ? "material" : it.kind === "labour" ? "labour" : "machinery";
+        if (num0(it.output) > 0) {
+            const subs = [];
+            if (it.fuel !== undefined) subs.push({ name: t("buildup.sub.diesel"), qty: num0(it.fuel), unit: "L", price: num0(it.fuelPrice), per: "day" });
+            if (it.oilYear !== undefined) subs.push({ name: t("buildup.sub.oil"), qty: 1, unit: "", price: num0(it.oilYear), per: "year" });
+            out.sections[sec].push({ type: "day", ref: it.ref, name: it.name, nos: it.nos === undefined ? 1 : it.nos, price: it.price, output: it.output, subs: subs, source: it.source });
+        } else {
+            out.sections[sec].push({ type: "item", ref: it.ref, name: it.name, qty: round2(num0(it.qty) * (1 + num0(it.waste)) * 10000) / 10000, unit: it.unit, price: it.price, source: it.source });
+        }
+    });
+    if (num0(b && b.delivery)) out.sections.material.push({ type: "pct", name: t("buildup.preset.delivery"), pct: num0(b.delivery) });
+    out.sections.profit.push({ type: "pct", name: t("buildup.preset.profit"), pct: b && b.ohp !== undefined && b.ohp !== "" ? num0(b.ohp) : 15 });
+    return out;
+}
+
+/* Rounded up to the nearest `step` (0: not rounded). */
+function roundUp(v, step) {
+    const s = Number(step) || 0;
+    if (s <= 0) return round2(v);
+    return round2(Math.ceil(round2(v / s) - 1e-9) * s);
+}
+
+/* The rate a build-up gives: each section's total, the net cost, the
+   profit (and what it is as a % of the net), and the rate. */
+function buildUpRate(bIn) {
+    const b = asSections(bIn);
+    const sec = b.sections || {};
+    const material = runSection(sec.material, 0).end;
+    const machinery = runSection(sec.machinery, 0).end;
+    const labour = runSection(sec.labour, 0).end;
+    const net = material + machinery + labour;
+    const profit = runSection(sec.profit, net).end - net;
+    const roundTo = b.roundTo !== undefined ? Number(b.roundTo) || 0 : 0;
+    const raw = round2(net + profit);
+    return { material: round2(material), machinery: round2(machinery), plant: round2(machinery), labour: round2(labour),
+             net: round2(net), ohp: round2(profit), ohpPct: net ? Math.round(profit / net * 1000) / 10 : 0,
+             raw: raw, roundTo: roundTo, rate: roundUp(raw, roundTo) };
+}
+
+/* ---------- drafts from the row's description ---------- */
+
+function refLine(refId, project, fields) {
     const p = priceOf(refId, project);
-    const c = {
-        ref: refId, kind: p.ref.kind,
-        name: p.own ? p.own.name : t("buildup.item." + refId),
-        unit: p.ref.unit, price: p.price,
-        source: p.own ? "priceList" : "reference"
-    };
-    if (day) {
-        c.nos = day.nos; c.output = day.output;
-        if (p.ref.fuel !== undefined) { c.fuel = p.ref.fuel; c.fuelPrice = priceOf("diesel", project).price; }
-        if (p.ref.oilYear !== undefined) c.oilYear = p.ref.oilYear;
-    } else { c.qty = qty; c.waste = waste || 0; }
-    return c;
+    return Object.assign({ ref: refId, name: p.own ? p.own.name : t("buildup.item." + refId), unit: p.ref.unit, price: p.price,
+                           source: p.own ? "priceList" : "reference" }, fields);
+}
+
+function dayLine(refId, nos, output, project) {
+    const p = priceOf(refId, project);
+    const subs = [];
+    if (p.ref.fuel !== undefined) subs.push({ name: t("buildup.sub.diesel"), qty: p.ref.fuel, unit: "L", price: priceOf("diesel", project).price, per: "day" });
+    if (p.ref.oilYear !== undefined) subs.push({ name: t("buildup.sub.oil"), qty: 1, unit: "", price: p.ref.oilYear, per: "year" });
+    return refLine(refId, project, { type: "day", nos: nos, output: output, subs: subs });
 }
 
 /* "12mm" in the description: the thickness in metres, else the default */
@@ -186,60 +303,31 @@ function suggestBuildUp(row, project) {
     const unit = String((row && row.unit) || "");
     const recipe = RECIPES.find(r => r.words.test(text) && (!unit || r.unit.test(unit)));
     if (!recipe) return null;
-    const items = [];
+    const material = [];
     if (recipe.mortar) {
-        /* the mix's price per m³ of mortar, laid at the thickness */
-        const parts = recipe.mortar.mix.map(m => ({ id: m[0], part: m[1], price: priceOf(m[0], project).price }));
-        const own = parts.some(x => priceOf(x.id, project).own);
-        items.push({ ref: "mortar", kind: "material", unit: "m3",
-            name: t("buildup.item.mortar", { mix: parts.map(x => t("buildup.item." + x.id) + " " + x.part + " m³ × " + rm(x.price)).join(" + ") }),
-            qty: round2(thicknessOf(text, recipe.mortar.thickness) * 1000) / 1000, waste: recipe.mortar.waste,
-            price: round2(parts.reduce((s, x) => s + x.part * x.price, 0)), source: own ? "priceList" : "reference" });
+        /* the mix per m³ of mortar, then delivery and wastage, then laid at the thickness */
+        recipe.mortar.mix.forEach(m => material.push(refLine(m[0], project, { type: "item", qty: m[1] })));
+        if (recipe.delivery) material.push({ type: "pct", name: t("buildup.preset.delivery"), pct: recipe.delivery });
+        material.push({ type: "pct", name: t("buildup.preset.wasteShrink"), pct: recipe.mortar.waste * 100 });
+        const th = thicknessOf(text, recipe.mortar.thickness);
+        material.push({ type: "unit", name: t("buildup.preset.thickness", { mm: Math.round(th * 1000 * 10) / 10 }), factor: th, from: "m3", to: unit || "m2" });
+    } else {
+        (recipe.material || []).forEach(m => material.push(refLine(m[0], project, { type: "item", qty: m[1] })));
+        const waste = (recipe.material || []).reduce((w, m) => Math.max(w, m[2] || 0), 0);
+        if (waste) material.push({ type: "pct", name: t("buildup.preset.wastage"), pct: Math.round(waste * 1000) / 10 });
+        if (recipe.delivery) material.push({ type: "pct", name: t("buildup.preset.delivery"), pct: recipe.delivery });
     }
-    (recipe.material || []).forEach(m => items.push(component(m[0], m[1], m[2], project)));
-    recipe.labour.forEach(l => items.push(component(l[0], 0, 0, project, { nos: l[1], output: l[2] })));
-    recipe.plant.forEach(l => items.push(component(l[0], 0, 0, project, { nos: l[1], output: l[2] })));
-    (recipe.perUnit || []).forEach(l => items.push(component(l[0], l[1], 0, project)));
-    return { recipe: recipe.id, items: items, delivery: recipe.delivery || 0, ohp: recipe.ohp !== undefined ? recipe.ohp : 15,
-             roundTo: recipe.roundTo !== undefined ? recipe.roundTo : 1 };
-}
-
-/* What one item costs per unit of the row. */
-function itemAmount(i) {
-    const n = v => Number(v) || 0;
-    if (n(i.output) > 0) {
-        const perDay = n(i.price) + n(i.fuel) * n(i.fuelPrice) + n(i.oilYear) / 365;
-        return (i.nos === undefined || i.nos === "" ? 1 : n(i.nos)) * perDay / n(i.output);
-    }
-    return n(i.qty) * (1 + n(i.waste)) * n(i.price);
-}
-
-/* Rounded up to the nearest `step` (0: not rounded). */
-function roundUp(v, step) {
-    const s = Number(step) || 0;
-    if (s <= 0) return round2(v);
-    return round2(Math.ceil(round2(v / s) - 1e-9) * s);
-}
-
-/* The rate a build-up gives, with its parts: materials (with waste and
-   delivery), labour, plant, the net cost, the profit, and the rate,
-   rounded up as the build-up says. */
-function buildUpRate(b) {
-    const items = (b && b.items) || [];
-    const sum = kind => items.filter(i => i.kind === kind).reduce((s, i) => s + itemAmount(i), 0);
-    const deliveryPct = b && b.delivery ? Number(b.delivery) || 0 : 0;
-    const material = round2(sum("material") * (1 + deliveryPct / 100));
-    const delivery = round2(material - sum("material"));
-    const labour = round2(sum("labour")), plant = round2(sum("plant"));
-    const net = round2(material + labour + plant);
-    const ohpPct = b && b.ohp !== undefined && b.ohp !== "" ? Number(b.ohp) || 0 : 15;
-    const ohp = round2(net * ohpPct / 100);
-    const roundTo = b && b.roundTo !== undefined ? Number(b.roundTo) || 0 : 0;
-    /* carried unrounded, as on the build-up sheet */
-    const netU = sum("material") * (1 + deliveryPct / 100) + sum("labour") + sum("plant");
-    const raw = round2(netU * (1 + ohpPct / 100));
-    return { material: material, deliveryPct: deliveryPct, delivery: delivery, labour: labour, plant: plant, net: net,
-             ohpPct: ohpPct, ohp: ohp, raw: raw, roundTo: roundTo, rate: roundUp(raw, roundTo) };
+    return {
+        recipe: recipe.id,
+        sections: {
+            material: material,
+            machinery: recipe.plant.map(l => dayLine(l[0], l[1], l[2], project))
+                .concat((recipe.perUnit || []).map(l => refLine(l[0], project, { type: "item", qty: l[1], name: t("buildup.item." + l[0]) }))),
+            labour: recipe.labour.map(l => dayLine(l[0], l[1], l[2], project)),
+            profit: [{ type: "pct", name: t("buildup.preset.profit"), pct: recipe.ohp !== undefined ? recipe.ohp : 15 }]
+        },
+        roundTo: recipe.roundTo !== undefined ? recipe.roundTo : 1
+    };
 }
 
 /* Rent or buy a piece of plant for `months` of use.
@@ -282,52 +370,71 @@ function parsePriceList(text) {
 /* ---------- the card on the VO page ---------- */
 
 /* The rows a build-up is for: every measured row, the ones with no BQ
-   item (star rates) marked. `stars` is the set of row indexes. */
+   item (star rates) marked. `stars` is the set of row indexes. The
+   build-up is the author's own (o.buildUp, js/private.js), else a draft. */
 function renderBuildUpCard(vo, project, opts) {
     const o = opts || {};
     const rows = (vo.measurement || []);
     if (!rows.length) return '<div class="empty-state">' + escapeHtml(t("buildup.noRows")) + "</div>";
     const i = Math.min(Math.max(0, o.rowIndex || 0), rows.length - 1);
     const row = rows[i];
-    /* the author's own build-up (js/private.js), else a draft from the row */
-    const b = o.buildUp || suggestBuildUp(row, project) || { items: [], ohp: 15 };
-    const drafted = !o.buildUp && b.items.length > 0;
+    const drafted = !o.buildUp;
+    const b = asSections(o.buildUp || suggestBuildUp(row, project) || { sections: { material: [], machinery: [], labour: [], profit: [newLine("pct:profit")] }, roundTo: 1 });
     const r = buildUpRate(b);
     const region = regionOf(project);
     const dis = o.editable ? "" : " disabled";
-    const num = (k, j, v, step) => '<input type="number" min="0" step="' + step + '" data-bu="' + k + '" data-i="' + j + '" value="' + escapeHtml(String(v)) + '"' + dis + ">";
-    const pct = v => Math.round((Number(v) || 0) * 1000) / 10;
-    const kindOrder = ["material", "labour", "plant"];
     const rowUnit = escapeHtml(row.unit || t("buildup.unit"));
-    /* how the item is worked out, as a QS writes it: 0.012 m³ × RM 290.00;
-       2 × RM 120.00 a day ÷ 10 m² a day (+ diesel 70 L × RM 4.72 + oil
-       RM 2,800 a year) */
-    const calc = (it, j) => {
-        if (Number(it.output) > 0) {
-            return '<span class="bu-calc">' + num("nos", j, it.nos === undefined ? 1 : it.nos, "1") + " × RM " + num("price", j, it.price, "0.01") +
-                " " + escapeHtml(t("buildup.perDay")) + " ÷ " + num("output", j, it.output, "0.1") + " " + rowUnit + " " + escapeHtml(t("buildup.perDay")) + "</span>" +
-                (it.fuel !== undefined || it.oilYear !== undefined ? '<span class="bu-calc bu-fuel">+ ' + escapeHtml(t("buildup.diesel")) + " " +
-                    num("fuel", j, it.fuel || 0, "1") + " L × RM " + num("fuelPrice", j, it.fuelPrice || 0, "0.01") +
-                    " + " + escapeHtml(t("buildup.oil")) + " RM " + num("oilYear", j, it.oilYear || 0, "1") + " " + escapeHtml(t("buildup.perYear")) + "</span>" : "");
+    const at = (sec, j, sIdx) => ' data-sec="' + sec + '" data-i="' + j + '"' + (sIdx === undefined ? "" : ' data-s="' + sIdx + '"');
+    const num = (sec, j, k, v, step, sIdx, cls) => '<input type="number" step="' + step + '" class="bu-n' + (cls ? " " + cls : "") + '"' + at(sec, j, sIdx) +
+        ' data-k="' + k + '" data-t="n" value="' + escapeHtml(String(v === undefined || v === null ? "" : v)) + '"' + dis + ">";
+    const txt = (sec, j, k, v, ph, sIdx, cls) => '<input type="text" class="' + (cls || "bu-t") + '"' + at(sec, j, sIdx) + ' data-k="' + k + '" value="' + escapeHtml(String(v || "")) + '"' +
+        (ph ? ' placeholder="' + escapeHtml(ph) + '"' : "") + dis + ">";
+    const del = (sec, j, sIdx) => o.editable ? '<button type="button" class="link-button bu-remove"' + at(sec, j, sIdx) + ' aria-label="' + escapeHtml(t("buildup.remove")) + '">×</button>' : "";
+    const up = (sec, j) => o.editable && j > 0 ? '<button type="button" class="link-button bu-up"' + at(sec, j) + ' aria-label="' + escapeHtml(t("buildup.moveUp")) + '">↑</button>' : "";
+    const src = l => l.source && l.source !== "manual" ? ' <span class="bu-src bu-src-' + escapeHtml(l.source) + '">' + escapeHtml(t("buildup.src." + l.source)) + "</span>" : "";
+
+    /* how a line is worked out, as the QS writes it */
+    function calc(sec, j, l, before) {
+        if (l.type === "pct") return num(sec, j, "pct", l.pct, "0.1", undefined, "bu-n-s") + " % × " + escapeHtml(rm(before));
+        if (l.type === "unit") return "× " + num(sec, j, "factor", l.factor, "0.001") + " " +
+            txt(sec, j, "from", l.from, t("buildup.unitFrom"), undefined, "bu-u") + " → " + txt(sec, j, "to", l.to, rowUnit, undefined, "bu-u");
+        if (l.type === "day") {
+            const subs = (l.subs || []).map((sb, k) => '<div class="bu-sub">+ ' + txt(sec, j, "name", sb.name, t("buildup.namePh"), k, "bu-t bu-t-s") + " " +
+                num(sec, j, "qty", sb.qty, "0.01", k, "bu-n-s") + " " + txt(sec, j, "unit", sb.unit, "", k, "bu-u") + " × RM " + num(sec, j, "price", sb.price, "0.01", k) +
+                ' <select data-k="per"' + at(sec, j, k) + dis + ">" + ["day", "year"].map(p => '<option value="' + p + '"' + ((sb.per || "day") === p ? " selected" : "") + ">" +
+                    escapeHtml(t("buildup.per." + p)) + "</option>").join("") + "</select> " + del(sec, j, k) + "</div>").join("");
+            return '<span class="bu-calc">' + num(sec, j, "nos", l.nos === undefined ? 1 : l.nos, "1", undefined, "bu-n-s") + " × ( RM " + num(sec, j, "price", l.price, "0.01") +
+                " " + escapeHtml(t("buildup.perDay")) + (l.subs && l.subs.length ? " + " + escapeHtml(t("buildup.subsLabel")) : "") + " ) ÷ " +
+                num(sec, j, "output", l.output, "0.1", undefined, "bu-n-s") + " " + rowUnit + escapeHtml(t("buildup.perDay")) + "</span>" + subs +
+                (o.editable ? '<select class="bu-add-sub"' + at(sec, j) + '><option value="">' + escapeHtml(t("buildup.addSub")) + "</option>" +
+                    SUB_FORMATS.map(f => '<option value="' + f + '">' + escapeHtml(t("buildup.sub." + f)) + "</option>").join("") + "</select>" : "");
         }
-        return '<span class="bu-calc">' + num("qty", j, it.qty, "0.001") + " " + escapeHtml(unitLabel(it.unit)) + " × RM " + num("price", j, it.price, "0.01") + "</span>";
-    };
-    const body = kindOrder.map(kind => {
-        const list = b.items.map((it, j) => ({ it: it, j: j })).filter(x => x.it.kind === kind);
-        return '<tr class="bu-kind"><th colspan="6">' + escapeHtml(t("buildup.kind." + kind)) + "</th></tr>" +
-            list.map(x => "<tr>" +
-                '<td><input type="text" data-bu="name" data-i="' + x.j + '" value="' + escapeHtml(x.it.name) + '"' + dis + "></td>" +
-                "<td>" + calc(x.it, x.j) + "</td>" +
-                "<td>" + (kind === "material" ? num("waste", x.j, pct(x.it.waste), "1") + " %" : "") + "</td>" +
-                '<td><span class="bu-src bu-src-' + escapeHtml(x.it.source || "manual") + '">' + escapeHtml(t("buildup.src." + (x.it.source || "manual"))) + "</span></td>" +
-                '<td class="num">' + rm(itemAmount(x.it)) + "</td>" +
-                "<td>" + (o.editable ? '<button type="button" class="link-button bu-remove" data-i="' + x.j + '" aria-label="' + escapeHtml(t("buildup.remove")) + '">×</button>' : "") + "</td>" +
-            "</tr>").join("") +
-            (o.editable ? '<tr><td colspan="6"><button type="button" class="link-button bu-add" data-kind="' + kind + '">' + escapeHtml(t("buildup.add." + kind)) + "</button></td></tr>" : "");
+        return '<span class="bu-calc">' + num(sec, j, "qty", l.qty, "0.001", undefined, "bu-n-s") + " " + txt(sec, j, "unit", l.unit, "", undefined, "bu-u") +
+            " × RM " + num(sec, j, "price", l.price, "0.01") + "</span>";
+    }
+
+    const net = r.material + r.machinery + r.labour;
+    const sections = SECTIONS.map(sec => {
+        const lines = b.sections[sec] || [];
+        const start = sec === "profit" ? runSection(b.sections.material, 0).end + runSection(b.sections.machinery, 0).end + runSection(b.sections.labour, 0).end : 0;
+        const run = runSection(lines, start);
+        const total = sec === "profit" ? run.end - start : run.end;
+        return '<div class="bu-sec bu-sec-' + sec + '">' +
+            '<div class="bu-sec-head"><strong>' + escapeHtml(t("buildup.sec." + sec)) + "</strong>" +
+                (sec === "profit" ? '<span class="rate-detail">' + escapeHtml(t("buildup.netStart", { amount: rm(net) })) + "</span>" : "") +
+                "<span>" + escapeHtml(rm(total)) + "</span></div>" +
+            (lines.length ? '<table class="bu-table"><tbody>' + lines.map((l, j) => '<tr class="bu-line bu-' + escapeHtml(l.type || "item") + '">' +
+                "<td>" + txt(sec, j, "name", l.name, t("buildup.namePh")) + src(l) + "</td>" +
+                "<td>" + calc(sec, j, l, run.rows[j].before) + "</td>" +
+                '<td class="num">' + (l.type === "unit" ? "→ " + escapeHtml(rm(run.rows[j].after)) : escapeHtml(rm(run.rows[j].amount))) + "</td>" +
+                '<td class="bu-act">' + up(sec, j) + del(sec, j) + "</td></tr>").join("") + "</tbody></table>" : "") +
+            (o.editable ? '<select class="bu-add-line" data-sec="' + sec + '"><option value="">' + escapeHtml(t("buildup.addLine")) + "</option>" +
+                ADD_FORMATS[sec].map(f => '<option value="' + f + '">' + escapeHtml(t("buildup.fmt." + f.replace(":", "."))) + "</option>").join("") + "</select>" : "") +
+        "</div>";
     }).join("");
 
-    const plant = b.items.filter(it => it.kind === "plant" && Number(it.output) > 0 && it.ref !== "tools");
-    const rentBlock = plant.length ? fold("bu-rent", escapeHtml(t("buildup.rentTitle")), renderRentOrBuy(plant, o.rent || {})) : "";
+    const machines = (b.sections.machinery || []).filter(l => l.type === "day" && l.ref && (REFERENCE_PRICES.find(x => x.id === l.ref) || {}).buy);
+    const rentBlock = machines.length ? fold("bu-rent", escapeHtml(t("buildup.rentTitle")), renderRentOrBuy(machines, o.rent || {})) : "";
     const pl = (project && project.priceList) || [];
     const priceBlock = fold("bu-pricelist", escapeHtml(t("buildup.priceListTitle", { n: pl.length })),
         '<p class="assistant-note">' + escapeHtml(t("buildup.priceListNote")) + "</p>" +
@@ -341,17 +448,13 @@ function renderBuildUpCard(vo, project, opts) {
             '<span class="rate-detail">' + escapeHtml(t("buildup.region." + region.from, { region: t("buildup.regionName." + region.id), f: region.factor.toFixed(2) })) + "</span>" +
         "</div>" +
         (o.stars && o.stars.has(i) ? '<p class="assistant-note">' + escapeHtml(t("buildup.starNote")) + "</p>" : "") +
-        (drafted ? '<p class="assistant-note">' + escapeHtml(t("buildup.drafted")) + "</p>" : "") +
-        (!b.items.length ? '<p class="assistant-note">' + escapeHtml(t("buildup.noRecipe")) + "</p>" : "") +
-        '<div class="table-scroll"><table class="bu-table"><thead><tr>' +
-            ["item", "calc", "waste", "source", "amount", ""].map(h => "<th>" + (h ? escapeHtml(t("buildup.col." + h)) : "") + "</th>").join("") +
-        "</tr></thead><tbody>" + body + "</tbody></table></div>" +
+        (drafted && o.editable ? '<p class="assistant-note">' + escapeHtml(t(suggestBuildUp(row, project) ? "buildup.drafted" : "buildup.noRecipe")) + "</p>" : "") +
+        '<div class="bu-secs">' + sections + "</div>" +
         '<div class="bu-totals">' +
-            "<div><small>" + escapeHtml(t("buildup.total.material")) + " · " + escapeHtml(t("buildup.total.delivery")) + " " + num("delivery", -1, r.deliveryPct, "1") + " %</small><strong>" + rm(r.material) + "</strong></div>" +
-            ["labour", "plant", "net"].map(k => "<div><small>" + escapeHtml(t("buildup.total." + k)) + "</small><strong>" + rm(r[k]) + "</strong></div>").join("") +
-            "<div><small>" + escapeHtml(t("buildup.total.ohp")) + " " + num("ohp", -1, r.ohpPct, "0.5") + " %</small><strong>" + rm(r.ohp) + "</strong></div>" +
+            ["material", "machinery", "labour"].map(k => "<div><small>" + escapeHtml(t("buildup.sec." + k)) + "</small><strong>" + rm(r[k]) + "</strong></div>").join("") +
+            "<div><small>" + escapeHtml(t("buildup.sec.profit")) + " (" + r.ohpPct + " %)</small><strong>" + rm(r.ohp) + "</strong></div>" +
             '<div class="bu-rate"><small>' + escapeHtml(t("buildup.total.rate", { unit: row.unit || t("buildup.unit") })) + "</small><strong>" + rm(r.rate) + "</strong>" +
-                '<span class="bu-round">' + (r.rate !== r.raw ? escapeHtml(rm(r.raw)) + " → " : "") + escapeHtml(t("buildup.roundTo")) + ' <select data-bu="roundTo" data-i="-1"' + dis + ">" +
+                '<span class="bu-round">' + (r.rate !== r.raw ? escapeHtml(rm(r.raw)) + " → " : "") + escapeHtml(t("buildup.roundTo")) + ' <select data-k="roundTo"' + dis + ">" +
                 [0, 0.5, 1, 5, 10].map(v => '<option value="' + v + '"' + (v === r.roundTo ? " selected" : "") + ">" + escapeHtml(v ? "RM " + v : t("buildup.noRound")) + "</option>").join("") +
                 "</select></span></div>" +
         "</div>" +
@@ -361,6 +464,27 @@ function renderBuildUpCard(vo, project, opts) {
         (typeof renderSuppliers === "function"
             ? fold("bu-suppliers", escapeHtml(t("suppliers.title")), '<div id="suppliersBody">' + renderSuppliers(project, o.suppliers || null) + "</div>") : "") +
         '<p class="assistant-note">' + escapeHtml(t("buildup.note")) + "</p>";
+}
+
+/* Change a build-up as the card's inputs say (the VO page calls these). */
+function editBuildUp(b, e) {
+    const sec = b.sections[e.sec];
+    if (e.k === "roundTo") { b.roundTo = Number(e.value) || 0; return b; }
+    if (!sec) return b;
+    if (e.op === "add") { sec.push(newLine(e.value)); return b; }
+    const line = sec[e.i];
+    if (!line) return b;
+    if (e.op === "addSub") { line.subs = (line.subs || []).concat([newSub(e.value)]); return b; }
+    if (e.op === "remove") {
+        if (e.s !== undefined) line.subs.splice(e.s, 1); else sec.splice(e.i, 1);
+        return b;
+    }
+    if (e.op === "up") { if (e.i > 0) sec.splice(e.i - 1, 0, sec.splice(e.i, 1)[0]); return b; }
+    const target = e.s !== undefined ? (line.subs || [])[e.s] : line;
+    if (!target) return b;
+    target[e.k] = e.numeric ? (e.value === "" ? "" : Number(e.value) || 0) : e.value;
+    if (e.s === undefined && (e.k === "price" || e.k === "name")) line.source = "manual";
+    return b;
 }
 
 function rowPicker(rows, i, stars) {
@@ -387,8 +511,8 @@ function renderBuildUpSummary(vo, opts) {
     return head +
         '<p class="rate-detail">' + escapeHtml(t("buildup.summary.title", { date: sm.at || "" })) + "</p>" +
         '<div class="bu-totals bu-summary">' +
-            box(t("buildup.total.material"), sm.material) + box(t("buildup.total.labour"), sm.labour) + box(t("buildup.total.plant"), sm.plant) +
-            box(t("buildup.total.ohp") + " " + (Number(sm.profitPct) || 0) + " %", sm.profit) +
+            box(t("buildup.sec.material"), sm.material) + box(t("buildup.sec.machinery"), sm.plant) + box(t("buildup.sec.labour"), sm.labour) +
+            box(t("buildup.sec.profit") + " " + (Number(sm.profitPct) || 0) + " %", sm.profit) +
             box(t("buildup.total.rate", { unit: row.unit || t("buildup.unit") }), sm.rate, "bu-rate") +
         "</div>" +
         (differs ? '<p class="assistant-note">' + escapeHtml(t("buildup.summary.differs", { rate: rm(Number(row.rate)) })) + "</p>" : "") +
@@ -402,7 +526,7 @@ function renderRentOrBuy(plant, state) {
         const ref = REFERENCE_PRICES.find(r => r.id === it.ref) || {};
         const s = state[it.ref || it.name] || {};
         const months = s.months !== undefined ? s.months : 3;
-        const rentPerMonth = s.rentPerMonth !== undefined ? s.rentPerMonth : Math.round((Number(it.price) || 0) * (it.unit === "day" ? 22 : 8 * 22));
+        const rentPerMonth = s.rentPerMonth !== undefined ? s.rentPerMonth : Math.round((Number(it.price) || 0) * (it.unit === "hr" ? 8 * 22 : 22));
         const buyPrice = s.buyPrice !== undefined ? s.buyPrice : (ref.buy || 0);
         const resalePct = s.resalePct !== undefined ? s.resalePct : 40;
         const upkeepPctYear = s.upkeepPctYear !== undefined ? s.upkeepPctYear : 10;
@@ -418,6 +542,7 @@ function renderRentOrBuy(plant, state) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, regionOf, priceListMatch, suggestBuildUp, buildUpRate, itemAmount, roundUp, thicknessOf, rentOrBuy, parsePriceList,
+    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
+        lineAmount, runSection, newLine, newSub, editBuildUp, roundUp, thicknessOf, rentOrBuy, parsePriceList,
         renderBuildUpCard, renderBuildUpSummary, renderRentOrBuy };
 }

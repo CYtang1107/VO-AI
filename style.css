@@ -3853,3 +3853,29 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .bu-table input[data-bu="name"] { width: 260px; }
 .bu-round { font-size: 12px; color: #dbe4ff; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .bu-round select { font-size: 12px; padding: 2px 4px; border-radius: 6px; border: 0; }
+
+/* the build-up: materials, machinery, labour, profit — each with its lines and an add */
+.bu-secs { display: grid; gap: 10px; }
+.bu-sec { border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px 10px; background: var(--paper); }
+.bu-sec-head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 6px; }
+.bu-sec-head strong { font-size: 14px; }
+.bu-sec-head > span:last-child { margin-left: auto; font-weight: 700; }
+.bu-sec-material { border-left: 4px solid #2546c4; }
+.bu-sec-machinery { border-left: 4px solid #b45309; }
+.bu-sec-labour { border-left: 4px solid #0b6b3b; }
+.bu-sec-profit { border-left: 4px solid #6527d1; }
+.bu-sec .bu-table td { padding: 5px 6px; }
+.bu-sec .bu-table td:first-child { width: 230px; }
+.bu-sec .bu-table input.bu-t { width: 210px; }
+.bu-sec .bu-table input.bu-n { width: 80px; padding: 4px 6px; }
+.bu-sec .bu-table input.bu-n-s { width: 56px; }
+.bu-sec .bu-table input.bu-u { width: 48px; padding: 4px 6px; }
+.bu-sec .bu-table input.bu-t-s { width: 110px; padding: 4px 6px; }
+.bu-sec .bu-table select { font-size: 12px; padding: 3px 4px; border-radius: 6px; border: 1px solid #dfe3e8; }
+.bu-sec .bu-table td.num { width: 110px; }
+.bu-sec .bu-act { width: 46px; white-space: nowrap; text-align: right; }
+.bu-sec tr.bu-pct td, .bu-sec tr.bu-unit td { background: #f7f8fb; font-size: 12px; }
+.bu-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; color: var(--ink-3); }
+.bu-add-sub { margin-top: 4px; }
+.bu-add-line { margin-top: 6px; font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px dashed var(--accent); color: var(--accent); background: #f3f6ff; cursor: pointer; }
+.bu-up { margin-right: 6px; }

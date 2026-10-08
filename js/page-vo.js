@@ -11,7 +11,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t } = require("./i18n.js");
     var { claimCheck, renderClaimCheck } = require("./claimcheck.js");
     var { renderIssueForm, renderIssued, instructionProblem } = require("./instruction.js");
-    var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList } = require("./buildup.js");
+    var { renderBuildUpCard, renderBuildUpSummary, suggestBuildUp, buildUpRate, parsePriceList, asSections, editBuildUp, newLine } = require("./buildup.js");
     var { buildUpKey, buildUpSummary } = require("./private.js");
 }
 
@@ -986,7 +986,8 @@ if (typeof document !== "undefined") {
         /* the row's build-up as shown (the drafted one until first edited) */
         function currentBuildUp(v) {
             const row = v.measurement[bu.rowIndex];
-            return getPrivate(project.id, buKey(v)) || suggestBuildUp(row, buProject()) || { items: [], ohp: 15 };
+            return asSections(getPrivate(project.id, buKey(v)) || suggestBuildUp(row, buProject()) ||
+                { sections: { material: [], machinery: [], labour: [], profit: [newLine("pct:profit")] }, roundTo: 1 });
         }
         function saveBuildUp(change) {
             const v = voNow();
@@ -1008,30 +1009,24 @@ if (typeof document !== "undefined") {
                 draw();
                 return;
             }
-            if (!el.dataset.bu) return;
-            const k = el.dataset.bu, i = Number(el.dataset.i);
-            saveBuildUp(b => {
-                if (k === "ohp" || k === "delivery" || k === "roundTo") { b[k] = Number(el.value) || 0; return; }
-                const it = b.items[i];
-                if (!it) return;
-                if (k === "name") it.name = el.value;
-                else if (k === "waste") it.waste = (Number(el.value) || 0) / 100;
-                else it[k] = Number(el.value) || 0;
-                if (k === "price" || k === "name") it.source = "manual";
-            });
-        });
-        buPanel.addEventListener("click", e => {
-            const add = e.target.closest(".bu-add");
-            if (add) {
-                /* a material by quantity; labour and plant by the day ÷ output (plant with its diesel and oil) */
-                const kind = add.dataset.kind;
-                saveBuildUp(b => b.items.push(kind === "material" ? { kind: kind, name: "", unit: "", qty: 1, waste: 0, price: 0, source: "manual" }
-                    : Object.assign({ kind: kind, name: "", unit: "day", nos: 1, price: 0, output: 1, source: "manual" },
-                        kind === "plant" ? { fuel: 0, fuelPrice: 4.72, oilYear: 0 } : {})));
+            /* "+ add" under a section, or a sub-item (diesel, oil) under a machine */
+            if (el.classList.contains("bu-add-line") || el.classList.contains("bu-add-sub")) {
+                if (!el.value) return;
+                const op = el.classList.contains("bu-add-line") ? "add" : "addSub";
+                saveBuildUp(b => editBuildUp(b, { op: op, sec: el.dataset.sec, i: Number(el.dataset.i), value: el.value }));
                 return;
             }
-            const rem = e.target.closest(".bu-remove");
-            if (rem) { saveBuildUp(b => b.items.splice(Number(rem.dataset.i), 1)); return; }
+            if (!el.dataset.k) return;
+            saveBuildUp(b => editBuildUp(b, { sec: el.dataset.sec, i: Number(el.dataset.i), s: el.dataset.s === undefined ? undefined : Number(el.dataset.s),
+                k: el.dataset.k, value: el.value, numeric: el.dataset.t === "n" }));
+        });
+        buPanel.addEventListener("click", e => {
+            const rem = e.target.closest(".bu-remove, .bu-up");
+            if (rem) {
+                saveBuildUp(b => editBuildUp(b, { op: rem.classList.contains("bu-up") ? "up" : "remove", sec: rem.dataset.sec, i: Number(rem.dataset.i),
+                    s: rem.dataset.s === undefined ? undefined : Number(rem.dataset.s) }));
+                return;
+            }
             if (e.target.id === "buUseRate") {
                 const v = voNow();
                 const b = currentBuildUp(v);
