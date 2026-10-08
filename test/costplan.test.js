@@ -209,3 +209,16 @@ test("the S-curve page: one view at a time — the curve, how the project is doi
     assert.match(at("inputs"), /Programme and payment certificates \(6\)/);
     assert.match(at("nonsense"), /class="cd-tab on" data-tab="curve"/);
 });
+
+test("zooming the S-curve: a stretch of months, the money axis fitted to it so the lines separate", () => {
+    const curve = c.sCurve(project(), "2026-09-12");
+    const z = c.zoomCurve(curve, 3, 6);
+    assert.strictEqual(z.points.length, 4);
+    assert.strictEqual(z.points[0].date, "2026-06-30");
+    assert.ok(z.zoomed);
+    assert.ok(!c.zoomCurve(curve, 0, curve.points.length - 1).zoomed, "all months: not zoomed");
+    assert.strictEqual(c.zoomCurve(curve, 5, 5).points.length, 2, "at least two months");
+    const ticks = svg => (svg.match(/class="sc-tick"[^>]*>RM [^<]+/g) || []).map(s => s.replace(/.*>/, ""));
+    assert.strictEqual(ticks(c.renderSCurveSvg(z, 1000, 300))[0], "RM 0", "unzoomed axis starts at RM 0");
+    assert.notStrictEqual(ticks(c.renderSCurveSvg(z, 1000, 300, { fitY: true }))[0], "RM 0", "zoomed axis starts near the lowest value in view");
+});
