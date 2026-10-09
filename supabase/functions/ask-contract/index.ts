@@ -35,8 +35,6 @@ const DASHSCOPE = (Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyun
 const AI_KEY = Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 // 「评审一键体验」: questions without an account, for the demo project only
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
-const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
-const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
 const EMBED_MODEL = Deno.env.get("EMBED_MODEL") || "text-embedding-v4";
 // The first model that answers is used; a used-up free quota moves to the next.
 const CHAT_MODELS = (Deno.env.get("ASK_MODELS") || "qwen-plus-latest,qwen-flash")
@@ -123,6 +121,22 @@ Deno.serve(async (req) => {
 
     let body: Record<string, unknown>;
     try { body = await req.json(); } catch { return reply({ error: "Body must be JSON." }, 400); }
+    // The demo (no account) may see what is in the demo project's
+    // knowledge base, as a team account does: each document's clause
+    // numbers and titles, never their text (a published form's text is
+    // not handed out in bulk).
+    if (body.guest === true && body.action === "knowledge") {
+        if (body.project_id !== GUEST_PROJECT) return reply({ error: "Sign in first." }, 401);
+        const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+            auth: { persistSession: false },
+        });
+        let q = admin.from("contract_chunks").select("doc_name, form, clause_no, title, part")
+            .eq("project_id", GUEST_PROJECT).order("id").range(0, 4999);
+        if (typeof body.doc_name === "string") q = q.eq("doc_name", body.doc_name);
+        const { data, error } = await q;
+        if (error) return reply({ error: error.message }, 500);
+        return reply({ rows: (data || []).map((r: Record<string, unknown>) => ({ ...r, text: "" })) });
+    }
     const invalid = validRequest(body);
     if (invalid) return reply({ error: invalid }, 400);
     const projectId = body.project_id as string;
@@ -133,20 +147,13 @@ Deno.serve(async (req) => {
     let db: any;
     let role: string;
     if (body.guest === true) {
-        // 「评审一键体验」: the demo with no account. Only the demo project,
-        // read with the service role, and only within the daily limits
-        // (migration 0004). The role is the one picked in the demo.
+        // 「评审一键体验」: the demo with no account. Only the demo project's
+        // clauses, read with the service role, with no daily limit. The
+        // role is the one picked in the demo.
         if (projectId !== GUEST_PROJECT) return reply({ error: "Sign in first." }, 401);
         db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
             auth: { persistSession: false },
         });
-        const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
-            req.headers.get("x-real-ip") || "unknown";
-        const { data: allowed, error: quotaError } = await db.rpc("guest_quota", {
-            p_ip: ip, p_ip_limit: GUEST_PER_VISITOR, p_day_limit: GUEST_PER_DAY,
-        });
-        if (quotaError) return reply({ error: quotaError.message }, 500);
-        if (!allowed) return reply({ answer: null, reason: "guest-limit", citations: [] }, 429);
         role = ROLE_FRAMING[body.role as string] ? body.role as string : "consultant";
     } else {
         const auth = req.headers.get("Authorization");

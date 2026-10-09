@@ -96,7 +96,7 @@ function renderClauseList(clauses, filter) {
         (shown.length
             ? shown.map(c => '<details class="cite-source"><summary>' +
                 escapeHtml((/^Article /.test(c.no) ? c.no : t("ask.clause", { no: c.no })) + (c.title ? " — " + c.title : "")) +
-                '</summary><p class="rate-detail">' + escapeHtml(c.text) + "</p></details>").join("")
+                '</summary><p class="rate-detail">' + escapeHtml(c.text || t("kb.view.textTeamOnly")) + "</p></details>").join("")
             : '<div class="empty-state">' + escapeHtml(t("kb.view.noMatch")) + "</div>");
 }
 
@@ -267,11 +267,20 @@ async function importContractDoc(projectId, doc, onProgress) {
     return { form: kb.form, clauses: kb.clauses, chunks: kb.chunks.length, ocr: usedOcr };
 }
 
+/* The demo (no account) sees the demo project's knowledge base through
+   ask-contract: clause numbers and titles, not their text. */
+var KB_DEMO_PROJECT = "PRJ-CADANGAN";
+function kbAsGuest(projectId) {
+    return typeof Cloud !== "undefined" && Cloud.enabled() && !Cloud.active() && projectId === KB_DEMO_PROJECT;
+}
+
 async function loadKnowledge(projectId) {
+    if (kbAsGuest(projectId)) return groupKnowledge((await Cloud.invoke("ask-contract", { guest: true, action: "knowledge", project_id: projectId })).rows || []);
     return groupKnowledge(await Cloud.knowledgeRows(projectId));
 }
 
 async function loadClauses(projectId, docName) {
+    if (kbAsGuest(projectId)) return groupClauseRows((await Cloud.invoke("ask-contract", { guest: true, action: "knowledge", project_id: projectId, doc_name: docName })).rows || []);
     return groupClauseRows(await Cloud.knowledgeText(projectId, docName));
 }
 
@@ -280,5 +289,5 @@ async function removeKnowledge(projectId, docName) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { inBatches, formFor, groupKnowledge, knowledgeFromText, renderKnowledgeCard, groupClauseRows, renderClauseList };
+    module.exports = { kbAsGuest, inBatches, formFor, groupKnowledge, knowledgeFromText, renderKnowledgeCard, groupClauseRows, renderClauseList };
 }

@@ -17,7 +17,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { escapeHtml } = require("./ui.js");
     var { t } = require("./i18n.js");
-    var { askAsGuest, askContractAvailable } = require("./askcontract.js");
+    var { aiAsGuest, aiAvailable } = require("./askcontract.js");
     var { DEMO_FILES } = require("./store.js");
 }
 
@@ -48,7 +48,7 @@ function photosToCheck(vo) {
 }
 
 function photoCheckAvailable(projectId) {
-    return askContractAvailable(projectId);
+    return aiAvailable();
 }
 
 /* A result is kept until the description or the photos change. */
@@ -129,7 +129,7 @@ async function askPhotos(projectId, mode, images, description) {
             images: images.map((i, k) => ({ id: i.id, data: data[k] }))
         };
         if (mode === "check") body.description = description;
-        if (askAsGuest(projectId)) body.guest = true;
+        if (aiAsGuest()) body.guest = true;
         return await Cloud.invoke("photo-check", body);
     } catch (e) {
         return { error: e.message || String(e) };

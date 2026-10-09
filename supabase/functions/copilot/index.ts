@@ -31,8 +31,6 @@ import {
 const DASHSCOPE = (Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
 const AI_KEY = Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
-const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
-const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
 const EMBED_MODEL = Deno.env.get("EMBED_MODEL") || "text-embedding-v4";
 const CHAT_MODELS = (Deno.env.get("COPILOT_MODELS") || Deno.env.get("ASK_MODELS") || "qwen-plus-latest,qwen-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
@@ -114,13 +112,13 @@ Deno.serve(async (req) => {
     // deno-lint-ignore no-explicit-any
     let db: any;
     let role: string;
+    /* the demo (no account) answers from the project data it sends, for
+       any project, with no daily limit; the stored contract clauses it may
+       read are the demo project's only */
+    let kbProject: string | null = projectId;
     if (body.guest === true) {
-        if (projectId !== GUEST_PROJECT) return reply({ error: "Sign in first." }, 401);
         db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-        const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || req.headers.get("x-real-ip") || "unknown";
-        const { data: allowed, error } = await db.rpc("guest_quota", { p_ip: ip, p_ip_limit: GUEST_PER_VISITOR, p_day_limit: GUEST_PER_DAY });
-        if (error) return reply({ error: error.message }, 500);
-        if (!allowed) return reply({ answer: null, reason: "guest-limit", citations: [] }, 429);
+        if (projectId !== GUEST_PROJECT) kbProject = null;
         role = typeof body.role === "string" ? body.role : "consultant";
     } else {
         const auth = req.headers.get("Authorization");
@@ -139,10 +137,10 @@ Deno.serve(async (req) => {
     try {
         /* the nearest clauses, if any are close enough: optional context */
         let clauses: Record<string, unknown>[] = [];
-        try {
+        if (kbProject) try {
             const emb = await dashscope("/embeddings", { model: EMBED_MODEL, input: [question], dimensions: 1024, encoding_format: "float" });
             const { data: rows } = await db.rpc("match_chunks", {
-                p_project: projectId, q: "[" + fit1024(emb.data[0].embedding).join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
+                p_project: kbProject, q: "[" + fit1024(emb.data[0].embedding).join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
             });
             clauses = groupChunks(rows || []);
         } catch { clauses = []; }
