@@ -117,7 +117,7 @@ function filterVos(vos, filters) {
 
 function renderRegisterHead(role) {
     return "<tr>" + columnsForRole(role).map(c => {
-        const cls = [FIELD_OWNER[c.field] === role ? "owned-col" : "", c.compact ? "" : "col-extra"].filter(Boolean);
+        const cls = [FIELD_OWNER[c.field] === role ? "owned-col" : "", c.compact ? "" : "col-extra", c.field === "step" ? "col-step" : ""].filter(Boolean);
         return "<th" + (cls.length ? ' class="' + cls.join(" ") + '"' : "") + ">" + escapeHtml(t(c.labelKey)) + "</th>";
     }).join("") + "</tr>";
 }
@@ -200,6 +200,7 @@ function renderRegisterBody(project, role, opts) {
             if (owned) classes.push("owned-col");
             if (heading) classes.push("card-heading");
             if (!c.compact) classes.push("col-extra");
+            if (c.field === "step") classes.push("col-step");
             const cls = classes.length ? ' class="' + classes.join(" ") + '"' : "";
             const stage = c.field === "no" ? ' data-stage="' + escapeHtml(t("register.stage." + rowStage(v))) + '"' : "";
             return "<td" + cls + stage + ' data-label="' + escapeHtml(t(c.labelKey)) + '">' +
