@@ -4115,23 +4115,50 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .bu-shop-search { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
 .bu-src-shop { background: #e0f2fe; color: #075985; }
 
-/* Documents page on a desktop: everything on one screen. The files fill
-   the left column, adding a file and the contract knowledge base the
-   right; each list scrolls inside its own panel (data-fit). */
-.docs-layout { display: grid; gap: 18px; }
-.docs-main, .docs-side { display: grid; gap: 14px; align-content: start; min-width: 0; }
-.docs-main > .card, .docs-side > .card { margin: 0; }
+/* Documents page: every file in one card (its header holds the count,
+   the filters and "+ 上传文件"), the contract knowledge base beside it on a
+   desktop; each list scrolls inside its card (data-fit), every row one line. */
+.docs-layout { display: grid; gap: 18px; align-items: start; }
+.docs-layout > .card { margin: 0; }
+.docs-files-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; padding: 14px 18px; border-bottom: 1px solid var(--rule); }
+.docs-files-title { flex: 1 1 160px; min-width: 0; }
+.docs-files-title h3 { margin: 0 0 2px; font-size: 16px; }
+.docs-files-card .doc-summary-bar { display: block; border: 0; padding: 0; margin: 0; font-size: 12px; color: var(--ink-3); }
+.docs-files-card .doc-filters { gap: 12px; }
+.docs-files-card .doc-filters select { min-width: 150px; }
+.docs-upload-toggle.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.docs-upload-inline { padding: 12px 18px; border-bottom: 1px solid var(--rule); background: var(--paper-sunk); }
+.docs-upload-inline .doc-upload-row { flex-wrap: nowrap; gap: 12px; }
+.docs-upload-inline .field { flex: 1 1 0; min-width: 0; }
+.docs-upload-inline .field > span { font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.docs-files-body { padding: 14px 18px; }
+.docs-files-body .doc-group-project { margin-bottom: 14px; }
+/* one line per file: tag · name · date and who · 移除 on the right */
+.docs-layout .doc-registry-item .doc-current { flex-wrap: nowrap; width: 100%; min-width: 0; }
+.docs-layout .doc-registry-item .file-name { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; word-break: normal; }
+.docs-layout .doc-registry-item .file-date { flex: none; }
+.docs-layout .doc-registry-item .file-remove, .docs-layout .kb-import-btn { flex: none; }
+.docs-layout .doc-registry-item .file-remove { margin-left: 4px; }
+/* each VO a slim row: number, title, status and file counts, then its files */
+.docs-layout .doc-tickets { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.docs-layout .doc-ticket { border-radius: 9px; }
+.docs-layout .tk-stub { width: 104px; font-size: 13px; }
+.docs-layout .tk-stub::before, .docs-layout .tk-stub::after { display: none; }
+.docs-layout .tk-main { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
+.docs-layout .tk-title { flex: 0 1 auto; min-width: 80px; font-size: 13px; }
+.docs-layout .tk-chips { flex: 1 1 auto; flex-wrap: nowrap; overflow: hidden; min-width: 0; }
+.docs-layout .tk-chip, .docs-layout .tk-chips .status { flex: none; }
+.docs-kb-card .doc-registry-item { padding: 7px 10px; }
+.docs-kb-card .kb-import-btn, .docs-kb-card .kb-view-btn { padding: 5px 12px; font-size: 13px; }
 @media (min-width: 1001px) {
-    .docs-layout { grid-template-columns: minmax(0, 1fr) minmax(360px, 42%); align-items: start; }
-    .doc-filter-card .card-body { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 24px; padding-top: 12px; padding-bottom: 12px; }
-    .doc-filter-card .doc-summary-bar { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; flex: 1 1 220px; }
-    .docs-side .doc-upload-row { flex-wrap: nowrap; gap: 12px; }
-    .docs-side .doc-upload-row .field { flex: 1 1 0; min-width: 0; }
-    .docs-side .doc-upload-row .field:last-child { flex-grow: 1.5; }
-    .docs-side .card-header { padding-top: 12px; padding-bottom: 12px; }
+    .docs-layout { grid-template-columns: minmax(0, 1fr) minmax(360px, 40%); }
 }
-@media (min-width: 1001px) {
-    .docs-side .kb-import-btn, .docs-side .kb-view-btn { padding: 6px 12px; font-size: 13px; }
-    .docs-side .doc-registry-item .doc-current { gap: 8px; }
-    .docs-side #kbBody .assistant-note { margin-top: 0; }
-}
+/* the knowledge base's rows on one line at any width: names shortened with
+   "…", the buttons kept whole */
+.docs-kb-card .doc-current { flex-wrap: nowrap; min-width: 0; }
+.docs-kb-card .doc-current > * { flex: none; }
+.docs-kb-card .doc-current > span:not(.doc-category-tag):not(.file-date) ,
+.docs-kb-card .kb-entry .doc-current > .file-date:nth-of-type(2) { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.docs-kb-card .doc-current > strong { white-space: nowrap; }
+.docs-kb-card .kb-import-btn, .docs-kb-card .kb-view-btn, .docs-kb-card .file-remove { white-space: nowrap; }
+.docs-kb-card .kb-import-btn, .docs-kb-card .kb-view-btn { margin-left: auto; }
