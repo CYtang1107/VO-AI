@@ -620,8 +620,9 @@ function renderWorkflow(vo, project, role, ui) {
         const rows = (vo.measurement || []).filter(r => String(r.description || "").trim() && Number(r.qty)).length;
         const after = (vo.afterMedia || []).filter(isPhotoDoc).length;
         body += "<h4>" + escapeHtml(t("wf.c.measureTitle")) + "</h4>" +
-            /* the work done: at least one photo, checked by the AI against the description */
-            renderMediaField(vo, "afterMedia", { editable: true, required: true, geoState: ui && ui.geo }) + (after ? wfPhotoCheck() : "") +
+            /* the work done: at least one photo; the consultant QS checks
+               them with the AI when they assess */
+            renderMediaField(vo, "afterMedia", { editable: true, required: true, geoState: ui && ui.geo }) +
             renderDocList(vo, "supportingDocs", t("wf.c.photosQuotes"), role) +
             /* then the measurement, in its tab, where it is submitted */
             '<div class="wf-actions">' + wfButton("wfGoMeasure", "wf.c.goMeasure", "primary") +
@@ -1048,8 +1049,6 @@ if (typeof document !== "undefined") {
             });
             toast(stored.every(Boolean) ? t("media.added", { n: ready.items.length }) : t("file.notStored"), stored.every(Boolean) ? undefined : "error");
             draw();
-            /* the completed photos: the AI checks them against the description straight away */
-            if (field === "afterMedia" && ready.items.some(it => it.doc.kind === "photo")) runPhotoCheck(true);
         });
         if (wfHost) wfHost.addEventListener("input", e => {
             if (e.target.id !== "wfInfoText") return;
@@ -1788,6 +1787,10 @@ if (typeof document !== "undefined") {
             }
             drawPhotoCheck();
         }
+
+        /* the consultant QS, assessing: the completed photos are checked by
+           the AI as the VO opens (once per set of photos; the result is kept) */
+        if (role === "consultant" && voStage(getProject(project.id).vos.find(x => x.id === voId)) === "consultant") runPhotoCheck(true);
 
         /* Where this VO's site photos were taken (js/sitemap.js); drawn
            once, for the consultant and the client who check the work (not

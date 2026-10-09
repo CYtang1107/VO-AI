@@ -71,7 +71,7 @@ test("approved: the contractor measures, attaches photos and submits to the cons
     assert.doesNotMatch(html, /AI photo check/, "nothing to check yet");
     v.afterMedia = [{ id: "M1", name: "IMG-1.jpg", kind: "photo" }, { id: "M2", name: "VID-1.mp4", kind: "video" }];
     html = renderWorkflow(v, project(), "contractor", {});
-    assert.match(html, /AI photo check/);
+    assert.doesNotMatch(html, /AI photo check/, "the contractor only uploads; the consultant QS checks with the AI");
     bar = renderMeasureSubmit(v, "contractor");
     assert.match(bar, /id="wfSubmitQs">Submit to the consultant QS/);
     assert.match(renderMeasureSubmit(Object.assign(v, { measurement: [] }), "contractor"), /id="wfSubmitQs" disabled/,
