@@ -48,13 +48,16 @@ function groupKnowledge(rows) {
     const order = [];
     (rows || []).forEach(r => {
         if (!byDoc[r.doc_name]) {
-            byDoc[r.doc_name] = { docName: r.doc_name, form: r.form || r.doc_name, clauses: new Set(), chunks: 0 };
+            byDoc[r.doc_name] = { docName: r.doc_name, form: r.form || r.doc_name, clauses: new Set(), chunks: 0, mine: r.mine };
             order.push(r.doc_name);
         }
         byDoc[r.doc_name].clauses.add(r.clause_no);
         byDoc[r.doc_name].chunks++;
     });
-    return order.map(n => ({ docName: n, form: byDoc[n].form, clauses: byDoc[n].clauses.size, chunks: byDoc[n].chunks }));
+    /* "mine" only in the demo: false for the demo project's contract, true
+       for what the visitor imported */
+    return order.map(n => Object.assign({ docName: n, form: byDoc[n].form, clauses: byDoc[n].clauses.size, chunks: byDoc[n].chunks },
+        byDoc[n].mine === undefined ? {} : { mine: byDoc[n].mine }));
 }
 
 /* The clauses and chunks to import from a contract's text, or an error
@@ -114,7 +117,7 @@ function renderKnowledgeCard(entries, docs, canImport, progress, view) {
             '<span class="file-date">' + escapeHtml(t("kb.counts", { clauses: e.clauses, chunks: e.chunks })) + "</span>" +
             '<button type="button" class="secondary-button kb-view-btn" data-doc-name="' + escapeHtml(e.docName) + '">' +
                 escapeHtml(t(open(e.docName) ? "kb.view.close" : "kb.view.open")) + "</button>" +
-            (canImport ? '<button type="button" class="file-remove kb-remove-btn" data-doc-name="' + escapeHtml(e.docName) + '">' +
+            (canImport && e.mine !== false ? '<button type="button" class="file-remove kb-remove-btn" data-doc-name="' + escapeHtml(e.docName) + '">' +
                 escapeHtml(t("kb.remove")) + "</button>" : "") +
             "</div>" +
             (open(e.docName)
@@ -206,7 +209,7 @@ async function ocrPdf(projectId, buf, onProgress) {
             const n = next++;
             const image = await pageImage(pdf, n);
             try {
-                const res = await patiently(() => Cloud.invoke("import-contract", { action: "ocr", project_id: projectId, image: image }),
+                const res = await patiently(() => Cloud.invoke("import-contract", Object.assign({ action: "ocr", project_id: projectId, image: image }, guestBody(projectId))),
                     sec => onProgress(t("kb.progress.wait", { s: sec })));
                 texts[n - 1] = res.text || "";
             } catch (e) {
@@ -258,10 +261,10 @@ async function importContractDoc(projectId, doc, onProgress) {
     let sent = 0;
     for (let i = 0; i < batches.length; i++) {
         onProgress(t("kb.progress.embedding", { done: sent, total: kb.chunks.length }));
-        await patiently(() => Cloud.invoke("import-contract", {
+        await patiently(() => Cloud.invoke("import-contract", Object.assign({
             action: "chunks", project_id: projectId, doc_name: doc.name, form: kb.form,
             chunks: batches[i], replace: i === 0
-        }), sec => onProgress(t("kb.progress.wait", { s: sec })));
+        }, guestBody(projectId))), sec => onProgress(t("kb.progress.wait", { s: sec })));
         sent += batches[i].length;
     }
     return { form: kb.form, clauses: kb.clauses, chunks: kb.chunks.length, ocr: usedOcr };
@@ -274,20 +277,40 @@ function kbAsGuest(projectId) {
     return typeof Cloud !== "undefined" && Cloud.enabled() && !Cloud.active() && projectId === KB_DEMO_PROJECT;
 }
 
+/* The demo visitor's own sandbox for contracts they import (migration
+   0008): a random id kept in this browser. */
+var GUEST_SANDBOX_KEY = "voai.guestKb.v1";
+function guestSandbox() {
+    try {
+        let id = localStorage.getItem(GUEST_SANDBOX_KEY);
+        if (!/^GUEST-[a-f0-9]{16,40}$/.test(id || "")) {
+            const bytes = new Uint8Array(12);
+            crypto.getRandomValues(bytes);
+            id = "GUEST-" + Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+            localStorage.setItem(GUEST_SANDBOX_KEY, id);
+        }
+        return id;
+    } catch (e) { return null; }
+}
+/* What a demo call adds to its body: no account, this visitor's sandbox. */
+function guestBody(projectId) {
+    return kbAsGuest(projectId) ? { guest: true, sandbox: guestSandbox() } : {};
+}
+
 async function loadKnowledge(projectId) {
-    if (kbAsGuest(projectId)) return groupKnowledge((await Cloud.invoke("ask-contract", { guest: true, action: "knowledge", project_id: projectId })).rows || []);
+    if (kbAsGuest(projectId)) return groupKnowledge((await Cloud.invoke("ask-contract", Object.assign({ action: "knowledge", project_id: projectId }, guestBody(projectId)))).rows || []);
     return groupKnowledge(await Cloud.knowledgeRows(projectId));
 }
 
 async function loadClauses(projectId, docName) {
-    if (kbAsGuest(projectId)) return groupClauseRows((await Cloud.invoke("ask-contract", { guest: true, action: "knowledge", project_id: projectId, doc_name: docName })).rows || []);
+    if (kbAsGuest(projectId)) return groupClauseRows((await Cloud.invoke("ask-contract", Object.assign({ action: "knowledge", project_id: projectId, doc_name: docName }, guestBody(projectId)))).rows || []);
     return groupClauseRows(await Cloud.knowledgeText(projectId, docName));
 }
 
 async function removeKnowledge(projectId, docName) {
-    return Cloud.invoke("import-contract", { action: "remove", project_id: projectId, doc_name: docName });
+    return Cloud.invoke("import-contract", Object.assign({ action: "remove", project_id: projectId, doc_name: docName }, guestBody(projectId)));
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { kbAsGuest, inBatches, formFor, groupKnowledge, knowledgeFromText, renderKnowledgeCard, groupClauseRows, renderClauseList };
+    module.exports = { kbAsGuest, guestSandbox, guestBody, inBatches, formFor, groupKnowledge, knowledgeFromText, renderKnowledgeCard, groupClauseRows, renderClauseList };
 }

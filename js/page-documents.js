@@ -359,9 +359,10 @@ if (typeof document !== "undefined") {
             (Cloud.active() || (typeof kbAsGuest === "function" && kbAsGuest(project.id)))) {
             const kbCard = document.getElementById("kbCard");
             const kbBody = document.getElementById("kbBody");
-            /* importing and removing write to the shared knowledge base:
-               the team account's consultant only, never the demo */
-            const canImport = session.role === "consultant" && Cloud.active();
+            /* the consultant imports and removes: with a team account into
+               the project's knowledge base, in the demo into the visitor's
+               own sandbox (the demo project's contract stays as it is) */
+            const canImport = session.role === "consultant";
             let entries = null;   /* null until loaded */
             let progress = null;
             let view = null;   /* the document whose clauses are open */

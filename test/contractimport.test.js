@@ -135,3 +135,16 @@ test("a clause heading with only sub-clauses under it is imported by its title, 
     assert.ok(kb.chunks.every(c => c.text && c.text.length > 0));
     assert.strictEqual(kb.chunks.find(c => c.no === "11").text, "Variations");
 });
+
+test("the demo imports into the visitor's own sandbox, and keeps the demo contract", () => {
+    const { groupKnowledge, renderKnowledgeCard } = require("../js/contractimport.js");
+    const { validSandbox } = { validSandbox: v => /^GUEST-[a-f0-9]{16,40}$/.test(v) };
+    const entries = groupKnowledge([
+        { doc_name: "pam.pdf", form: "PAM 2018", clause_no: "11.1", mine: false },
+        { doc_name: "my.pdf", form: "PWD 203", clause_no: "24.1", mine: true }
+    ]);
+    const html = renderKnowledgeCard(entries, [], true, null, null);
+    assert.strictEqual((html.match(/kb-remove-btn/g) || []).length, 1, "only the visitor's own import can be removed");
+    assert.ok(/data-doc-name="my.pdf"/.test(html.slice(html.indexOf("kb-remove-btn") - 40)));
+    assert.ok(validSandbox("GUEST-0123456789abcdef01234567") && !validSandbox("PRJ-CADANGAN"));
+});

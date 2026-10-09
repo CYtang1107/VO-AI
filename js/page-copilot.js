@@ -28,7 +28,7 @@ if (typeof document !== "undefined") {
             draw();
             try {
                 const body = { project_id: fresh.id, question: q, project_data: projectData(fresh, today(), session.role) };
-                if (aiAsGuest()) { body.guest = true; body.role = session.role; }
+                if (aiAsGuest()) { body.guest = true; body.role = session.role; const sb = guestSandboxId(); if (sb) body.sandbox = sb; }
                 entry.ai = await Cloud.invoke("copilot", body);
             } catch (e) {
                 entry.ai = { error: e.message || String(e) };
