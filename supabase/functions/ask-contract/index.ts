@@ -55,6 +55,9 @@ function fit1024(v: number[]): number[] {
    against max_tokens: they get room for both. */
 const roomFor = (model: string, n: number) => /^gemini/i.test(model) ? Math.max(n, 8192) : n;
 
+/* A demo visitor's own sandbox (migration 0008), as js/contractimport.js names it. */
+const validSandbox = (v: unknown) => typeof v === "string" && /^GUEST-[a-f0-9]{16,40}$/.test(v);
+
 const CORS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -135,7 +138,16 @@ Deno.serve(async (req) => {
         if (typeof body.doc_name === "string") q = q.eq("doc_name", body.doc_name);
         const { data, error } = await q;
         if (error) return reply({ error: error.message }, 500);
-        return reply({ rows: (data || []).map((r: Record<string, unknown>) => ({ ...r, text: "" })) });
+        const rows = (data || []).map((r: Record<string, unknown>) => ({ ...r, text: "", mine: false }));
+        /* and what this visitor imported themselves, in full */
+        if (validSandbox(body.sandbox)) {
+            let g = admin.from("guest_chunks").select("doc_name, form, clause_no, title, part, text")
+                .eq("sandbox", body.sandbox as string).order("id").range(0, 4999);
+            if (typeof body.doc_name === "string") g = g.eq("doc_name", body.doc_name);
+            const { data: own } = await g;
+            (own || []).forEach((r: Record<string, unknown>) => rows.push({ ...r, mine: true }));
+        }
+        return reply({ rows });
     }
     const invalid = validRequest(body);
     if (invalid) return reply({ error: invalid }, 400);
@@ -177,7 +189,15 @@ Deno.serve(async (req) => {
             p_project: projectId, q: "[" + vector.join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
         });
         if (error) return reply({ error: error.message }, 500);
-        const clauses = groupChunks(rows || []);
+        /* the demo: the visitor's own imports too, nearest first */
+        let found = rows || [];
+        if (body.guest === true && validSandbox(body.sandbox)) {
+            const { data: own } = await db.rpc("match_guest_chunks", {
+                p_sandbox: body.sandbox, q: "[" + vector.join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
+            });
+            found = found.concat(own || []).sort((a: { similarity: number }, b: { similarity: number }) => b.similarity - a.similarity).slice(0, TOP_K);
+        }
+        const clauses = groupChunks(found);
         if (clauses.length === 0) return reply({ answer: null, reason: "no-clause", citations: [], role });
 
         const lang = questionLang(question);

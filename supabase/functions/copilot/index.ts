@@ -52,6 +52,9 @@ function fit1024(v: number[]): number[] {
    against max_tokens: they get room for both. */
 const roomFor = (model: string, n: number) => /^gemini/i.test(model) ? Math.max(n, 8192) : n;
 
+/* A demo visitor's own sandbox (migration 0008), as js/contractimport.js names it. */
+const validSandbox = (v: unknown) => typeof v === "string" && /^GUEST-[a-f0-9]{16,40}$/.test(v);
+
 const CORS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -142,7 +145,14 @@ Deno.serve(async (req) => {
             const { data: rows } = await db.rpc("match_chunks", {
                 p_project: kbProject, q: "[" + fit1024(emb.data[0].embedding).join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
             });
-            clauses = groupChunks(rows || []);
+            let found = rows || [];
+            if (body.guest === true && validSandbox(body.sandbox)) {
+                const { data: own } = await db.rpc("match_guest_chunks", {
+                    p_sandbox: body.sandbox, q: "[" + fit1024(emb.data[0].embedding).join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
+                });
+                found = found.concat(own || []).sort((a: { similarity: number }, b: { similarity: number }) => b.similarity - a.similarity).slice(0, TOP_K);
+            }
+            clauses = groupChunks(found);
         } catch { clauses = []; }
 
         const lang = questionLang(question);

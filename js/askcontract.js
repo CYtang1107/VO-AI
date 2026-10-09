@@ -69,6 +69,12 @@ function askContractAvailable(projectId) {
 function aiAsGuest() {
     return typeof Cloud !== "undefined" && Cloud.enabled() && !Cloud.active();
 }
+/* The contracts this demo visitor imported themselves (js/contractimport.js
+   keeps the sandbox id): their questions search them too. */
+function guestSandboxId() {
+    try { const id = localStorage.getItem("voai.guestKb.v1"); return /^GUEST-[a-f0-9]{16,40}$/.test(id || "") ? id : null; }
+    catch (e) { return null; }
+}
 function aiAvailable() {
     return typeof Cloud !== "undefined" && (Cloud.active() || aiAsGuest());
 }
@@ -149,7 +155,7 @@ async function askContract(project, vo, question, role) {
             engine_facts: vo ? engineFacts(vo, project) : {}
         };
         /* the demo with no account: the role picked in the demo frames the answer */
-        if (askAsGuest(project.id)) { body.guest = true; body.role = role; }
+        if (askAsGuest(project.id)) { body.guest = true; body.role = role; const sb = guestSandboxId(); if (sb) body.sandbox = sb; }
         const reply = await Cloud.ask(body);
         return Object.assign({ question: q }, reply);
     } catch (e) {
@@ -158,5 +164,5 @@ async function askContract(project, vo, question, role) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { engineFacts, askContractAvailable, askAsGuest, aiAsGuest, aiAvailable, contractQuestions, answerHtml, renderContractAnswer, renderContractPane, askContract };
+    module.exports = { engineFacts, askContractAvailable, askAsGuest, aiAsGuest, aiAvailable, guestSandboxId, contractQuestions, answerHtml, renderContractAnswer, renderContractPane, askContract };
 }

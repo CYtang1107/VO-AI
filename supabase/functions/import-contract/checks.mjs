@@ -48,6 +48,11 @@ export function validImportRequest(body) {
     return "action must be ocr, chunks or remove.";
 }
 
+/* A demo visitor's sandbox id (js/contractimport.js guestSandbox). */
+export function validSandbox(v) {
+    return typeof v === "string" && /^GUEST-[a-f0-9]{16,40}$/.test(v);
+}
+
 /* The rows written for one call's chunks. */
 export function chunkRows(projectId, docName, form, chunks, vectors) {
     return chunks.map((c, i) => ({

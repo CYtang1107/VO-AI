@@ -13,7 +13,9 @@
 //   → { removed }
 //
 // Only the project's consultant may call it (their own JWT, role from
-// members). Rows are written with the service role, because the browser
+// members) — or the demo (no account) with { guest: true, sandbox }: its
+// pages are read the same way and its clauses go to that visitor's own
+// sandbox in guest_chunks (migration 0008), never to a team's. Rows are written with the service role, because the browser
 // may never write contract_chunks; each row carries the caller's project,
 // so only that project's members can read it back.
 //
@@ -21,7 +23,10 @@
 // SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { OCR_PROMPT, chunkRows, embedText, validImportRequest } from "./checks.mjs";
+import { OCR_PROMPT, chunkRows, embedText, validImportRequest, validSandbox } from "./checks.mjs";
+
+const GUEST_KEEP_DAYS = 3;
+const GUEST_MAX_ROWS = 2000;
 
 // The AI provider: any OpenAI-compatible address (AI_BASE_URL, e.g. Gemini's
 // https://generativelanguage.googleapis.com/v1beta/openai) and its key
@@ -111,9 +116,58 @@ async function embed(texts: string[]): Promise<number[][]> {
         .map((d: { embedding: number[] }) => fit1024(d.embedding));
 }
 
+/* The demo's import: the same reading and embedding, into the visitor's
+   own sandbox; old sandboxes are cleared as new rows arrive. */
+async function guestImport(body: Record<string, unknown>) {
+    if (!validSandbox(body.sandbox)) return reply({ error: "sandbox is required." }, 400);
+    const sandbox = body.sandbox as string;
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+        auth: { persistSession: false },
+    });
+    try {
+        if (body.action === "ocr") return reply({ text: await ocr(body.image as string) });
+        const docName = (body.doc_name as string).trim();
+        if (body.action === "remove") {
+            const { error, count } = await admin.from("guest_chunks")
+                .delete({ count: "exact" }).eq("sandbox", sandbox).eq("doc_name", docName);
+            if (error) return reply({ error: error.message }, 500);
+            return reply({ removed: count || 0 });
+        }
+        const form = (body.form as string).trim();
+        const chunks = body.chunks as { no: string; title?: string; part?: number; text: string }[];
+        await admin.from("guest_chunks").delete()
+            .lt("created_at", new Date(Date.now() - GUEST_KEEP_DAYS * 864e5).toISOString());
+        if (body.replace === true) {
+            const { error } = await admin.from("guest_chunks").delete().eq("sandbox", sandbox).eq("doc_name", docName);
+            if (error) return reply({ error: error.message }, 500);
+        }
+        const { count } = await admin.from("guest_chunks").select("id", { count: "exact", head: true }).eq("sandbox", sandbox);
+        if ((count || 0) + chunks.length > GUEST_MAX_ROWS) return reply({ error: "The demo's knowledge base is full: remove a document first." }, 400);
+        const vectors: number[][] = [];
+        for (let i = 0; i < chunks.length; i += EMBED_BATCH) {
+            const batch = chunks.slice(i, i + EMBED_BATCH);
+            vectors.push(...await embed(batch.map((c) => embedText(form, c))));
+        }
+        const rows = chunkRows(sandbox, docName, form, chunks, vectors)
+            .map(({ project_id, ...r }) => ({ sandbox: project_id, ...r }));
+        const { error } = await admin.from("guest_chunks").insert(rows);
+        if (error) return reply({ error: error.message }, 500);
+        return reply({ inserted: chunks.length });
+    } catch (e) {
+        return reply({ error: (e as Error).message || String(e) }, 502);
+    }
+}
+
 Deno.serve(async (req) => {
     if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
     if (req.method !== "POST") return reply({ error: "POST only" }, 405);
+
+    let body: Record<string, unknown>;
+    try { body = await req.json(); } catch { return reply({ error: "Body must be JSON." }, 400); }
+    const invalid = validImportRequest(body);
+    if (invalid) return reply({ error: invalid }, 400);
+
+    if (body.guest === true) return guestImport(body);
 
     const auth = req.headers.get("Authorization");
     if (!auth) return reply({ error: "Sign in first." }, 401);
@@ -124,10 +178,6 @@ Deno.serve(async (req) => {
     const { data: userData } = await asUser.auth.getUser();
     if (!userData?.user) return reply({ error: "Sign in first." }, 401);
 
-    let body: Record<string, unknown>;
-    try { body = await req.json(); } catch { return reply({ error: "Body must be JSON." }, 400); }
-    const invalid = validImportRequest(body);
-    if (invalid) return reply({ error: invalid }, 400);
     const projectId = body.project_id as string;
 
     const { data: role, error: roleError } = await asUser.rpc("member_role", { p_project: projectId });
