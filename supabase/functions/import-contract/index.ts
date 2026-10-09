@@ -17,19 +17,32 @@
 // may never write contract_chunks; each row carries the caller's project,
 // so only that project's members can read it back.
 //
-// Secrets: DASHSCOPE_API_KEY. SUPABASE_URL, SUPABASE_ANON_KEY and
+// Secrets: AI_API_KEY or DASHSCOPE_API_KEY. SUPABASE_URL, SUPABASE_ANON_KEY and
 // SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OCR_PROMPT, chunkRows, embedText, validImportRequest } from "./checks.mjs";
 
-// AI_BASE_URL: another OpenAI-compatible address for the same models (e.g.
-// Qwen Cloud); DashScope international by default.
-const DASHSCOPE = Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
-const EMBED_MODEL = "text-embedding-v4";
+// The AI provider: any OpenAI-compatible address (AI_BASE_URL, e.g. Gemini's
+// https://generativelanguage.googleapis.com/v1beta/openai) and its key
+// (AI_API_KEY); DashScope international and DASHSCOPE_API_KEY by default.
+const DASHSCOPE = (Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
+const AI_KEY = Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
+const EMBED_MODEL = Deno.env.get("EMBED_MODEL") || "text-embedding-v4";
 const EMBED_BATCH = 10;
 const OCR_MODELS = (Deno.env.get("OCR_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
+
+/* The stored vectors are 1024 numbers (migration 0001). A model that
+   returns more (Gemini's gemini-embedding-001 gives 3072 when it ignores
+   `dimensions`) is cut to its first 1024 and scaled back to length 1: its
+   leading numbers carry the meaning (a "Matryoshka" embedding). */
+function fit1024(v: number[]): number[] {
+    if (v.length === 1024) return v;
+    const cut = v.slice(0, 1024);
+    const n = Math.sqrt(cut.reduce((s, x) => s + x * x, 0)) || 1;
+    return cut.map((x) => x / n);
+}
 
 const CORS = {
     "Access-Control-Allow-Origin": "*",
@@ -48,14 +61,16 @@ async function dashscope(path: string, body: unknown) {
     const res = await fetch(DASHSCOPE + path, {
         method: "POST",
         headers: {
-            "Authorization": "Bearer " + Deno.env.get("DASHSCOPE_API_KEY"),
+            "Authorization": "Bearer " + AI_KEY,
             "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-        const err = new Error("DashScope " + res.status + ": " + (json?.error?.message || res.statusText));
+        // Gemini wraps its error in a list: [{ error: {…} }]
+        const detail = (Array.isArray(json) ? json[0] : json)?.error?.message;
+        const err = new Error(new URL(DASHSCOPE).host + " " + res.status + ": " + (detail || res.statusText));
         (err as Error & { status?: number }).status = res.status;
         throw err;
     }
@@ -89,7 +104,7 @@ async function embed(texts: string[]): Promise<number[][]> {
         model: EMBED_MODEL, input: texts, dimensions: 1024, encoding_format: "float",
     });
     return json.data.sort((a: { index: number }, b: { index: number }) => a.index - b.index)
-        .map((d: { embedding: number[] }) => d.embedding);
+        .map((d: { embedding: number[] }) => fit1024(d.embedding));
 }
 
 Deno.serve(async (req) => {

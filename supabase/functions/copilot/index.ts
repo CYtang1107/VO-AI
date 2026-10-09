@@ -15,7 +15,7 @@
 // checked (rules.mjs): every amount must be in the data, the question or a
 // clause, and a cited clause must be one given. One retry, then nothing.
 //
-// Secrets: DASHSCOPE_API_KEY. SUPABASE_URL, SUPABASE_ANON_KEY and
+// Secrets: AI_API_KEY or DASHSCOPE_API_KEY. SUPABASE_URL, SUPABASE_ANON_KEY and
 // SUPABASE_SERVICE_ROLE_KEY are provided by Supabase (the service role only
 // for the guest route, as in ask-contract).
 
@@ -25,17 +25,30 @@ import {
     reviewCopilotAnswer, validCopilotRequest,
 } from "./rules.mjs";
 
-// AI_BASE_URL: another OpenAI-compatible address for the same models (e.g.
-// Qwen Cloud); DashScope international by default.
-const DASHSCOPE = Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+// The AI provider: any OpenAI-compatible address (AI_BASE_URL, e.g. Gemini's
+// https://generativelanguage.googleapis.com/v1beta/openai) and its key
+// (AI_API_KEY); DashScope international and DASHSCOPE_API_KEY by default.
+const DASHSCOPE = (Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
+const AI_KEY = Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
 const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
 const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
-const EMBED_MODEL = "text-embedding-v4";
+const EMBED_MODEL = Deno.env.get("EMBED_MODEL") || "text-embedding-v4";
 const CHAT_MODELS = (Deno.env.get("COPILOT_MODELS") || Deno.env.get("ASK_MODELS") || "qwen-plus-latest,qwen-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
 const MIN_SIMILARITY = 0.4;
 const TOP_K = 4;
+
+/* The stored vectors are 1024 numbers (migration 0001). A model that
+   returns more (Gemini's gemini-embedding-001 gives 3072 when it ignores
+   `dimensions`) is cut to its first 1024 and scaled back to length 1: its
+   leading numbers carry the meaning (a "Matryoshka" embedding). */
+function fit1024(v: number[]): number[] {
+    if (v.length === 1024) return v;
+    const cut = v.slice(0, 1024);
+    const n = Math.sqrt(cut.reduce((s, x) => s + x * x, 0)) || 1;
+    return cut.map((x) => x / n);
+}
 
 const CORS = {
     "Access-Control-Allow-Origin": "*",
@@ -50,12 +63,14 @@ function reply(body: unknown, status = 200) {
 async function dashscope(path: string, body: unknown) {
     const res = await fetch(DASHSCOPE + path, {
         method: "POST",
-        headers: { "Authorization": "Bearer " + Deno.env.get("DASHSCOPE_API_KEY"), "Content-Type": "application/json" },
+        headers: { "Authorization": "Bearer " + AI_KEY, "Content-Type": "application/json" },
         body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-        const err = new Error("DashScope " + res.status + ": " + (json?.error?.message || res.statusText));
+        // Gemini wraps its error in a list: [{ error: {…} }]
+        const detail = (Array.isArray(json) ? json[0] : json)?.error?.message;
+        const err = new Error(new URL(DASHSCOPE).host + " " + res.status + ": " + (detail || res.statusText));
         (err as Error & { status?: number }).status = res.status;
         throw err;
     }
@@ -123,7 +138,7 @@ Deno.serve(async (req) => {
         try {
             const emb = await dashscope("/embeddings", { model: EMBED_MODEL, input: [question], dimensions: 1024, encoding_format: "float" });
             const { data: rows } = await db.rpc("match_chunks", {
-                p_project: projectId, q: "[" + emb.data[0].embedding.join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
+                p_project: projectId, q: "[" + fit1024(emb.data[0].embedding).join(",") + "]", k: TOP_K, min_sim: MIN_SIMILARITY,
             });
             clauses = groupChunks(rows || []);
         } catch { clauses = []; }
