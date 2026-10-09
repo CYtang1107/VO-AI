@@ -141,6 +141,10 @@ function renderKnowledgeCard(entries, docs, canImport, progress, view) {
                       '<button type="button" class="secondary-button kb-import-btn" data-doc-id="' + escapeHtml(d.id) + '"' +
                       (progress ? " disabled" : "") + ">" +
                       escapeHtml(t(imported.has(d.name) ? "kb.reimport" : "kb.import")) + "</button>" +
+                      /* a file not wanted here (the agreement form, a copy):
+                         removed from the project's files */
+                      '<button type="button" class="file-remove kb-doc-remove-btn" data-doc-id="' + escapeHtml(d.id) + '"' +
+                      (progress ? " disabled" : "") + ">" + escapeHtml(t("documents.removeBtn")) + "</button>" +
                       "</div>" +
                       (busy ? '<p class="kb-progress" role="status">' + escapeHtml(progress.text) + "</p>" : "") +
                       "</li>";
