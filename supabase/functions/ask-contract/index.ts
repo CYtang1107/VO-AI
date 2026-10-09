@@ -19,7 +19,7 @@
 //    nothing else, and contain no amount the engine, question or clauses do
 //    not. One retry with the broken rule named; then it is not shown.
 //
-// Secrets: DASHSCOPE_API_KEY (supabase secrets). SUPABASE_URL and
+// Secrets: AI_API_KEY or DASHSCOPE_API_KEY (supabase secrets). SUPABASE_URL and
 // SUPABASE_ANON_KEY are provided by Supabase. The service-role key is not used.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -28,17 +28,30 @@ import {
     reviewAnswer, systemPrompt, userPrompt, validRequest
 } from "./rules.mjs";
 
-// AI_BASE_URL: another OpenAI-compatible address for the same models (e.g.
-// Qwen Cloud); DashScope international by default.
-const DASHSCOPE = Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+// The AI provider: any OpenAI-compatible address (AI_BASE_URL, e.g. Gemini's
+// https://generativelanguage.googleapis.com/v1beta/openai) and its key
+// (AI_API_KEY); DashScope international and DASHSCOPE_API_KEY by default.
+const DASHSCOPE = (Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
+const AI_KEY = Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 // 「评审一键体验」: questions without an account, for the demo project only
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
 const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
 const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
-const EMBED_MODEL = "text-embedding-v4";
+const EMBED_MODEL = Deno.env.get("EMBED_MODEL") || "text-embedding-v4";
 // The first model that answers is used; a used-up free quota moves to the next.
 const CHAT_MODELS = (Deno.env.get("ASK_MODELS") || "qwen-plus-latest,qwen-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
+
+/* The stored vectors are 1024 numbers (migration 0001). A model that
+   returns more (Gemini's gemini-embedding-001 gives 3072 when it ignores
+   `dimensions`) is cut to its first 1024 and scaled back to length 1: its
+   leading numbers carry the meaning (a "Matryoshka" embedding). */
+function fit1024(v: number[]): number[] {
+    if (v.length === 1024) return v;
+    const cut = v.slice(0, 1024);
+    const n = Math.sqrt(cut.reduce((s, x) => s + x * x, 0)) || 1;
+    return cut.map((x) => x / n);
+}
 
 const CORS = {
     "Access-Control-Allow-Origin": "*",
@@ -57,14 +70,16 @@ async function dashscope(path: string, body: unknown) {
     const res = await fetch(DASHSCOPE + path, {
         method: "POST",
         headers: {
-            "Authorization": "Bearer " + Deno.env.get("DASHSCOPE_API_KEY"),
+            "Authorization": "Bearer " + AI_KEY,
             "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-        const err = new Error("DashScope " + res.status + ": " + (json?.error?.message || res.statusText));
+        // Gemini wraps its error in a list: [{ error: {…} }]
+        const detail = (Array.isArray(json) ? json[0] : json)?.error?.message;
+        const err = new Error(new URL(DASHSCOPE).host + " " + res.status + ": " + (detail || res.statusText));
         (err as Error & { status?: number }).status = res.status;
         throw err;
     }
@@ -75,7 +90,7 @@ async function embed(text: string): Promise<number[]> {
     const json = await dashscope("/embeddings", {
         model: EMBED_MODEL, input: [text], dimensions: 1024, encoding_format: "float",
     });
-    return json.data[0].embedding;
+    return fit1024(json.data[0].embedding);
 }
 
 type Message = { role: string; content: string };

@@ -17,7 +17,7 @@
 // quantities — a photo is evidence of what is on site, never a
 // measurement. One retry with the broken rule named; then nothing is shown.
 //
-// Secrets: DASHSCOPE_API_KEY (or VISION_API_KEY). SUPABASE_URL and SUPABASE_ANON_KEY are
+// Secrets: VISION_API_KEY, AI_API_KEY or DASHSCOPE_API_KEY. SUPABASE_URL and SUPABASE_ANON_KEY are
 // provided by Supabase.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -30,7 +30,7 @@ import {
 // DASHSCOPE_API_KEY, else DashScope international.
 const DASHSCOPE = (Deno.env.get("VISION_BASE_URL") || Deno.env.get("AI_BASE_URL") ||
     "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
-const VISION_KEY = Deno.env.get("VISION_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
+const VISION_KEY = Deno.env.get("VISION_API_KEY") || Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 const VISION_MODELS = (Deno.env.get("VISION_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";

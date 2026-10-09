@@ -13,15 +13,17 @@
 // browser shows them in the same preview as a spreadsheet, the arithmetic
 // check included, and the consultant confirms them first.
 //
-// Secrets: DASHSCOPE_API_KEY. SUPABASE_URL, SUPABASE_ANON_KEY and
+// Secrets: AI_API_KEY or DASHSCOPE_API_KEY. SUPABASE_URL, SUPABASE_ANON_KEY and
 // SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { BQ_PROMPT, correction, parseBqRows, validBqRequest } from "./rules.mjs";
 
-// AI_BASE_URL: another OpenAI-compatible address for the same models (e.g.
-// Qwen Cloud); DashScope international by default.
-const DASHSCOPE = Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+// The AI provider: any OpenAI-compatible address (AI_BASE_URL, e.g. Gemini's
+// https://generativelanguage.googleapis.com/v1beta/openai) and its key
+// (AI_API_KEY); DashScope international and DASHSCOPE_API_KEY by default.
+const DASHSCOPE = (Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
+const AI_KEY = Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 const OCR_MODELS = (Deno.env.get("OCR_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
 const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
@@ -47,12 +49,14 @@ async function vision(messages: Message[]): Promise<{ text: string; model: strin
             if (/^qwen3/.test(model)) body.enable_thinking = false;
             const res = await fetch(DASHSCOPE + "/chat/completions", {
                 method: "POST",
-                headers: { "Authorization": "Bearer " + Deno.env.get("DASHSCOPE_API_KEY"), "Content-Type": "application/json" },
+                headers: { "Authorization": "Bearer " + AI_KEY, "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             });
             const json = await res.json().catch(() => ({}));
             if (!res.ok) {
-                const err = new Error("DashScope " + res.status + ": " + (json?.error?.message || res.statusText));
+                // Gemini wraps its error in a list: [{ error: {…} }]
+                const detail = (Array.isArray(json) ? json[0] : json)?.error?.message;
+                const err = new Error(new URL(DASHSCOPE).host + " " + res.status + ": " + (detail || res.statusText));
                 (err as Error & { status?: number }).status = res.status;
                 throw err;
             }
