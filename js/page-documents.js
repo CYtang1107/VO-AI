@@ -414,6 +414,18 @@ if (typeof document !== "undefined") {
                     await refreshKb();
                     return;
                 }
+                /* a contract file not to import: out of the project's files */
+                const docRemove = e.target.closest(".kb-doc-remove-btn");
+                if (docRemove && !progress) {
+                    const doc = contractDocs().find(d => d.id === docRemove.dataset.docId);
+                    if (!doc || !window.confirm(t("kb.confirmRemoveFile", { name: doc.name }))) return;
+                    FileStore.remove([doc.id]);
+                    updateProject(project.id, p => { p.documents = (p.documents || []).filter(d => d.id !== doc.id); });
+                    toast(t("toast.documentRemoved"));
+                    reload();
+                    drawKb();
+                    return;
+                }
                 const removeBtn = e.target.closest(".kb-remove-btn");
                 if (removeBtn && !progress) {
                     const name = removeBtn.dataset.docName;
