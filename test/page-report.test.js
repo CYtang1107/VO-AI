@@ -11,7 +11,7 @@ const vo3 = project.vos[2];
 
 test("the report names the project and contract, per the template rule", () => {
     const html = renderReport(vo1, project);
-    assert.match(html, /Cadangan Pembangunan ABC Residence/);
+    assert.match(html, /ABC Residence Project/);
     assert.match(html, /ABC\/2026\/014/);
 });
 

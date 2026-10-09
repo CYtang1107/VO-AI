@@ -1,7 +1,7 @@
 /* VO-AI | ui.js — shared page chrome, guards and small render helpers. */
 
 if (typeof require !== "undefined" && typeof module !== "undefined") {
-    var { ROLES, DEMO_FILES, SEED_ZH } = require("./store.js");
+    var { ROLES, DEMO_FILES, SEED_ZH, SEED_EN } = require("./store.js");
     var { t, getLang, renderLangSwitch, wireLangSwitch, applyI18n } = require("./i18n.js");
 }
 
@@ -261,7 +261,11 @@ function keepFolds(render) {
 /* The demo's English text in Chinese when the interface is in Chinese
    (js/store.js SEED_ZH). Text a user typed is returned unchanged. */
 function seedText(value) {
-    if (typeof getLang !== "function" || getLang() !== "zh" || typeof SEED_ZH === "undefined" || !value) return value;
+    if (typeof getLang !== "function" || !value) return value;
+    if (getLang() !== "zh") {
+        return typeof SEED_EN !== "undefined" && Object.prototype.hasOwnProperty.call(SEED_EN, value) ? SEED_EN[value] : value;
+    }
+    if (typeof SEED_ZH === "undefined") return value;
     if (Object.prototype.hasOwnProperty.call(SEED_ZH, value)) return SEED_ZH[value];
     /* a sentence shown cut short ("…") */
     const s = String(value);

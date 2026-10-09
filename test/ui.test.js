@@ -78,10 +78,11 @@ test("the AI Analysis page is gone: the Copilot is last in the menu", () => {
 });
 
 test("the sidebar names the current project, per the template rule", () => {
+    /* the demo's Malay name reads in English (SEED_EN) */
     const html = renderSidebar("dashboard",
         { name: "Tan Zi Qian", role: "client" },
         { name: "Cadangan Pembangunan ABC Residence" });
-    assert.match(html, /Cadangan Pembangunan ABC Residence/);
+    assert.match(html, /ABC Residence Project/);
 });
 
 test("the project chip menu shows the client and contract number", () => {
