@@ -27,7 +27,7 @@ var LANG_KEY = "voai.lang.v1";
 
 var I18N_EN = {
     "app.name": "VO-AI",
-    "app.brand": "令衡 VO-AI",
+    "app.brand": "VO-AI 令衡",
     "app.tagline": "Variation Intelligence",
 
     "nav.dashboard": "Dashboard",
@@ -1757,7 +1757,7 @@ var I18N_EN = {
 
 var I18N_ZH = {
     "app.name": "令衡",
-    "app.brand": "令衡 VO-AI",
+    "app.brand": "VO-AI 令衡",
     "app.tagline": "变更单管理智能平台",
 
     "nav.dashboard": "仪表板",
@@ -3567,7 +3567,7 @@ function applyI18n(root) {
     scope.querySelectorAll("[data-i18n-title]").forEach(function (el) {
         el.setAttribute("title", t(el.getAttribute("data-i18n-title")));
     });
-    /* the product's name in the browser tab: 令衡 VO-AI in either language */
+    /* the product's name in the browser tab: VO-AI 令衡 in either language */
     if (scope === document && document.title && document.title.indexOf("令衡") === -1) document.title = document.title.replace("VO-AI", t("app.brand"));
 }
 
