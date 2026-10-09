@@ -205,9 +205,9 @@ function renderReport(vo, project, role) {
       '<div class="report-close">' +
       '<div class="report-pair">' +
         "<div><h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
-        "<p>" + t("report.instructionStatusLine", { status: statusHtml(instructionStatus) }) + "<br>" +
-        t("report.evaluationLine", { status: statusHtml(vo.evaluateStatus) }) + "<br>" +
-        t("report.certificationLine", { status: statusHtml(vo.certifiedStatus) }) + "</p></div>" +
+        '<p class="status-lines"><span>' + t("report.instructionStatusLine", { status: statusHtml(instructionStatus) }) + "</span>" +
+        "<span>" + t("report.evaluationLine", { status: statusHtml(vo.evaluateStatus) }) + "</span>" +
+        "<span>" + t("report.certificationLine", { status: statusHtml(vo.certifiedStatus) }) + "</span></p></div>" +
       "</div>" +
       (vo.assessmentNote ? '<p class="rate-detail"><strong>' + t("report.assessmentNoteLabel") + '</strong> ' +
         escapeHtml(seedText(vo.assessmentNote)) + "</p>" : "") +
