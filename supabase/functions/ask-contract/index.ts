@@ -53,6 +53,10 @@ function fit1024(v: number[]): number[] {
     return cut.map((x) => x / n);
 }
 
+/* Gemini models think before they answer, and the thinking counts
+   against max_tokens: they get room for both. */
+const roomFor = (model: string, n: number) => /^gemini/i.test(model) ? Math.max(n, 8192) : n;
+
 const CORS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -99,7 +103,7 @@ async function chat(messages: Message[]): Promise<{ text: string; model: string 
     let last: Error | null = null;
     for (const model of CHAT_MODELS) {
         try {
-            const body: Record<string, unknown> = { model, messages, temperature: 0.1, max_tokens: 700 };
+            const body: Record<string, unknown> = { model, messages, temperature: 0.1, max_tokens: roomFor(model, 700) };
             if (/^qwen3/.test(model)) body.enable_thinking = false;
             const json = await dashscope("/chat/completions", body);
             return { text: String(json.choices?.[0]?.message?.content || "").trim(), model };
@@ -184,7 +188,8 @@ Deno.serve(async (req) => {
         }
         if (!review.ok) {
             const reason = review.problems.includes("amount-check") ? "amount-check" : "no-citation";
-            return reply({ answer: null, reason, citations: [], role });
+            /* which rule the answer broke, for whoever looks into it */
+            return reply({ answer: null, reason, problems: review.problems, citations: [], role });
         }
         return reply({
             answer: result.text,
