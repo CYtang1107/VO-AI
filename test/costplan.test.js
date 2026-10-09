@@ -304,3 +304,16 @@ test("the delay in days: the day the plan reached what has been earned, and when
     assert.ok(Math.abs(on.delayDays) <= 1, "on plan: " + on.delayDays);
     assert.strictEqual(earnedSchedule({ programme: null }, "2026-07-01", 1), null);
 });
+
+test("the contractor and the employer each see their own cash flow", () => {
+    const { projectForRole, cashflowField, sCurve } = require("../js/costplan.js");
+    const p = { contractSum: 1000000, programme: { start: "2026-01-01", end: "2026-12-31" }, vos: [], certificates: [],
+        cashflow: { months: { "2026-03": { planned: 111111 } } },
+        contractorCashflow: { months: { "2026-03": { planned: 222222 } } } };
+    const at = (proj, key) => sCurve(proj, "2026-06-01").points.find(x => x.date.slice(0, 7) === key).planned;
+    assert.strictEqual(at(projectForRole(p, "contractor"), "2026-03"), 222222);
+    assert.strictEqual(at(projectForRole(p, "client"), "2026-03"), 111111);
+    assert.strictEqual(at(projectForRole(p, "administrator"), "2026-03"), 111111);
+    assert.strictEqual(cashflowField("contractor"), "contractorCashflow");
+    assert.strictEqual(cashflowField("client"), "cashflow");
+});

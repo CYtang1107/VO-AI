@@ -3,7 +3,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, contractorTotal, assessedTotal, voValue, today, projectStats } = require("./calc.js");
     var { statusPill, escapeHtml, seedText, renderStatCards } = require("./ui.js");
-    var { FIELD_OWNER } = require("./permissions.js");
+    var { FIELD_OWNER, voStage } = require("./permissions.js");
     var { rateSummary } = require("./analysis.js");
     var { deadlinesFor } = require("./deadlines.js");
     var { t, voNoLabel } = require("./i18n.js");
@@ -67,10 +67,11 @@ const COLUMNS = [
       render: (v, p) => rateFlags(v, p) },
     { field: "timeImpact",        label: "TIME IMPACT",      labelKey: "register.col.timeImpact",
       render: v => t("register.dayUnit", { n: Number(v.timeImpact) || 0 }) },
-    { field: "evaluateStatus", compact: true,    label: "EVALUATE STATUS",  labelKey: "register.col.evaluateStatus",
-      render: v => statusPill(v.evaluateStatus) },
-    { field: "certifiedStatus", compact: true,   label: "CERTIFIED STATUS", labelKey: "register.col.certifiedStatus",
-      render: v => statusPill(v.certifiedStatus) },
+    /* where the VO is: the step it has reached, and how it stands there */
+    { field: "step", compact: true,              label: "STAGE",            labelKey: "register.col.step",
+      render: v => stepCell(v) },
+    { field: "state", compact: true,             label: "STATUS",           labelKey: "register.col.state",
+      render: v => statePill(v) },
     { field: "finalPrice",        label: "FINAL PRICE",      labelKey: "register.col.finalPrice",
       render: v => (v.finalPrice === null || v.finalPrice === "" ? "—" : rm(v.finalPrice)) },
     /* the contract administrator's two steps: instruction, certification */
@@ -96,8 +97,12 @@ function filterVos(vos, filters) {
     const query = String(f.query || "").trim().toLowerCase();
     const evaluateStatus = f.evaluateStatus || "all";
     const certifiedStatus = f.certifiedStatus || "all";
+    const step = f.step || "all";
+    const state = f.state || "all";
 
     return (vos || []).filter(v => {
+        if (step !== "all" && String(voStep(v)) !== String(step)) return false;
+        if (state !== "all" && voState(v) !== state) return false;
         if (evaluateStatus !== "all" && v.evaluateStatus !== evaluateStatus) return false;
         if (certifiedStatus !== "all" && v.certifiedStatus !== certifiedStatus) return false;
         if (query) {
@@ -117,9 +122,49 @@ function renderRegisterHead(role) {
     }).join("") + "</tr>";
 }
 
+/* The six steps (the VO page's workflow, the report's diagram) and the
+   one a VO has reached (voStage, js/permissions.js). The contract check
+   (2) is the contractor's draft once the contract agent has looked at it;
+   a VO the design team returned is back at 1, one the consultant QS
+   returned back at 4. */
+var STEP_OF_STAGE = { describe: 1, designRejected: 1, design: 3, measure: 4, rejected: 4, info: 5, consultant: 5, client: 6, done: 6, closed: 6 };
+var STEP_COUNT = 6;
+function voStep(vo) {
+    const stage = voStage(vo);
+    if (stage === "describe" && vo.claimCheck && vo.claimCheck.verdict) return 2;
+    return STEP_OF_STAGE[stage] || 1;
+}
+
+/* How it stands at that step: one status for the row. */
+var STATE_CLASS = { draft: "draft", progress: "review", returned: "pending", info: "pending", approved: "approved", rejected: "rejected" };
+function voState(vo) {
+    switch (voStage(vo)) {
+        case "done": return "approved";
+        case "closed": return "rejected";
+        case "designRejected": case "rejected": return "returned";
+        case "info": return "info";
+        case "describe": return "draft";
+        default: return "progress";
+    }
+}
+
+function stepCell(vo) {
+    const n = voStep(vo);
+    let dots = "";
+    for (let i = 1; i <= STEP_COUNT; i++) dots += '<i class="' + (i <= n ? "on" : "") + '"></i>';
+    return '<span class="step-cell" title="' + escapeHtml(t("register.stepOf", { n: n, total: STEP_COUNT })) + '">' +
+        '<span class="step-dots" aria-hidden="true">' + dots + "</span>" +
+        "<span>" + n + " " + escapeHtml(t("register.step." + n)) + "</span></span>";
+}
+
+function statePill(vo) {
+    const s = voState(vo);
+    return '<span class="status ' + STATE_CLASS[s] + '">' + escapeHtml(t("register.state." + s)) + "</span>";
+}
+
 /* Where a VO stands, for the coloured edge of its card on a phone:
    certified, rejected, with the consultant or client, or a draft. */
-function voStage(vo) {
+function rowStage(vo) {
     if (vo.certifiedStatus === "Approved") return "stage-done";
     if (vo.certifiedStatus === "Rejected" || vo.evaluateStatus === "Rejected") return "stage-rejected";
     return vo.submitted ? "stage-progress" : "stage-draft";
@@ -142,7 +187,7 @@ function renderRegisterBody(project, role, opts) {
                "</td></tr>";
     }
     return vos.map(v =>
-        '<tr class="vo-row ' + voStage(v) + '" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
+        '<tr class="vo-row ' + rowStage(v) + '" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
         COLUMNS.map(c => {
             const owned = FIELD_OWNER[c.field] === role;
             /* VO NO. and DESCRIPTION double as the card heading at narrow
@@ -154,7 +199,7 @@ function renderRegisterBody(project, role, opts) {
             if (heading) classes.push("card-heading");
             if (!c.compact) classes.push("col-extra");
             const cls = classes.length ? ' class="' + classes.join(" ") + '"' : "";
-            const stage = c.field === "no" ? ' data-stage="' + escapeHtml(t("register.stage." + voStage(v))) + '"' : "";
+            const stage = c.field === "no" ? ' data-stage="' + escapeHtml(t("register.stage." + rowStage(v))) + '"' : "";
             return "<td" + cls + stage + ' data-label="' + escapeHtml(t(c.labelKey)) + '">' +
                    c.render(v, project) + "</td>";
         }).join("") + "</tr>"
@@ -164,7 +209,7 @@ function renderRegisterBody(project, role, opts) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         renderStatCards,
-        COLUMNS, columnsForRole, renderRegisterHead, renderRegisterBody, dueDateCell, filterVos, voStage
+        COLUMNS, columnsForRole, renderRegisterHead, renderRegisterBody, dueDateCell, filterVos, rowStage, voStep, voState
     };
 }
 
@@ -245,11 +290,11 @@ if (typeof document !== "undefined") {
                     updateProject(project.id, p => { p.site = site; });
                     toast(t("map.siteSaved"));
                 },
-                stageOf: id => voById(id) ? voStage(voById(id)) : "",
+                stageOf: id => voById(id) ? rowStage(voById(id)) : "",
                 infoOf: id => {
                     const v = voById(id);
                     return v ? { description: seedText(v.description) || "", amount: t("map.claimed", { amount: rm(contractorTotal(v)) }),
-                                 step: t("register.stage." + voStage(v)) } : null;
+                                 step: t("register.stage." + rowStage(v)) } : null;
                 },
                 /* a pin opened: its row is marked in the list */
                 onPinVo: id => {
@@ -296,14 +341,14 @@ if (typeof document !== "undefined") {
         function currentFilters() {
             return {
                 query: searchInput ? searchInput.value : "",
-                evaluateStatus: evalSelect ? evalSelect.value : "all",
-                certifiedStatus: certSelect ? certSelect.value : "all"
+                step: evalSelect ? evalSelect.value : "all",
+                state: certSelect ? certSelect.value : "all"
             };
         }
 
         function isActive(filters) {
             return !!(filters.query && filters.query.trim()) ||
-                filters.evaluateStatus !== "all" || filters.certifiedStatus !== "all";
+                filters.step !== "all" || filters.state !== "all";
         }
 
         function render() {

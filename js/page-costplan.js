@@ -14,6 +14,10 @@ if (typeof document !== "undefined") {
         const host = document.getElementById("costDetail");
         const editable = costOverviewEditable(session.role);
         const cfEditable = cashflowEditable(session.role);
+        /* this side's cash flow: the contractor's own, or the employer's */
+        const cfField = cashflowField(session.role);
+        const side = session.role === "contractor" ? "contractor" : "employer";
+        const viewed = () => projectForRole(getProject(project.id) || project, session.role);
         let range = "toDate";
         try { if (localStorage.getItem("voai.scRange.v1") === "all") range = "all"; } catch (e) { /* default */ }
         let tab = (location.hash || "").slice(1);
@@ -26,9 +30,9 @@ if (typeof document !== "undefined") {
             return window.innerHeight - top - 60 - 40 - 110 - 76;
         }
         function draw() {
-            const p = getProject(project.id) || project;
+            const p = viewed();
             keepFolds(() => {
-                host.innerHTML = renderCostDetail(p, today(), { tab: tab, editable: editable, cashflow: cfEditable, width: host.clientWidth, height: chartHeight(), range: range });
+                host.innerHTML = renderCostDetail(p, today(), { tab: tab, editable: editable, cashflow: cfEditable, side: side, width: host.clientWidth, height: chartHeight(), range: range });
             });
             if (tab === "curve") mountCostChart(host, viewCurve(sCurve(p, today()), range));
             const modeSel = document.getElementById("cfMode");
@@ -52,7 +56,7 @@ if (typeof document !== "undefined") {
                 return;
             }
             if (cfEditable && e.target.id === "cfReset") {
-                updateProject(project.id, p => { delete p.cashflow; });
+                updateProject(project.id, p => { delete p[cfField]; });
                 toast(t("costplan.cf.resetDone"));
                 draw();
                 return;
@@ -76,13 +80,13 @@ if (typeof document !== "undefined") {
             } catch (err) { toast(t("costplan.cf.error.read", { reason: err.message || String(err) }), "error"); return; }
             const r = readCashflowSheet(rows, cfMode === "auto" ? null : cfMode);
             if (r.error) { toast(t("costplan.cf.error." + r.error), "error"); return; }
-            const curve = sCurve(getProject(project.id) || project, today());
+            const curve = sCurve(viewed(), today());
             const inProgramme = new Set(curve ? curve.points.map(x => x.date.slice(0, 7)) : []);
             const months = {};
             let outside = 0;
             Object.keys(r.months).forEach(k => { if (inProgramme.has(k)) months[k] = r.months[k]; else outside++; });
             if (!Object.keys(months).length) { toast(t("costplan.cf.outside", { n: outside }), "error"); return; }
-            updateProject(project.id, p => { p.cashflow = { months: months, source: { name: file.name, at: today() } }; });
+            updateProject(project.id, p => { p[cfField] = { months: months, source: { name: file.name, at: today() } }; });
             const mode = r.mode.planned || r.mode.forecast;
             toast(t("costplan.cf.imported", { n: Object.keys(months).length, name: file.name, mode: t("costplan.cf.modeWord." + mode) }) +
                 (outside ? " " + t("costplan.cf.outside", { n: outside }) : ""));
@@ -95,11 +99,11 @@ if (typeof document !== "undefined") {
                 const key = e.target.dataset.cfKey, k = e.target.dataset.cfK;
                 const v = e.target.value.replace(/^(RM|MYR)\s*/i, "").replace(/[,\s]/g, "");
                 updateProject(project.id, p => {
-                    p.cashflow = p.cashflow || { months: {} };
-                    p.cashflow.months = p.cashflow.months || {};
-                    const m = p.cashflow.months[key] = p.cashflow.months[key] || {};
+                    const cf = p[cfField] = p[cfField] || { months: {} };
+                    cf.months = cf.months || {};
+                    const m = cf.months[key] = cf.months[key] || {};
                     if (v === "" || !(Number(v) >= 0)) delete m[k]; else m[k] = Number(v);
-                    if (!Object.keys(m).length) delete p.cashflow.months[key];
+                    if (!Object.keys(m).length) delete cf.months[key];
                 });
                 draw();
                 return;
