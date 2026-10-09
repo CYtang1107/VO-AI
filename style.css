@@ -4198,3 +4198,9 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 @media (min-width: 1001px) and (max-width: 1500px) {
     .register-kpis .stat-card h2 { font-size: 17px; }
 }
+
+/* printing: a panel that scrolls inside on screen (data-fit) prints in full */
+@media print {
+    [data-fit] { max-height: none !important; height: auto !important; overflow: visible !important; }
+    .notify-wrap, .notify-popup { display: none !important; }
+}
