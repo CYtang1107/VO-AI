@@ -8,7 +8,7 @@ if (typeof document !== "undefined") {
         const host = document.getElementById("copilotBody");
         const state = { history: [], busy: false };
         /* the general AI mode: a team account, or the demo's guest allowance */
-        const ai = typeof askContractAvailable === "function" && askContractAvailable(project.id);
+        const ai = typeof aiAvailable === "function" && aiAvailable();
 
         /* the page is drawn once; each question redraws only the conversation */
         host.innerHTML = renderCopilot(state, { ai: ai, role: session.role });
@@ -28,7 +28,7 @@ if (typeof document !== "undefined") {
             draw();
             try {
                 const body = { project_id: fresh.id, question: q, project_data: projectData(fresh, today(), session.role) };
-                if (askAsGuest(fresh.id)) { body.guest = true; body.role = session.role; }
+                if (aiAsGuest()) { body.guest = true; body.role = session.role; }
                 entry.ai = await Cloud.invoke("copilot", body);
             } catch (e) {
                 entry.ai = { error: e.message || String(e) };

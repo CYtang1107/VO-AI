@@ -26,8 +26,6 @@ const DASHSCOPE = (Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyun
 const AI_KEY = Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 const OCR_MODELS = (Deno.env.get("OCR_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
-const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
-const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
 
 /* Gemini models think before they answer, and the thinking counts
    against max_tokens: they get room for both. */
@@ -83,11 +81,7 @@ Deno.serve(async (req) => {
     if (invalid) return reply({ error: invalid }, 400);
 
     if (body.guest === true) {
-        const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-        const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || req.headers.get("x-real-ip") || "unknown";
-        const { data: allowed, error } = await db.rpc("guest_quota", { p_ip: ip, p_ip_limit: GUEST_PER_VISITOR, p_day_limit: GUEST_PER_DAY });
-        if (error) return reply({ error: error.message }, 500);
-        if (!allowed) return reply({ rows: null, reason: "guest-limit" }, 429);
+        /* the demo (no account): reads the page it is sent, with no daily limit */
     } else {
         const auth = req.headers.get("Authorization");
         if (!auth) return reply({ error: "Sign in first." }, 401);

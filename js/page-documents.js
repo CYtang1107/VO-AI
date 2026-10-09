@@ -355,10 +355,13 @@ if (typeof document !== "undefined") {
         /* The contract knowledge base behind 「问合同」 (js/contractimport.js):
            team accounts see what is in it; the project's consultant imports
            contract documents into it. */
-        if (typeof Cloud !== "undefined" && Cloud.active() && typeof renderKnowledgeCard === "function") {
+        if (typeof Cloud !== "undefined" && typeof renderKnowledgeCard === "function" &&
+            (Cloud.active() || (typeof kbAsGuest === "function" && kbAsGuest(project.id)))) {
             const kbCard = document.getElementById("kbCard");
             const kbBody = document.getElementById("kbBody");
-            const canImport = session.role === "consultant";
+            /* importing and removing write to the shared knowledge base:
+               the team account's consultant only, never the demo */
+            const canImport = session.role === "consultant" && Cloud.active();
             let entries = null;   /* null until loaded */
             let progress = null;
             let view = null;   /* the document whose clauses are open */

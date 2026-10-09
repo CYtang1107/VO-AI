@@ -64,6 +64,15 @@ function askContractAvailable(projectId) {
     return (typeof Cloud !== "undefined" && Cloud.active()) || askAsGuest(projectId);
 }
 
+/* The other AI features (Copilot, the photo check, reading a BQ) work
+   from what the page sends, so the demo has them on every project. */
+function aiAsGuest() {
+    return typeof Cloud !== "undefined" && Cloud.enabled() && !Cloud.active();
+}
+function aiAvailable() {
+    return typeof Cloud !== "undefined" && (Cloud.active() || aiAsGuest());
+}
+
 /* Three suggested questions per agent. */
 function contractQuestions(role) {
     const r = ["contractor", "administrator", "consultant", "client"].includes(role) ? role : "consultant";
@@ -149,5 +158,5 @@ async function askContract(project, vo, question, role) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { engineFacts, askContractAvailable, askAsGuest, contractQuestions, answerHtml, renderContractAnswer, renderContractPane, askContract };
+    module.exports = { engineFacts, askContractAvailable, askAsGuest, aiAsGuest, aiAvailable, contractQuestions, answerHtml, renderContractAnswer, renderContractPane, askContract };
 }

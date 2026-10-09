@@ -33,7 +33,6 @@ const DASHSCOPE = (Deno.env.get("VISION_BASE_URL") || Deno.env.get("AI_BASE_URL"
 const VISION_KEY = Deno.env.get("VISION_API_KEY") || Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
 const VISION_MODELS = (Deno.env.get("VISION_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
     .split(",").map((s) => s.trim()).filter(Boolean);
-const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
 
 /* Gemini models think before they answer, and the thinking counts
    against max_tokens: they get room for both. */
@@ -108,9 +107,8 @@ Deno.serve(async (req) => {
     const empty = mode === "check" ? { results: null } : { description: null };
 
     if (body.guest === true) {
-        // The demo project only, with no daily limit: photo checks do not
-        // count towards the guest quota of 「问合同」 (migration 0004).
-        if (projectId !== GUEST_PROJECT) return reply({ error: "Sign in first." }, 401);
+        // The demo (no account): the photos it sends, for any project,
+        // with no daily limit.
     } else {
         const auth = req.headers.get("Authorization");
         if (!auth) return reply({ error: "Sign in first." }, 401);
