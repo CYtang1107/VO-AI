@@ -4108,3 +4108,9 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .finding.action-item { align-items: center; }
 .finding.action-item > span:first-of-type { flex: 1; }
 .action-deadline { flex: none; font-size: 12px; white-space: nowrap; }
+
+/* a build-up material bought online */
+.bu-shop { padding: 0 2px; font-size: 13px; text-decoration: none; }
+.bu-shop-link { font-size: 11.5px; margin-left: 4px; white-space: nowrap; }
+.bu-shop-search { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.bu-src-shop { background: #e0f2fe; color: #075985; }

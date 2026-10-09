@@ -47,9 +47,6 @@ function engineFacts(vo, project) {
     if (vo.finalPrice !== "" && vo.finalPrice !== null && vo.finalPrice !== undefined && !isNaN(Number(vo.finalPrice))) {
         facts.client_final_price = rm(vo.finalPrice);
     }
-    if (vo.timeImpact !== "" && vo.timeImpact !== null && vo.timeImpact !== undefined) {
-        facts.time_impact_days = Number(vo.timeImpact) || 0;
-    }
     return facts;
 }
 

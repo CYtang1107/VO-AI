@@ -32,12 +32,12 @@ test("the exported workbook opens, and its register sheet carries every VO with 
     assert.ok(vo1, "VO-001 row present");
     assert.strictEqual(Number(vo1[7]), 62808, "contractor's claim");
     assert.strictEqual(Number(vo1[8]), 55856, "consultant's assessment");
-    assert.strictEqual(Number(vo1[14]), 55856, "certified value");
+    assert.strictEqual(Number(vo1[13]), 55856, "certified value");
     for (const vo of project.vos) assert.ok(rows.some(r => r[0] === vo.no), vo.no + " exported");
 });
 
 test("an uncertified VO exports no certified value rather than a guess", async () => {
     const rows = await parseXlsx(buildRegisterWorkbook(project, "2026-10-04").buffer);
     const vo2 = rows.find(r => r[0] === "VO-002");
-    assert.ok(vo2[14] === undefined || vo2[14] === "" || vo2[14] === null);
+    assert.ok(vo2[13] === undefined || vo2[13] === "" || vo2[13] === null);
 });

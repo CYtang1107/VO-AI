@@ -68,8 +68,7 @@ test("sections appear in the required sequence", () => {
         "3. Original drawing",
         "4. Measurement and valuation",
         "5. Supporting documents",
-        "6. Time impact",
-        "7. Status and signatures"
+        "6. Status and signatures"
     ];
     const positions = order.map(s => html.indexOf(s));
     positions.forEach((pos, i) => {
@@ -146,12 +145,12 @@ test("the consultant's report is the fullest version: every row's rate cross-che
     assert.match(html, /Recommend approval at the assessed value/);
 });
 
-test("the client's report is decision-focused: no itemised measurement table; the time impact and recommendation are present", () => {
+test("the client's report is decision-focused: no itemised measurement table; the recommendation is present", () => {
     const html = renderReport(vo1, project, "client");
     assert.doesNotMatch(html, /rate-flag/);
     assert.doesNotMatch(html, /RATE CROSS-CHECK/);
     assert.doesNotMatch(html, /Omit ceramic floor tiles/);
-    assert.match(html, /7 day\(s\) claimed extension of time/);
+    assert.doesNotMatch(html, /extension of time/);
     assert.match(html, /Consultant's recommendation:/);
 });
 
@@ -213,16 +212,13 @@ test("the summary totals equal the sum of the rows", () => {
     const expectedAssessed = project.vos.reduce((s, v) => s + assessedTotal(v), 0);
     const expectedCertified = project.vos.reduce((s, v) =>
         s + ((v.certifiedStatus === "Approved" && v.finalPrice) ? Number(v.finalPrice) : 0), 0);
-    const expectedTime = project.vos
-        .filter(v => v.evaluateStatus === "Approved")
-        .reduce((s, v) => s + (Number(v.timeImpact) || 0), 0);
 
     const rm = n => "RM " + n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     assert.match(html, new RegExp("Total claimed</small><strong>" + rm(expectedClaimed).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.match(html, new RegExp("Total assessed</small><strong>" + rm(expectedAssessed).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.match(html, new RegExp("Total certified</small><strong>" + rm(expectedCertified).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    assert.match(html, new RegExp("Total approved time impact</small><strong>" + expectedTime + " day\\(s\\)"));
+    assert.doesNotMatch(html, /time impact/i);
 });
 
 test("the summary shows no certified figure for a VO that is not certified", () => {
@@ -260,13 +256,13 @@ test("seeded VO-001 still reports RM 62,808.00 claimed and RM 55,856.00 certifie
     assert.match(row, /RM 55,856\.00/);
 });
 
-test("the report has no contractual-basis, classification or findings section; its sections run 1 to 7", () => {
+test("the report has no contractual-basis, classification or findings section; its sections run 1 to 6", () => {
     const db = seedDB();
     const p = db.projects[0];
     const html = renderReport(p.vos[0], p, "consultant");
     assert.ok(!/Contractual basis/i.test(html));
     assert.ok(!html.includes("ranks for valuation"));
     const numbers = [...html.matchAll(/<h3>(\d+)\./g)].map(m => Number(m[1]));
-    assert.deepStrictEqual(numbers, [1, 2, 3, 4, 5, 6, 7]);
+    assert.deepStrictEqual(numbers, [1, 2, 3, 4, 5, 6]);
     assert.ok(!/Classification and affected elements|Findings<\/h3>|Confirm whether/.test(html));
 });
