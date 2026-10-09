@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VO-AI | VO Register</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="style.css?v=20261017b">
+    <link rel="stylesheet" href="style.css?v=20261018a">
 </head>
 <body>
 
@@ -25,6 +25,9 @@
         </div>
     </section>
 
+    <!-- the four VO numbers in one slim row across the top -->
+    <div class="register-kpis stats stats-compact" id="statCards"></div>
+
     <div class="register-layout" id="registerLayout">
         <div class="register-side">
             <div class="card tone-teal site-map-card">
@@ -35,15 +38,8 @@
                 </div>
                 <div class="card-body" id="siteMapBody"></div>
             </div>
-            <div class="card register-summary-card">
-                <div class="card-body stats stats-compact" id="statCards"></div>
-            </div>
         </div>
         <div class="register-main">
-            <div class="legend-bar">
-                <span class="legend-swatch"></span>
-                <span id="ownedLegend"></span>
-            </div>
             <div class="card register-list-card">
                 <div class="card-body register-filter-bar">
                     <label class="register-filter-search">
@@ -78,6 +74,7 @@
                     <button type="button" class="link-button" id="registerClearFilters" hidden
                             data-i18n="register.filter.clear">Clear filters</button>
                     <span class="register-result-count" id="registerResultCount"></span>
+                    <span class="legend-bar register-legend"><span class="legend-swatch"></span><span id="ownedLegend"></span></span>
                     <button type="button" class="link-button" id="registerColsBtn" aria-pressed="false" data-i18n="register.allColumns">Show all columns</button>
                 </div>
                 <div class="table-scroll register-scroll" data-fit data-fit-gap="20">
@@ -99,24 +96,24 @@
     </div>
 </main>
 
-<script src="js/i18n.js?v=20261017b"></script>
-<script src="js/calc.js?v=20261017b"></script>
-<script src="js/clauses.js?v=20261017b"></script>
-<script src="js/elements.js?v=20261017b"></script>
-<script src="js/analysis.js?v=20261017b"></script>
-<script src="js/permissions.js?v=20261017b"></script>
-<script src="js/deadlines.js?v=20261017b"></script>
-<script src="js/store.js?v=20261017b"></script>
-<script src="js/config.js?v=20261017b"></script>
-<script src="js/cloud.js?v=20261017b"></script>
-<script src="js/ui.js?v=20261017b"></script>
-<script src="js/notify.js?v=20261017b"></script>
-<script src="js/filestore.js?v=20261017b"></script>
-<script src="js/bqimport.js?v=20261017b"></script>
-<script src="js/contractread.js?v=20261017b"></script>
-<script src="js/sitemap.js?v=20261017b"></script>
-<script src="js/xlsxexport.js?v=20261017b"></script>
-<script src="js/page-register.js?v=20261017b"></script>
+<script src="js/i18n.js?v=20261018a"></script>
+<script src="js/calc.js?v=20261018a"></script>
+<script src="js/clauses.js?v=20261018a"></script>
+<script src="js/elements.js?v=20261018a"></script>
+<script src="js/analysis.js?v=20261018a"></script>
+<script src="js/permissions.js?v=20261018a"></script>
+<script src="js/deadlines.js?v=20261018a"></script>
+<script src="js/store.js?v=20261018a"></script>
+<script src="js/config.js?v=20261018a"></script>
+<script src="js/cloud.js?v=20261018a"></script>
+<script src="js/ui.js?v=20261018a"></script>
+<script src="js/notify.js?v=20261018a"></script>
+<script src="js/filestore.js?v=20261018a"></script>
+<script src="js/bqimport.js?v=20261018a"></script>
+<script src="js/contractread.js?v=20261018a"></script>
+<script src="js/sitemap.js?v=20261018a"></script>
+<script src="js/xlsxexport.js?v=20261018a"></script>
+<script src="js/page-register.js?v=20261018a"></script>
 
 </body>
 </html>

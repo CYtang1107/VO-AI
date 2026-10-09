@@ -4162,3 +4162,39 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .docs-kb-card .doc-current > strong { white-space: nowrap; }
 .docs-kb-card .kb-import-btn, .docs-kb-card .kb-view-btn, .docs-kb-card .file-remove { white-space: nowrap; }
 .docs-kb-card .kb-import-btn, .docs-kb-card .kb-view-btn { margin-left: auto; }
+
+/* The register, tidied: the four VO numbers in one slim row across the
+   top; below, the site map on the left and the VO list on the right, both
+   down to the bottom of the screen; the "your columns" note sits in the
+   filter row. Showing all columns gives the list the whole width. */
+.register-kpis { margin: 0 0 14px; }
+.register-legend { margin: 0; padding: 4px 10px; }
+@media (min-width: 1001px) {
+    .register-kpis.stats-compact { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0; }
+    .register-kpis .stat-card { padding: 9px 14px; display: flex !important; align-items: center; gap: 10px; }
+    .register-kpis .stat-card > div:not(.stat-icon) { display: flex !important; align-items: baseline; gap: 10px; flex: 1; min-width: 0; }
+    .register-kpis .stat-card p { order: 0; flex: 1; font-size: 13px; }
+    .register-kpis .stat-card h2 { order: 1; font-size: 20px; }
+    .register-kpis .stat-card:has(.stat-icon.purple) { grid-column: auto; }
+    .register-layout { align-items: stretch; }
+    .register-side .site-map { height: max(220px, calc(100vh - 270px)); }
+    .register-side .site-map-card:has(.site-map-set) .site-map { height: max(180px, calc(100vh - 335px)); }
+    .register-layout.all-cols .register-side { display: none; }
+    .register-filter-bar { align-items: center; }
+    .register-filter-bar > label { display: flex; flex-direction: column; }
+}
+@media (min-width: 1001px) {
+    /* the total in RM needs the widest tile; labels never wrap */
+    .register-kpis.stats-compact { grid-template-columns: 1fr 1fr 1fr 1.45fr; }
+    .register-kpis .stat-card p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .register-kpis .stat-card h2 { white-space: nowrap; }
+    /* the list's card runs down beside the map */
+    .register-main { display: flex; flex-direction: column; }
+    .register-main > .register-list-card { flex: 1; }
+    .register-filter-bar .register-filter-search { flex: 1 1 200px; }
+    .register-filter-bar select { min-width: 120px; }
+    .register-legend { order: 10; }
+}
+@media (min-width: 1001px) and (max-width: 1500px) {
+    .register-kpis .stat-card h2 { font-size: 17px; }
+}
