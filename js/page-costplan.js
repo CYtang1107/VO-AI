@@ -9,10 +9,11 @@ if (typeof document !== "undefined") {
         /* the cost overview is not the consultant QS's (costOverviewVisible) */
         if (!costOverviewVisible(session.role)) { location.replace("dashboard.html"); return; }
         const crumbEl = document.querySelector(".breadcrumb");
-        if (crumbEl) crumbEl.textContent = t("crumb.project", { name: project.name });
+        if (crumbEl) crumbEl.textContent = t("crumb.project", { name: seedText(project.name) });
 
         const host = document.getElementById("costDetail");
         const editable = costOverviewEditable(session.role);
+        const cfEditable = cashflowEditable(session.role);
         let range = "toDate";
         try { if (localStorage.getItem("voai.scRange.v1") === "all") range = "all"; } catch (e) { /* default */ }
         let tab = (location.hash || "").slice(1);
@@ -27,7 +28,7 @@ if (typeof document !== "undefined") {
         function draw() {
             const p = getProject(project.id) || project;
             keepFolds(() => {
-                host.innerHTML = renderCostDetail(p, today(), { tab: tab, editable: editable, width: host.clientWidth, height: chartHeight(), range: range });
+                host.innerHTML = renderCostDetail(p, today(), { tab: tab, editable: editable, cashflow: cfEditable, width: host.clientWidth, height: chartHeight(), range: range });
             });
             if (tab === "curve") mountCostChart(host, viewCurve(sCurve(p, today()), range));
             const modeSel = document.getElementById("cfMode");
@@ -50,13 +51,13 @@ if (typeof document !== "undefined") {
                 draw();
                 return;
             }
-            if (!editable) return;
-            if (e.target.id === "cfReset") {
+            if (cfEditable && e.target.id === "cfReset") {
                 updateProject(project.id, p => { delete p.cashflow; });
                 toast(t("costplan.cf.resetDone"));
                 draw();
                 return;
             }
+            if (!editable) return;
             const rem = e.target.closest(".cp-cert-remove");
             if (rem) {
                 updateProject(project.id, p => {
@@ -88,10 +89,9 @@ if (typeof document !== "undefined") {
             draw();
         }
         host.addEventListener("change", e => {
-            if (!editable) return;
-            if (e.target.id === "cfMode") { cfMode = e.target.value; return; }
-            if (e.target.id === "cfFile") { const f = e.target.files && e.target.files[0]; if (f) importCashflow(f); e.target.value = ""; return; }
-            if (e.target.dataset.cfKey) {
+            if (cfEditable && e.target.id === "cfMode") { cfMode = e.target.value; return; }
+            if (cfEditable && e.target.id === "cfFile") { const f = e.target.files && e.target.files[0]; if (f) importCashflow(f); e.target.value = ""; return; }
+            if (cfEditable && e.target.dataset.cfKey) {
                 const key = e.target.dataset.cfKey, k = e.target.dataset.cfK;
                 const v = e.target.value.replace(/^(RM|MYR)\s*/i, "").replace(/[,\s]/g, "");
                 updateProject(project.id, p => {
@@ -104,6 +104,7 @@ if (typeof document !== "undefined") {
                 draw();
                 return;
             }
+            if (!editable) return;
             if (e.target.id === "evmMethod") { updateProject(project.id, p => { p.eacMethod = e.target.value; }); draw(); return; }
             if (e.target.id === "evmEtc") {
                 const v = e.target.value;

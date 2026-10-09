@@ -26,6 +26,7 @@ var LANG_KEY = "voai.lang.v1";
 ----------------------------------------------------------- */
 
 var I18N_EN = {
+    "app.name": "VO-AI",
     "app.tagline": "Variation Intelligence",
 
     "nav.dashboard": "Dashboard",
@@ -1686,7 +1687,7 @@ var I18N_EN = {
     "register.allColumns": "Show all columns",
     "register.fewerColumns": "Show fewer columns",
     "costplan.cf.model": "Worked out from the programme (an S-curve). Upload your cash-flow sheet to use your own figures.",
-    "costplan.cf.modelReadOnly": "Worked out from the programme (an S-curve). The design team or the client can upload the project's cash-flow sheet here.",
+    "costplan.cf.modelReadOnly": "Worked out from the programme (an S-curve). The design team, the contractor or the client can upload the project's cash-flow sheet here.",
     "costplan.cf.edited": "Your own figures (typed in); the rest worked out from the programme.",
     "costplan.cf.source": "From {name} ({date}); cells you changed are kept.",
     "costplan.cf.upload": "+ Upload Excel",
@@ -1696,7 +1697,7 @@ var I18N_EN = {
     "costplan.cf.mode.cumulative": "Cumulative",
     "costplan.cf.mode.monthly": "Each month's amount",
     "costplan.cf.note": "Cumulative RM. Type over a figure to change it; the S-curve and the performance figures follow. Certified (actual) comes from the payment certificates.",
-    "costplan.cf.noteReadOnly": "Cumulative RM. Kept by the design team or the client.",
+    "costplan.cf.noteReadOnly": "Cumulative RM. Kept by the design team, the contractor or the client.",
     "costplan.cf.imported": "{n} month(s) read from {name} ({mode}).",
     "costplan.cf.modeWord.cumulative": "cumulative",
     "costplan.cf.modeWord.monthly": "monthly amounts, added up",
@@ -1754,6 +1755,7 @@ var I18N_EN = {
 };
 
 var I18N_ZH = {
+    "app.name": "令衡",
     "app.tagline": "变更单管理智能平台",
 
     "nav.dashboard": "仪表板",
@@ -1789,7 +1791,7 @@ var I18N_ZH = {
     "tab.documents": "文件",
     "tab.report": "报告",
     "tab.capture": "新增变更单",
-    "crumb.capture": "VO-AI / 现场记录",
+    "crumb.capture": "令衡 / 现场记录",
     "dashboard.capture": "现场记录",
     "capture.title": "现场记录",
     "capture.heading": "在现场记录工程变更",
@@ -1820,13 +1822,13 @@ var I18N_ZH = {
     "capture.need.qty": "数量须大于 0，或者把计量整行留空。",
     "capture.saved": "已在现场记录，并保存为草稿变更单。",
 
-    "crumb.dashboard": "VO-AI / 仪表板",
-    "crumb.register": "VO-AI / 变更单登记册",
-    "crumb.documents": "VO-AI / 文件",
-    "crumb.analysis": "VO-AI / AI 分析",
-    "crumb.report": "VO-AI / 变更单报告",
-    "crumb.projects": "VO-AI / 项目",
-    "crumb.voDetail": "VO-AI / 变更单登记册 / 详情",
+    "crumb.dashboard": "令衡 / 仪表板",
+    "crumb.register": "令衡 / 变更单登记册",
+    "crumb.documents": "令衡 / 文件",
+    "crumb.analysis": "令衡 / AI 分析",
+    "crumb.report": "令衡 / 变更单报告",
+    "crumb.projects": "令衡 / 项目",
+    "crumb.voDetail": "令衡 / 变更单登记册 / 详情",
     "crumb.project": "项目 / {name}",
 
     "sidebar.currentProject": "当前项目",
@@ -1878,7 +1880,7 @@ var I18N_ZH = {
     "clause.note": "条文以英文显示。",
     "clause.evidenceRequired": "所需证明文件：",
 
-    "login.title": "登录 VO-AI",
+    "login.title": "登录 令衡",
     "login.lead": "请选择您的角色。每个角色只填写自己负责的步骤。",
     "login.userId": "用户 ID",
     "login.userIdPlaceholder": "例如 serena.wong",
@@ -1896,7 +1898,7 @@ var I18N_ZH = {
     "login.passcode.clearThisDevice": "清除此设备的密码",
     "login.passcode.setForDevice": "为此设备设置密码",
     "login.passcode.unavailable": "设置密码需要安全连接。",
-    "login.passcode.honesty": "仅在本设备锁定 VO-AI，不会加密数据。",
+    "login.passcode.honesty": "仅在本设备锁定 令衡，不会加密数据。",
     "cloud.login.tabTeam": "团队账号",
     "cloud.login.tabDemo": "演示（免登录）",
     "cloud.login.demoNote": "完整的示范项目，无需账号即可使用，包括「问合同」。只有多人共享需要团队账号。",
@@ -1906,7 +1908,7 @@ var I18N_ZH = {
     "cloud.login.firstRole": "您的角色（加入项目前使用）",
     "cloud.login.signIn": "登录 →",
     "cloud.login.signUp": "创建账号 →",
-    "cloud.login.newAccount": "第一次使用 VO-AI？创建账号",
+    "cloud.login.newAccount": "第一次使用 令衡？创建账号",
     "cloud.login.haveAccount": "已有账号？登录",
     "cloud.login.working": "请稍候…",
     "cloud.login.needEmailPassword": "请输入电子邮箱和密码。",
@@ -1922,8 +1924,8 @@ var I18N_ZH = {
     "cloud.members.remove": "移除",
     "cloud.members.emailPlaceholder": "teammate@email.com",
     "cloud.members.add": "添加",
-    "cloud.members.enterEmail": "请输入对方 VO-AI 账号的电子邮箱。",
-    "cloud.members.noAccount": "尚无使用 {email} 的 VO-AI 账号。请对方先在登录页创建账号，然后再添加。",
+    "cloud.members.enterEmail": "请输入对方 令衡 账号的电子邮箱。",
+    "cloud.members.noAccount": "尚无使用 {email} 的 令衡 账号。请对方先在登录页创建账号，然后再添加。",
     "cloud.members.added": "已将 {email} 加入项目。",
     "toast.enterUserId": "请输入用户 ID 以继续。",
     "toast.chooseRole": "请选择您所扮演的角色。",
@@ -2565,7 +2567,7 @@ var I18N_ZH = {
     "ask.q.client.2": "实际竣工后还能发出变更指令吗？",
     "ask.q.client.3": "变更会使合同失效吗？",
 
-    "lock.calculated": "此栏位由 VO-AI 计算，无法编辑。",
+    "lock.calculated": "此栏位由 令衡 计算，无法编辑。",
     "lock.notOwner": "只读——此栏位属于{role}。",
     "lock.contractorLocked": "已锁定——顾问工料测量师已对此变更单完成评估。",
     "lock.consultantLocked": "已锁定——等待承包商提交此变更单。",
@@ -2707,7 +2709,7 @@ var I18N_ZH = {
     "projects.field.contractDocPlaceholder": "Contract Agreement - PAM 2018.pdf",
     "projects.field.contractDocHint": "合同名称。可在文件页导入全文。",
     "projects.field.bq": "已标价工程量清单",
-    "projects.field.bqHint": "VO-AI 会将承包商的计量与这些单价进行核对。",
+    "projects.field.bqHint": "令衡 会将承包商的计量与这些单价进行核对。",
     "projects.field.bqFile": "或上传已标价工程量清单文件（.csv、.xlsx，或以 OCR 读取的 PDF / 照片）",
     "projects.field.bqFileHint": "系统会读取工程量清单并自动匹配栏位。",
     "projects.createBtn": "创建项目",
@@ -3119,7 +3121,7 @@ var I18N_ZH = {
     "bqocr.progress": "正在以 OCR 读取工程量清单：已完成第 {done} / {total} 页…",
     "bqocr.reason": "以 OCR 从 {pages} 页读取：{rows} 行。确认前请逐项与纸本清单核对单价。",
     "bqocr.failedPages": "第 {pages} 页无法读取：请另行导入或手动输入。",
-    "bqocr.unavailable": "读取 PDF 或照片需要连接 VO-AI 服务器。",
+    "bqocr.unavailable": "读取 PDF 或照片需要连接 令衡 服务器。",
     "bqocr.nothing": "在 {pages} 页中没有找到已标价的项目。",
     "bqocr.failed": "无法读取工程量清单：{reason}",
     "bqocr.guestLimit": "今日演示次数已用完：请以团队账号登录，或明天再试。",
@@ -3235,7 +3237,7 @@ var I18N_ZH = {
     "costplan.range.toDate": "至今",
     "costplan.range.all": "整个工期",
     "nav.copilot": "项目助手",
-    "crumb.copilot": "VO-AI / 项目助手",
+    "crumb.copilot": "令衡 / 项目助手",
     "copilot.heading": "项目助手 Copilot",
     "copilot.placeholder": "询问本项目、合同条款、过往单价或其他问题……",
     "copilot.ask": "提问",
@@ -3395,7 +3397,7 @@ var I18N_ZH = {
     "register.allColumns": "显示全部栏位",
     "register.fewerColumns": "显示较少栏位",
     "costplan.cf.model": "依工期推算（S 曲线）。上传您的现金流 Excel 即可改用自己的数字。",
-    "costplan.cf.modelReadOnly": "依工期推算（S 曲线）。设计团队或业主可在此上传项目的现金流 Excel。",
+    "costplan.cf.modelReadOnly": "依工期推算（S 曲线）。设计团队、承包商或业主可在此上传项目的现金流 Excel。",
     "costplan.cf.edited": "您输入的数字；其余依工期推算。",
     "costplan.cf.source": "来自 {name}（{date}）；您修改过的格子会保留。",
     "costplan.cf.upload": "＋ 上传 Excel",
@@ -3405,7 +3407,7 @@ var I18N_ZH = {
     "costplan.cf.mode.cumulative": "累计数",
     "costplan.cf.mode.monthly": "每月金额",
     "costplan.cf.note": "累计金额（RM）。直接修改格子即可；S 曲线与绩效指标随之更新。已核证（实际）来自付款证书。",
-    "costplan.cf.noteReadOnly": "累计金额（RM），由设计团队或业主维护。",
+    "costplan.cf.noteReadOnly": "累计金额（RM），由设计团队、承包商或业主维护。",
     "costplan.cf.imported": "已从 {name} 读取 {n} 个月（{mode}）。",
     "costplan.cf.modeWord.cumulative": "累计数",
     "costplan.cf.modeWord.monthly": "每月金额，已累加",
@@ -3563,6 +3565,8 @@ function applyI18n(root) {
     scope.querySelectorAll("[data-i18n-title]").forEach(function (el) {
         el.setAttribute("title", t(el.getAttribute("data-i18n-title")));
     });
+    /* the product's name in the browser tab: 令衡 in Chinese */
+    if (scope === document && document.title) document.title = document.title.replace("VO-AI", t("app.name"));
 }
 
 function renderLangSwitch() {

@@ -3,7 +3,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, today, projectStats, voValue } = require("./calc.js");
     var { voStage } = require("./permissions.js");
-    var { escapeHtml } = require("./ui.js");
+    var { escapeHtml, seedText } = require("./ui.js");
     var { uid } = require("./store.js");
     var { t } = require("./i18n.js");
 }
@@ -113,8 +113,8 @@ function renderProjectCard(project, session) {
     return '' +
         '<div class="card project-card" data-project="' + escapeHtml(project.id) + '">' +
           '<div class="pc-head">' +
-            '<span class="pc-badge" aria-hidden="true">' + escapeHtml(String(project.name || "?").trim().charAt(0).toUpperCase() || "?") + "</span>" +
-            "<div><h3>" + escapeHtml(project.name) +
+            '<span class="pc-badge" aria-hidden="true">' + escapeHtml(String(seedText(project.name) || "?").trim().charAt(0).toUpperCase() || "?") + "</span>" +
+            "<div><h3>" + escapeHtml(seedText(project.name)) +
                 (locked ? ' <span class="passcode-badge" title="' + escapeHtml(t("projects.passcode.badgeTitle")) + '">&#128274;</span>' : "") +
             "</h3>" +
             '<p class="pc-sub">' + escapeHtml(project.client || "—") + " · " + escapeHtml(t("sidebar.contract", { no: project.contractNo || "—" })) + "</p></div>" +

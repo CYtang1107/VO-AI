@@ -612,6 +612,7 @@ var DEMO_FILES = {
    Measurement lines stay in English: they are matched against the
    English priced BQ. */
 var SEED_ZH = {
+    "Cadangan Pembangunan ABC Residence": "ABC 住宅发展项目",
     /* the demo's file names */
     "Contract Agreement - PAM 2018.pdf": "合同协议书 - PAM 2018.pdf",
     "Bills of Quantities (Priced).pdf": "已标价工程量清单.pdf",

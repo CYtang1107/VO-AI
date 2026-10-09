@@ -115,11 +115,11 @@ function renderSidebar(active, session, project) {
         ? '<div class="project-chip-wrap">' +
               '<button type="button" class="project-chip clickable" id="projectChipBtn">' +
                   '<small>' + escapeHtml(t("sidebar.currentProject")) + '</small>' +
-                  '<strong>' + escapeHtml(project.name) + ' <span class="chip-caret">&#9662;</span></strong>' +
+                  '<strong>' + escapeHtml(seedText(project.name)) + ' <span class="chip-caret">&#9662;</span></strong>' +
               '</button>' +
               '<div class="project-chip-menu" id="projectChipMenu" hidden>' +
                   '<div class="project-chip-menu-info">' +
-                      '<strong>' + escapeHtml(project.name) + '</strong>' +
+                      '<strong>' + escapeHtml(seedText(project.name)) + '</strong>' +
                       '<span>' + escapeHtml(project.client || '—') + '</span>' +
                       '<span>' + escapeHtml(t("sidebar.contract", { no: project.contractNo || '—' })) + '</span>' +
                   '</div>' +
@@ -132,7 +132,7 @@ function renderSidebar(active, session, project) {
     return '' +
         '<div class="logo">' +
             '<div class="logo-icon">' + logoMark(40) + '</div>' +
-            "<div><h2>VO-AI</h2><span>" + escapeHtml(t("app.tagline")) + "</span></div>" +
+            "<div><h2>" + escapeHtml(t("app.name")) + "</h2><span>" + escapeHtml(t("app.tagline")) + "</span></div>" +
         "</div>" +
         projectBox +
         "<nav>" + items + "</nav>" +
