@@ -71,7 +71,7 @@ const COLUMNS = [
     { field: "step", compact: true,              label: "STAGE",            labelKey: "register.col.step",
       render: v => stepCell(v) },
     { field: "state", compact: true,             label: "STATUS",           labelKey: "register.col.state",
-      render: v => statePill(v) },
+      render: (v, p, role) => statePill(v, role) },
     { field: "finalPrice",        label: "FINAL PRICE",      labelKey: "register.col.finalPrice",
       render: v => (v.finalPrice === null || v.finalPrice === "" ? "—" : rm(v.finalPrice)) },
     /* the contract administrator's two steps: instruction, certification */
@@ -82,8 +82,10 @@ const COLUMNS = [
 ];
 
 /* Every role sees every column — the template only restricts *editing*. */
+/* The client sees only VOs the consultant QS has passed on (clientSees,
+   js/store.js): the step is always the last one, so only the status. */
 function columnsForRole(role) {
-    return COLUMNS;
+    return role === "client" ? COLUMNS.filter(c => c.field !== "step") : COLUMNS;
 }
 
 /* Pure, DOM-free filter matcher for the register's search + status
@@ -116,7 +118,7 @@ function filterVos(vos, filters) {
 }
 
 function renderRegisterHead(role) {
-    return "<tr>" + COLUMNS.map(c => {
+    return "<tr>" + columnsForRole(role).map(c => {
         const cls = [FIELD_OWNER[c.field] === role ? "owned-col" : "", c.compact ? "" : "col-extra"].filter(Boolean);
         return "<th" + (cls.length ? ' class="' + cls.join(" ") + '"' : "") + ">" + escapeHtml(t(c.labelKey)) + "</th>";
     }).join("") + "</tr>";
@@ -157,8 +159,10 @@ function stepCell(vo) {
         "<span>" + n + " " + escapeHtml(t("register.step." + n)) + "</span></span>";
 }
 
-function statePill(vo) {
+function statePill(vo, role) {
     const s = voState(vo);
+    /* for the client, a VO with them is waiting for their approval */
+    if (role === "client" && s === "progress") return '<span class="status pending">' + escapeHtml(t("register.state.awaitingYou")) + "</span>";
     return '<span class="status ' + STATE_CLASS[s] + '">' + escapeHtml(t("register.state." + s)) + "</span>";
 }
 
@@ -182,13 +186,13 @@ function renderRegisterBody(project, role, opts) {
     const vos = o.vos || allVos;
     if (vos.length === 0) {
         const filteredEmpty = !!o.filtered && allVos.length > 0;
-        return '<tr><td colspan="' + COLUMNS.length + '" class="empty-state">' +
+        return '<tr><td colspan="' + columnsForRole(role).length + '" class="empty-state">' +
                escapeHtml(t(filteredEmpty ? "register.emptyFiltered" : "register.empty")) +
                "</td></tr>";
     }
     return vos.map(v =>
         '<tr class="vo-row ' + rowStage(v) + '" data-vo="' + escapeHtml(v.id) + '" style="cursor:pointer">' +
-        COLUMNS.map(c => {
+        columnsForRole(role).map(c => {
             const owned = FIELD_OWNER[c.field] === role;
             /* VO NO. and DESCRIPTION double as the card heading at narrow
                widths (see .register-scroll in style.css) — everything
@@ -201,7 +205,7 @@ function renderRegisterBody(project, role, opts) {
             const cls = classes.length ? ' class="' + classes.join(" ") + '"' : "";
             const stage = c.field === "no" ? ' data-stage="' + escapeHtml(t("register.stage." + rowStage(v))) + '"' : "";
             return "<td" + cls + stage + ' data-label="' + escapeHtml(t(c.labelKey)) + '">' +
-                   c.render(v, project) + "</td>";
+                   c.render(v, project, role) + "</td>";
         }).join("") + "</tr>"
     ).join("");
 }
@@ -311,6 +315,14 @@ if (typeof document !== "undefined") {
         const searchInput = document.getElementById("registerSearch");
         const evalSelect = document.getElementById("registerEvalFilter");
         const certSelect = document.getElementById("registerCertFilter");
+        /* the client: no stage, and only the statuses a VO can have with them */
+        if (session.role === "client") {
+            if (evalSelect) { evalSelect.value = "all"; evalSelect.closest("label").style.display = "none"; }
+            if (certSelect) [...certSelect.options].forEach(o => {
+                if (["draft", "returned", "info"].includes(o.value)) o.remove();
+                if (o.value === "progress") o.textContent = t("register.state.awaitingYou");
+            });
+        }
         const clearBtn = document.getElementById("registerClearFilters");
         const countEl = document.getElementById("registerResultCount");
 
