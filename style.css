@@ -4103,3 +4103,7 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 .step-dots { display: inline-flex; gap: 3px; }
 .step-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line, #d6dbe6); }
 .step-dots i.on { background: var(--accent); }
+
+/* the contract deadline under a "needs your attention" item */
+.action-deadline { display: block; margin-top: 6px; font-size: 12px; color: var(--ink-3); }
+.action-deadline .deadline-flag { margin-right: 4px; }

@@ -3,7 +3,7 @@
 if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { rm, prettyDate, voValue, projectStats, today } = require("./calc.js");
     var { statusPill, escapeHtml, seedText } = require("./ui.js");
-    var { deadlineSummary } = require("./deadlines.js");
+    var { deadlineSummary, deadlinesFor } = require("./deadlines.js");
     var { voStage } = require("./permissions.js");
     var { t, voNoLabel } = require("./i18n.js");
 }
@@ -32,11 +32,29 @@ var ACTION_STAGES = {
     client: ["client"]
 };
 
-function actionItems(project, role) {
+/* The contract clock (js/deadlines.js) this role is running on a VO, if
+   any: the soonest it has not yet met. */
+function roleDeadline(vo, role, todayIso, project) {
+    if (!todayIso || typeof deadlinesFor !== "function") return null;
+    return deadlinesFor(vo, todayIso, project)
+        .filter(d => d.owner === role && !d.satisfied && d.dueDate && d.daysRemaining !== null)
+        .sort((a, b) => a.daysRemaining - b.daysRemaining)[0] || null;
+}
+
+/* Most urgent first, by the contract's rules: overdue, then due within a
+   week, then the other clocks by date; work with no clock after them. */
+var URGENCY = { "overdue": 0, "due-soon": 1, "open": 2 };
+function byUrgency(a, b) {
+    const ua = a.deadline ? URGENCY[a.deadline.state] : 3, ub = b.deadline ? URGENCY[b.deadline.state] : 3;
+    if (ua !== ub) return ua - ub;
+    return a.deadline && b.deadline ? a.deadline.daysRemaining - b.deadline.daysRemaining : 0;
+}
+
+function actionItems(project, role, todayIso) {
     const vos = project.vos || [];
     const mine = ACTION_STAGES[role] || [];
     const items = vos.filter(v => mine.indexOf(voStage(v)) !== -1)
-        .map(v => ({ vo: v, text: t("dashboard.action.stage." + voStage(v)) }));
+        .map(v => ({ vo: v, text: t("dashboard.action.stage." + voStage(v)), deadline: roleDeadline(v, role, todayIso, project) }));
     if (role === "consultant") {
         /* the client asking the consultant for further information: no
            clock of its own, listed so the consultant notices it */
@@ -45,7 +63,20 @@ function actionItems(project, role) {
                 ? t("dashboard.action.clientInfoRequested", { note: v.clientInfoRequestNote })
                 : t("dashboard.action.clientInfoRequestedNoNote") }));
     }
-    return items;
+    return items.sort(byUrgency);
+}
+
+/* The rule under an item: how it stands, the date, and where the period
+   comes from (the contract read, else the default). */
+function deadlineLine(d) {
+    if (!d) return "";
+    const left = d.daysRemaining < 0 ? t("deadline.daysOverdue", { n: -d.daysRemaining }) : t("deadline.daysRemaining", { n: d.daysRemaining });
+    const rule = d.period && d.period.clause
+        ? t("dashboard.action.ruleClause", { days: d.period.days, clause: d.period.clause })
+        : t("dashboard.action.rule", { days: d.period ? d.period.days : "" });
+    return '<span class="action-deadline deadline-' + escapeHtml(d.state) + '">' +
+        '<span class="deadline-flag">' + escapeHtml(left) + "</span> " +
+        escapeHtml(d.label + " · " + t("deadline.dueLabel") + " " + prettyDate(d.dueDate) + " · " + rule) + "</span>";
 }
 
 function renderRecentRows(vos) {
@@ -69,7 +100,7 @@ function renderRecentRows(vos) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { actionItems, renderRecentRows, deadlinePositionText };
+    module.exports = { roleDeadline, deadlineLine, actionItems, renderRecentRows, deadlinePositionText };
 }
 
 /* ---------- browser wiring ---------- */
@@ -191,14 +222,14 @@ if (typeof document !== "undefined") {
         }
 
         /* Action list */
-        const items = actionItems(project, session.role);
+        const items = actionItems(project, session.role, today());
         document.getElementById("actionList").innerHTML = items.length === 0
             ? '<div class="empty-state">' + escapeHtml(t("dashboard.action.empty")) + '</div>'
             : items.map(i =>
                 '<a class="finding" style="text-decoration:none;color:inherit" ' +
                 'href="vo.html?id=' + encodeURIComponent(i.vo.id) + '">' +
                 "<span><strong class=\"item-code\">" + escapeHtml(voNoLabel(i.vo.no)) + "</strong> — " +
-                escapeHtml(i.text) + "</span></a>"
+                escapeHtml(i.text) + deadlineLine(i.deadline) + "</span></a>"
             ).join("");
 
         /* The contract sets the clocks shown here (js/deadlines.js);

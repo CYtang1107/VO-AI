@@ -40,3 +40,16 @@ test("recent rows render newest first and carry a status pill", () => {
     assert.ok(html.indexOf("VO-003") < html.indexOf("VO-001"),
         "newest VO should appear first");
 });
+
+test("needs-your-attention puts the most urgent contract deadline first and names its rule", () => {
+    const { actionItems } = require("../js/page-dashboard.js");
+    const project = { vos: [
+        { id: "A", no: "VO-1", sentToDesign: true, instructionStatus: "Confirmed", measurement: [] },
+        { id: "B", no: "VO-2", submitted: true, instructionStatus: "Confirmed", dateIssued: "2026-09-01",
+          infoRequestedAt: "2026-09-05", infoRequestNote: "x", measurement: [], evaluateStatus: "Pending", certifiedStatus: "Pending" }
+    ] };
+    const items = actionItems(project, "contractor", "2026-10-09");
+    assert.strictEqual(items[0].vo.id, "B");
+    assert.strictEqual(items[0].deadline.state, "overdue");
+    assert.strictEqual(items[1].deadline, null);
+});
