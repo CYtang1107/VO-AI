@@ -44,6 +44,10 @@ function fit1024(v: number[]): number[] {
     return cut.map((x) => x / n);
 }
 
+/* Gemini models think before they answer, and the thinking counts
+   against max_tokens: they get room for both. */
+const roomFor = (model: string, n: number) => /^gemini/i.test(model) ? Math.max(n, 8192) : n;
+
 const CORS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -82,7 +86,7 @@ async function ocr(image: string): Promise<string> {
     for (const model of OCR_MODELS) {
         try {
             const json = await dashscope("/chat/completions", {
-                model, temperature: 0, max_tokens: 4000,
+                model, temperature: 0, max_tokens: roomFor(model, 4000),
                 messages: [{ role: "user", content: [
                     { type: "image_url", image_url: { url: "data:image/jpeg;base64," + image } },
                     { type: "text", text: OCR_PROMPT },

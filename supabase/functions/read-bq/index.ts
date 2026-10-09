@@ -29,6 +29,10 @@ const OCR_MODELS = (Deno.env.get("OCR_MODELS") || "qwen-vl-plus,qwen3-vl-flash")
 const GUEST_PER_VISITOR = Number(Deno.env.get("GUEST_PER_VISITOR") || 20);
 const GUEST_PER_DAY = Number(Deno.env.get("GUEST_PER_DAY") || 300);
 
+/* Gemini models think before they answer, and the thinking counts
+   against max_tokens: they get room for both. */
+const roomFor = (model: string, n: number) => /^gemini/i.test(model) ? Math.max(n, 8192) : n;
+
 const CORS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -45,7 +49,7 @@ async function vision(messages: Message[]): Promise<{ text: string; model: strin
     let last: Error | null = null;
     for (const model of OCR_MODELS) {
         try {
-            const body: Record<string, unknown> = { model, messages, temperature: 0, max_tokens: 4000 };
+            const body: Record<string, unknown> = { model, messages, temperature: 0, max_tokens: roomFor(model, 4000) };
             if (/^qwen3/.test(model)) body.enable_thinking = false;
             const res = await fetch(DASHSCOPE + "/chat/completions", {
                 method: "POST",

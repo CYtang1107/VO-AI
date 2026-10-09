@@ -35,6 +35,10 @@ const VISION_MODELS = (Deno.env.get("VISION_MODELS") || "qwen-vl-plus,qwen3-vl-f
     .split(",").map((s) => s.trim()).filter(Boolean);
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
 
+/* Gemini models think before they answer, and the thinking counts
+   against max_tokens: they get room for both. */
+const roomFor = (model: string, n: number) => /^gemini/i.test(model) ? Math.max(n, 8192) : n;
+
 const CORS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -56,7 +60,7 @@ async function vision(messages: Message[]): Promise<{ text: string; model: strin
     const tried: string[] = [];
     for (const model of VISION_MODELS) {
         try {
-            const body: Record<string, unknown> = { model, messages, temperature: 0.1, max_tokens: 800 };
+            const body: Record<string, unknown> = { model, messages, temperature: 0.1, max_tokens: roomFor(model, 800) };
             if (/^qwen3/.test(model)) body.enable_thinking = false;
             const res = await fetch(DASHSCOPE + "/chat/completions", {
                 method: "POST",

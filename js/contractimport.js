@@ -22,8 +22,8 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { escapeHtml } = require("./ui.js");
 }
 
-var KB_BATCH = 40;          /* chunks per call: one call embeds them all */
-var OCR_PARALLEL = 4;       /* pages read at once */
+var KB_BATCH = 20;          /* chunks per call: one call embeds them all */
+var OCR_PARALLEL = 2;       /* pages read at once (a free tier allows few a minute) */
 var OCR_LONG_SIDE = 1700;   /* px: about 150 dpi on A4, enough for OCR */
 var PDFJS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
 var PDFJS_WORKER = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
@@ -181,6 +181,20 @@ async function pageImage(pdf, n) {
 }
 
 /* A scanned PDF's text, page by page through the server's OCR. */
+/* A free AI tier answers only so many calls a minute: a refused call is
+   tried again after a pause (5 s, 15 s, 30 s, 60 s) before it fails. */
+var RETRY_WAITS = [5000, 15000, 30000, 60000];
+async function patiently(fn, onWait) {
+    for (let k = 0; ; k++) {
+        try { return await fn(); }
+        catch (e) {
+            if (k >= RETRY_WAITS.length) throw e;
+            if (onWait) onWait(RETRY_WAITS[k] / 1000);
+            await new Promise(r => setTimeout(r, RETRY_WAITS[k]));
+        }
+    }
+}
+
 async function ocrPdf(projectId, buf, onProgress) {
     const lib = await loadPdfJs();
     const pdf = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
@@ -191,15 +205,12 @@ async function ocrPdf(projectId, buf, onProgress) {
         while (next <= total) {
             const n = next++;
             const image = await pageImage(pdf, n);
-            let tries = 0;
-            for (;;) {
-                try {
-                    const res = await Cloud.invoke("import-contract", { action: "ocr", project_id: projectId, image: image });
-                    texts[n - 1] = res.text || "";
-                    break;
-                } catch (e) {
-                    if (++tries >= 2) throw new Error(t("kb.error.ocrPage", { page: n, reason: e.message || String(e) }));
-                }
+            try {
+                const res = await patiently(() => Cloud.invoke("import-contract", { action: "ocr", project_id: projectId, image: image }),
+                    sec => onProgress(t("kb.progress.wait", { s: sec })));
+                texts[n - 1] = res.text || "";
+            } catch (e) {
+                throw new Error(t("kb.error.ocrPage", { page: n, reason: e.message || String(e) }));
             }
             done++;
             onProgress(t("kb.progress.ocr", { done: done, total: total }));
@@ -247,10 +258,10 @@ async function importContractDoc(projectId, doc, onProgress) {
     let sent = 0;
     for (let i = 0; i < batches.length; i++) {
         onProgress(t("kb.progress.embedding", { done: sent, total: kb.chunks.length }));
-        await Cloud.invoke("import-contract", {
+        await patiently(() => Cloud.invoke("import-contract", {
             action: "chunks", project_id: projectId, doc_name: doc.name, form: kb.form,
             chunks: batches[i], replace: i === 0
-        });
+        }), sec => onProgress(t("kb.progress.wait", { s: sec })));
         sent += batches[i].length;
     }
     return { form: kb.form, clauses: kb.clauses, chunks: kb.chunks.length, ocr: usedOcr };
