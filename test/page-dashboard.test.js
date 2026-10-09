@@ -9,7 +9,7 @@ const project = seedDB().projects[0];
 
 test("the contractor is told to describe the draft VO and send it to the design team", () => {
     const items = actionItems(project, "contractor");
-    assert.ok(items.some(i => i.vo.no === "VO-003" && /design team/i.test(i.text)));
+    assert.ok(items.some(i => i.vo.no === "VO-003" && /design team/i.test(i.full)));
 });
 
 test("the consultant is told to assess the submitted VO", () => {

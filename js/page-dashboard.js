@@ -54,29 +54,31 @@ function actionItems(project, role, todayIso) {
     const vos = project.vos || [];
     const mine = ACTION_STAGES[role] || [];
     const items = vos.filter(v => mine.indexOf(voStage(v)) !== -1)
-        .map(v => ({ vo: v, text: t("dashboard.action.stage." + voStage(v)), deadline: roleDeadline(v, role, todayIso, project) }));
+        .map(v => ({ vo: v, text: t("dashboard.action.short." + voStage(v)), full: t("dashboard.action.stage." + voStage(v)),
+            deadline: roleDeadline(v, role, todayIso, project) }));
     if (role === "consultant") {
         /* the client asking the consultant for further information: no
            clock of its own, listed so the consultant notices it */
         vos.filter(v => !!v.clientInfoRequestedAt).forEach(v => items.push({ vo: v,
-            text: v.clientInfoRequestNote
+            text: t("dashboard.action.short.clientInfo"),
+            full: v.clientInfoRequestNote
                 ? t("dashboard.action.clientInfoRequested", { note: v.clientInfoRequestNote })
                 : t("dashboard.action.clientInfoRequestedNoNote") }));
     }
     return items.sort(byUrgency);
 }
 
-/* The rule under an item: how it stands, the date, and where the period
-   comes from (the contract read, else the default). */
-function deadlineLine(d) {
+/* An item's deadline, in a few words: days left (or overdue) on a tag;
+   the clock, its due date and its rule in the tag's tooltip. */
+function deadlineTag(d) {
     if (!d) return "";
-    const left = d.daysRemaining < 0 ? t("deadline.daysOverdue", { n: -d.daysRemaining }) : t("deadline.daysRemaining", { n: d.daysRemaining });
+    const left = d.daysRemaining < 0 ? t("dashboard.action.overdueShort", { n: -d.daysRemaining }) : t("dashboard.action.leftShort", { n: d.daysRemaining });
     const rule = d.period && d.period.clause
         ? t("dashboard.action.ruleClause", { days: d.period.days, clause: d.period.clause })
         : t("dashboard.action.rule", { days: d.period ? d.period.days : "" });
-    return '<span class="action-deadline deadline-' + escapeHtml(d.state) + '">' +
-        '<span class="deadline-flag">' + escapeHtml(left) + "</span> " +
-        escapeHtml(d.label + " · " + t("deadline.dueLabel") + " " + prettyDate(d.dueDate) + " · " + rule) + "</span>";
+    const tip = d.label + " · " + t("deadline.dueLabel") + " " + prettyDate(d.dueDate) + " · " + rule;
+    return '<span class="action-deadline deadline-' + escapeHtml(d.state) + '" title="' + escapeHtml(tip) + '">' +
+        '<span class="deadline-flag">' + escapeHtml(left) + "</span></span>";
 }
 
 function renderRecentRows(vos) {
@@ -100,7 +102,7 @@ function renderRecentRows(vos) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { roleDeadline, deadlineLine, actionItems, renderRecentRows, deadlinePositionText };
+    module.exports = { roleDeadline, deadlineTag, actionItems, renderRecentRows, deadlinePositionText };
 }
 
 /* ---------- browser wiring ---------- */
@@ -226,10 +228,10 @@ if (typeof document !== "undefined") {
         document.getElementById("actionList").innerHTML = items.length === 0
             ? '<div class="empty-state">' + escapeHtml(t("dashboard.action.empty")) + '</div>'
             : items.map(i =>
-                '<a class="finding" style="text-decoration:none;color:inherit" ' +
+                '<a class="finding action-item" style="text-decoration:none;color:inherit" title="' + escapeHtml(i.full || i.text) + '" ' +
                 'href="vo.html?id=' + encodeURIComponent(i.vo.id) + '">' +
-                "<span><strong class=\"item-code\">" + escapeHtml(voNoLabel(i.vo.no)) + "</strong> — " +
-                escapeHtml(i.text) + deadlineLine(i.deadline) + "</span></a>"
+                "<span><strong class=\"item-code\">" + escapeHtml(voNoLabel(i.vo.no)) + "</strong> " +
+                escapeHtml(i.text) + "</span>" + deadlineTag(i.deadline) + "</a>"
             ).join("");
 
         /* The contract sets the clocks shown here (js/deadlines.js);
