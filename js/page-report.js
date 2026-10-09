@@ -164,7 +164,7 @@ function renderReport(vo, project, role) {
       '<div class="report-head">' +
         '<div class="report-head-id">' + logoMark(38) +
         "<div><h1>" + escapeHtml(t("report.heading")) + "</h1>" +
-        "<p>" + escapeHtml(project.name) + "</p>" +
+        "<p>" + escapeHtml(seedText(project.name)) + "</p>" +
         "<p>" + t("report.contractLine", { no: escapeHtml(project.contractNo || "—"), client: escapeHtml(project.client || "—") }) + "</p></div></div>" +
         '<div class="report-ref"><strong>' + escapeHtml(voNoLabel(vo.no)) + "</strong>" +
         "<span>" + t("report.issued", { date: prettyDate(vo.dateIssued) }) + "</span></div>" +
@@ -276,7 +276,7 @@ function renderSummaryReport(project) {
       '<div class="report-head">' +
         '<div class="report-head-id">' + logoMark(38) +
         "<div><h1>" + escapeHtml(t("report.summary.heading")) + "</h1>" +
-        "<p>" + escapeHtml((project && project.name) || "—") + "</p>" +
+        "<p>" + escapeHtml((project && seedText(project.name)) || "—") + "</p>" +
         "<p>" + t("report.contractLine", {
             no: escapeHtml((project && project.contractNo) || "—"),
             client: escapeHtml((project && project.client) || "—")

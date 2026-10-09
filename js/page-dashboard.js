@@ -84,7 +84,7 @@ if (typeof document !== "undefined") {
         /* The breadcrumb must name the project, not the user — mountChrome
            resolves the project, so fill it in once we have it. */
         const crumbEl = document.querySelector(".breadcrumb");
-        if (crumbEl) crumbEl.textContent = t("crumb.project", { name: project.name });
+        if (crumbEl) crumbEl.textContent = t("crumb.project", { name: seedText(project.name) });
 
 
         document.getElementById("greeting").textContent =

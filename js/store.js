@@ -611,7 +611,14 @@ var DEMO_FILES = {
    seedText in js/ui.js) — anything a user has typed is shown as typed.
    Measurement lines stay in English: they are matched against the
    English priced BQ. */
+/* The demo project's stored name is Malay (Cadangan Pembangunan = proposed
+   development); in English it reads as below. */
+var SEED_EN = {
+    "Cadangan Pembangunan ABC Residence": "ABC Residence Project"
+};
+
 var SEED_ZH = {
+    "Cadangan Pembangunan ABC Residence": "ABC 住宅发展项目",
     /* the demo's file names */
     "Contract Agreement - PAM 2018.pdf": "合同协议书 - PAM 2018.pdf",
     "Bills of Quantities (Priced).pdf": "已标价工程量清单.pdf",
@@ -923,7 +930,7 @@ function placeDemoMedia(vo) {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         DB_KEY, CLOUD_DB_KEY, cloudSession, SESSION_KEY, UNLOCKED_PROJECTS_KEY, PASSCODE_KEY, ROLES, uid, newVO,
-        loadDB, saveDB, resetDB, demoDB, upgradeDemo, forViewer, clientSees, nextVoNumber, deleteVO, SEED_ZH, shiftIsoDays, DEMO_FILES,
+        loadDB, saveDB, resetDB, demoDB, upgradeDemo, forViewer, clientSees, nextVoNumber, deleteVO, SEED_ZH, SEED_EN, shiftIsoDays, DEMO_FILES,
         getSession, setSession, clearSession,
         isProjectUnlocked, markProjectUnlocked, clearUnlockedProjects,
         passcodeSupported,

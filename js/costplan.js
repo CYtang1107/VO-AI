@@ -353,6 +353,9 @@ function earnedValue(project, todayIso) {
    programme and interim certificates (the design team issues them). */
 function costOverviewVisible(role) { return role === "contractor" || role === "administrator" || role === "client"; }
 function costOverviewEditable(role) { return role === "administrator" || role === "client"; }
+/* The monthly cash flow (its Excel, or figures typed over): also the
+   contractor's, who often keeps the project's cash-flow forecast. */
+function cashflowEditable(role) { return costOverviewEditable(role) || role === "contractor"; }
 
 /* ---------- render ---------- */
 
@@ -621,6 +624,7 @@ function renderCostDetail(project, todayIso, opts) {
         /* every figure open beside the three cards: the page has the room */
         body = renderEarnedValue(earnedValue(project, todayIso), { editable: editable });
     } else if (tab === "table") {
+        const editable = !!(opts && (opts.cashflow !== undefined ? opts.cashflow : opts.editable));
         /* the monthly figures: the model's until the team uploads its own
            cash-flow sheet or types over a cell (project.cashflow) */
         const cf = project.cashflow || {};
@@ -755,5 +759,5 @@ function mountCostChart(host, full) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { costOverviewVisible, costOverviewEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, earnedSchedule, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep, readCashflowSheet, cfMonthKey };
+    module.exports = { costOverviewVisible, costOverviewEditable, cashflowEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, earnedSchedule, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep, readCashflowSheet, cfMonthKey };
 }
