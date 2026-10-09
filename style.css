@@ -1387,6 +1387,11 @@ td.owned-col { background: #fffdf2; }
     display: block; border-bottom: 1px solid var(--ink); height: 46px; margin-bottom: 7px;
 }
 .signatures small { font-size: 12px; color: var(--ink-3); }
+/* the name and date rows line up across the columns, even under a label on two lines */
+.signatures:has(.sig-fill) { row-gap: 0; }
+.signatures:has(.sig-fill) > div { display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start; margin-bottom: 18px; }
+.signatures .sig-fill { display: flex; align-items: flex-end; gap: 6px; margin: 14px 0 0; font-size: 12px; color: var(--ink-2); }
+.signatures .sig-fill i { flex: 1; border-bottom: 1px dotted var(--ink-3); height: 1em; }
 
 @media print {
     .report-sheet { border: none; padding: 0; }

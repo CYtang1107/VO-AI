@@ -112,8 +112,10 @@ function renderInstructionSheet(vo, project) {
                 { vo: voNoLabel(vo.no), clause: form === "PWD 203" ? "25" : "24" })) + "</p>" +
         "</section>" +
         '<div class="signatures instr-signatures">' +
-            "<div><span></span><small>" + escapeHtml(issuer) + (i.by ? " — " + escapeHtml(i.by) : "") + "</small></div>" +
-            "<div><span></span><small>" + escapeHtml(t("instr.received")) + "</small></div>" +
+            "<div><span></span><small>" + escapeHtml(issuer) + (i.by ? " — " + escapeHtml(i.by) : "") + "</small>" +
+                '<p class="sig-fill">' + escapeHtml(t("report.sig.name")) + "<i></i></p>" + '<p class="sig-fill">' + escapeHtml(t("report.sig.date")) + "<i></i></p>" + "</div>" +
+            "<div><span></span><small>" + escapeHtml(t("instr.received")) + "</small>" +
+                '<p class="sig-fill">' + escapeHtml(t("report.sig.name")) + "<i></i></p>" + '<p class="sig-fill">' + escapeHtml(t("report.sig.date")) + "<i></i></p>" + "</div>" +
         "</div>" +
     "</div>";
 }
