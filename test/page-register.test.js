@@ -106,3 +106,17 @@ test("a genuinely empty project still renders the generic empty message when not
     const body = renderRegisterBody({ vos: [], bq: [] }, "client", { filtered: false });
     assert.match(body, /No variation orders in this project yet/);
 });
+
+test("the register shows the step a VO has reached and one status", () => {
+    const { voStep, voState } = require("../js/page-register.js");
+    const base = { measurement: [], evaluateStatus: "Pending", certifiedStatus: "Pending" };
+    assert.deepStrictEqual([voStep(base), voState(base)], [1, "draft"]);
+    assert.strictEqual(voStep(Object.assign({}, base, { claimCheck: { verdict: "claimable" } })), 2);
+    assert.deepStrictEqual([voStep(Object.assign({}, base, { sentToDesign: true })), voState(Object.assign({}, base, { sentToDesign: true }))], [3, "progress"]);
+    const back = Object.assign({}, base, { submitted: true, instructionStatus: "Confirmed", evaluateStatus: "Rejected" });
+    assert.deepStrictEqual([voStep(back), voState(back)], [4, "returned"]);
+    const done = Object.assign({}, base, { submitted: true, evaluateStatus: "Approved", certifiedStatus: "Approved" });
+    assert.deepStrictEqual([voStep(done), voState(done)], [6, "approved"]);
+    assert.strictEqual(filterVos([base, done], { state: "approved" }).length, 1);
+    assert.strictEqual(filterVos([base, done], { step: "1" }).length, 1);
+});

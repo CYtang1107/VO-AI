@@ -4097,3 +4097,9 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
 }
 .evm-tables .evm-table td.evm-formula { white-space: normal; word-break: break-word; }
 .evm-tables > .table-scroll:last-child .evm-table td.evm-formula { max-width: 220px; }
+
+/* the register's stage: the six steps as dots, then the one reached */
+.step-cell { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.step-dots { display: inline-flex; gap: 3px; }
+.step-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line, #d6dbe6); }
+.step-dots i.on { background: var(--accent); }
