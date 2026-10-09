@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VO-AI | Documents</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="style.css?v=20261017a">
+    <link rel="stylesheet" href="style.css?v=20261017b">
 </head>
 <body>
 
@@ -20,66 +20,60 @@
         </div>
     </section>
 
-    <!-- on a desktop: the files on the left, adding a file and the
-         contract knowledge base on the right, each scrolling inside -->
+    <!-- on a desktop: every file on the left (filters and upload in its
+         header), the contract knowledge base on the right; each scrolls
+         inside its own panel -->
     <div class="docs-layout">
-        <div class="docs-main">
-            <div class="card doc-filter-card">
-                <div class="card-body">
-                    <div class="doc-summary-bar" id="docSummary"></div>
-
-                    <div class="doc-filters">
-                        <label><span data-i18n="documents.voLabel">Variation order</span>
-                            <select id="voFilter"></select>
-                        </label>
-                        <label><span data-i18n="documents.kind">Kind</span>
-                            <select id="kindFilter">
-                                <option value="all" data-i18n="documents.kind.all">All documents</option>
-                                <option value="drawings" data-i18n="documents.kind.drawings">Drawings</option>
-                                <option value="supporting" data-i18n="documents.kind.supporting">Supporting documents</option>
-                                <option value="project" data-i18n="documents.kind.project">Project documents</option>
-                            </select>
-                        </label>
-                    </div>
+        <div class="card docs-files-card">
+            <div class="docs-files-head">
+                <div class="docs-files-title">
+                    <h3 data-i18n="documents.allFiles">Files</h3>
+                    <span class="doc-summary-bar" id="docSummary"></span>
                 </div>
+                <div class="doc-filters">
+                    <label><span data-i18n="documents.voLabel">Variation order</span>
+                        <select id="voFilter"></select>
+                    </label>
+                    <label><span data-i18n="documents.kind">Kind</span>
+                        <select id="kindFilter">
+                            <option value="all" data-i18n="documents.kind.all">All documents</option>
+                            <option value="drawings" data-i18n="documents.kind.drawings">Drawings</option>
+                            <option value="supporting" data-i18n="documents.kind.supporting">Supporting documents</option>
+                            <option value="project" data-i18n="documents.kind.project">Project documents</option>
+                        </select>
+                    </label>
+                </div>
+                <button type="button" class="secondary-button docs-upload-toggle" id="docUploadToggle" hidden data-i18n="documents.uploadToggle">+ Upload a file</button>
             </div>
-            <div id="docGroups" class="doc-scroll" data-fit data-fit-gap="20"></div>
+            <div class="docs-upload-inline" id="projectDocUploadCard" hidden>
+                <div class="doc-upload-row">
+                    <label class="field">
+                        <span data-i18n="documents.upload.category">Category</span>
+                        <select id="projectDocCategorySelect">
+                            <option value="contract" data-i18n="documents.category.contract">Contract</option>
+                            <option value="bq" data-i18n="documents.category.bq">Priced BQ</option>
+                            <option value="addendum" data-i18n="documents.category.addendum">Addendum</option>
+                            <option value="specification" data-i18n="documents.category.specification">Specification</option>
+                            <option value="correspondence" data-i18n="documents.category.correspondence">Correspondence</option>
+                            <option value="other" data-i18n="documents.category.other">Other</option>
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span data-i18n="documents.upload.file">File</span>
+                        <input type="file" id="projectDocFileInput">
+                    </label>
+                            </div>
+            </div>
+            <div id="docGroups" class="doc-scroll docs-files-body" data-fit data-fit-gap="20"></div>
         </div>
-        <div class="docs-side">
-            <div class="card tone-teal" id="projectDocUploadCard" hidden>
-                <div class="card-header">
-                    <div>
-                        <h3 data-i18n="documents.upload.title">Add a project document</h3>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="doc-upload-row">
-                        <label class="field">
-                            <span data-i18n="documents.upload.category">Category</span>
-                            <select id="projectDocCategorySelect">
-                                <option value="contract" data-i18n="documents.category.contract">Contract</option>
-                                <option value="bq" data-i18n="documents.category.bq">Priced BQ</option>
-                                <option value="addendum" data-i18n="documents.category.addendum">Addendum</option>
-                                <option value="specification" data-i18n="documents.category.specification">Specification</option>
-                                <option value="correspondence" data-i18n="documents.category.correspondence">Correspondence</option>
-                                <option value="other" data-i18n="documents.category.other">Other</option>
-                            </select>
-                        </label>
-                        <label class="field">
-                            <span data-i18n="documents.upload.file">File</span>
-                            <input type="file" id="projectDocFileInput">
-                        </label>
-                    </div>
+
+        <div class="card tone-purple docs-kb-card" id="kbCard" hidden>
+            <div class="card-header">
+                <div>
+                    <h3 data-i18n="kb.title">Contract knowledge base (Ask the contract)</h3>
                 </div>
             </div>
-            <div class="card tone-purple" id="kbCard" hidden>
-                <div class="card-header">
-                    <div>
-                        <h3 data-i18n="kb.title">Contract knowledge base (Ask the contract)</h3>
-                    </div>
-                </div>
-                <div class="card-body" id="kbBody" data-fit data-fit-gap="20" data-fit-min="160"></div>
-            </div>
+            <div class="card-body" id="kbBody" data-fit data-fit-gap="20" data-fit-min="160"></div>
         </div>
     </div>
 
@@ -92,25 +86,25 @@
     </div>
 </main>
 
-<script src="js/i18n.js?v=20261017a"></script>
-<script src="js/calc.js?v=20261017a"></script>
-<script src="js/clauses.js?v=20261017a"></script>
-<script src="js/elements.js?v=20261017a"></script>
-<script src="js/analysis.js?v=20261017a"></script>
-<script src="js/permissions.js?v=20261017a"></script>
-<script src="js/deadlines.js?v=20261017a"></script>
-<script src="js/store.js?v=20261017a"></script>
-<script src="js/config.js?v=20261017a"></script>
-<script src="js/cloud.js?v=20261017a"></script>
-<script src="js/documents.js?v=20261017a"></script>
-<script src="js/bqimport.js?v=20261017a"></script>
-<script src="js/contractread.js?v=20261017a"></script>
-<script src="js/kbsplit.js?v=20261017a"></script>
-<script src="js/contractimport.js?v=20261017a"></script>
-<script src="js/ui.js?v=20261017a"></script>
-<script src="js/notify.js?v=20261017a"></script>
-<script src="js/filestore.js?v=20261017a"></script>
-<script src="js/page-documents.js?v=20261017a"></script>
+<script src="js/i18n.js?v=20261017b"></script>
+<script src="js/calc.js?v=20261017b"></script>
+<script src="js/clauses.js?v=20261017b"></script>
+<script src="js/elements.js?v=20261017b"></script>
+<script src="js/analysis.js?v=20261017b"></script>
+<script src="js/permissions.js?v=20261017b"></script>
+<script src="js/deadlines.js?v=20261017b"></script>
+<script src="js/store.js?v=20261017b"></script>
+<script src="js/config.js?v=20261017b"></script>
+<script src="js/cloud.js?v=20261017b"></script>
+<script src="js/documents.js?v=20261017b"></script>
+<script src="js/bqimport.js?v=20261017b"></script>
+<script src="js/contractread.js?v=20261017b"></script>
+<script src="js/kbsplit.js?v=20261017b"></script>
+<script src="js/contractimport.js?v=20261017b"></script>
+<script src="js/ui.js?v=20261017b"></script>
+<script src="js/notify.js?v=20261017b"></script>
+<script src="js/filestore.js?v=20261017b"></script>
+<script src="js/page-documents.js?v=20261017b"></script>
 
 </body>
 </html>

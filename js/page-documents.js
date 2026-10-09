@@ -260,8 +260,18 @@ if (typeof document !== "undefined") {
            exactly as read-only as it was before. */
         const isConsultant = session.role === "consultant";
 
+        /* the upload opens from "+ 上传文件" in the files card's header */
         const uploadCard = document.getElementById("projectDocUploadCard");
-        if (uploadCard) uploadCard.hidden = !isConsultant;
+        const uploadToggle = document.getElementById("docUploadToggle");
+        if (uploadCard) uploadCard.hidden = true;
+        if (uploadToggle) {
+            uploadToggle.hidden = !isConsultant;
+            uploadToggle.addEventListener("click", () => {
+                uploadCard.hidden = !uploadCard.hidden;
+                uploadToggle.classList.toggle("active", !uploadCard.hidden);
+                if (typeof fitPanels === "function") fitPanels();
+            });
+        }
 
         let list = [];
 
