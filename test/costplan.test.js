@@ -256,8 +256,8 @@ test("in Chinese the performance figures go by their Chinese names, the abbrevia
     try {
         const html = c.renderEarnedValue(c.earnedValue(project(), "2026-09-12"), { editable: true });
         assert.match(html, /<h4>1\. 成本管理与预测<\/h4>/);
-        assert.match(html, /<th>完工预算（BAC）<\/th>/);
-        assert.match(html, /<th>预计成本超支（VAC）<\/th>/);
+        assert.match(html, /<th>完工预算<\/th>/);
+        assert.match(html, /<th>预计成本超支<\/th>/);
         assert.match(html, /<h4>2\. 进度管理与预测<\/h4>/);
         assert.match(html, /<th>当前进度滞后<\/th><td class="num evm-v-bad">\d+ 天<\/td>/);
         assert.match(html, /<th>预计完工延误<\/th>/);
