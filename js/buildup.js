@@ -667,6 +667,21 @@ function renderBuildUpCard(vo, project, opts) {
     const del = (sec, j, sIdx) => o.editable ? '<button type="button" class="link-button bu-remove"' + at(sec, j, sIdx) + ' aria-label="' + escapeHtml(t("buildup.remove")) + '">×</button>' : "";
     const up = (sec, j) => o.editable && j > 0 ? '<button type="button" class="link-button bu-up"' + at(sec, j) + ' aria-label="' + escapeHtml(t("buildup.moveUp")) + '">↑</button>' : "";
     const src = l => l.source && l.source !== "manual" ? ' <span class="bu-src bu-src-' + escapeHtml(l.source) + '">' + escapeHtml(t("buildup.src." + l.source)) + "</span>" : "";
+    /* a material bought online: the shop's product or order page, kept with
+       its price as evidence; 🛒 links or changes it, and the search links
+       find it on the Malaysian shops */
+    const shop = (sec, j, l) => {
+        if (sec !== "material" || (l.type && l.type !== "item")) return "";
+        const link = l.shop && /^https?:\/\//i.test(l.shop.url || "")
+            ? ' <a class="bu-shop-link" href="' + escapeHtml(l.shop.url) + '" target="_blank" rel="noopener" title="' + escapeHtml(l.shop.url) + '">' +
+                escapeHtml(t("buildup.shop.open", { host: shopHost(l.shop.url), date: l.shop.at || "" })) + "</a>" : "";
+        if (!o.editable) return link;
+        const q = encodeURIComponent(String(l.name || "").trim());
+        return link + ' <button type="button" class="link-button bu-shop"' + at(sec, j) + ' title="' + escapeHtml(t("buildup.shop.button")) + '">🛒</button>' +
+            (!l.shop && q ? ' <span class="bu-shop-search">' + escapeHtml(t("buildup.shop.search")) +
+                ' <a href="https://shopee.com.my/search?keyword=' + q + '" target="_blank" rel="noopener">Shopee</a> · ' +
+                '<a href="https://www.lazada.com.my/catalog/?q=' + q + '" target="_blank" rel="noopener">Lazada</a></span>' : "");
+    };
 
     /* how a line is worked out, as the QS writes it */
     function calc(sec, j, l, before) {
@@ -702,7 +717,7 @@ function renderBuildUpCard(vo, project, opts) {
                 (sec === "profit" ? '<span class="rate-detail">' + escapeHtml(t("buildup.netStart", { amount: rm(net) })) + "</span>" : "") +
                 '<span class="bu-sec-total">' + escapeHtml(rm(total)) + "</span></span>";
         return '<div class="bu-sec bu-sec-' + sec + '">' + fold("bu-sec-" + sec, head, (lines.length ? '<table class="bu-table"><tbody>' + lines.map((l, j) => '<tr class="bu-line bu-' + escapeHtml(l.type || "item") + '">' +
-                "<td>" + txt(sec, j, "name", l.name, t("buildup.namePh")) + src(l) + "</td>" +
+                "<td>" + txt(sec, j, "name", l.name, t("buildup.namePh")) + src(l) + shop(sec, j, l) + "</td>" +
                 "<td>" + calc(sec, j, l, run.rows[j].before) + "</td>" +
                 '<td class="num">' + (l.type === "unit" ? "→ " + escapeHtml(rm(run.rows[j].after)) : escapeHtml(rm(run.rows[j].amount))) + "</td>" +
                 '<td class="bu-act">' + up(sec, j) + del(sec, j) + "</td></tr>").join("") + "</tbody></table>" : "") +
@@ -758,11 +773,26 @@ function editBuildUp(b, e) {
         return b;
     }
     if (e.op === "up") { if (e.i > 0) sec.splice(e.i - 1, 0, sec.splice(e.i, 1)[0]); return b; }
+    /* an online shop's product or order page and the price taken from it;
+       no link removes it (the price stays, now as entered) */
+    if (e.op === "shop") {
+        if (!e.url) { delete line.shop; if (line.source === "shop") line.source = "manual"; return b; }
+        line.shop = { url: e.url, at: e.at || "" };
+        if (e.price !== undefined && e.price !== null && isFinite(Number(e.price))) line.price = Number(e.price);
+        line.source = "shop";
+        return b;
+    }
     const target = e.s !== undefined ? (line.subs || [])[e.s] : line;
     if (!target) return b;
     target[e.k] = e.numeric ? (e.value === "" ? "" : Number(e.value) || 0) : e.value;
     if (e.s === undefined && (e.k === "price" || e.k === "name")) line.source = "manual";
     return b;
+}
+
+/* "shopee.com.my" from a shop link, for its label */
+function shopHost(url) {
+    const m = /^https?:\/\/(?:www\.)?([^\/?#]+)/i.exec(String(url || ""));
+    return m ? m[1] : "";
 }
 
 function rowPicker(rows, i, stars) {
@@ -820,7 +850,7 @@ function renderRentOrBuy(plant, state) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { REGIONS, REFERENCE_PRICES, RECIPES, TEMPLATES, templateFor, guessUnit, diameterOf, girthOf, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
+    module.exports = { shopHost, REGIONS, REFERENCE_PRICES, RECIPES, TEMPLATES, templateFor, guessUnit, diameterOf, girthOf, SECTIONS, ADD_FORMATS, regionOf, priceListMatch, suggestBuildUp, buildUpRate, asSections,
         lineAmount, runSection, newLine, newSub, editBuildUp, roundUp, thicknessOf, rentOrBuy, parsePriceList,
         renderBuildUpCard, renderBuildUpSummary, renderRentOrBuy };
 }

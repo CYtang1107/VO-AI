@@ -198,8 +198,6 @@ function renderReport(vo, project, role) {
          report together on one page */
       '<div class="report-close">' +
       '<div class="report-pair">' +
-        "<div><h3>" + escapeHtml(t("report.section.timeImpact")) + "</h3>" +
-        "<p>" + t("report.timeImpactLine", { n: Number(vo.timeImpact) || 0 }) + "</p></div>" +
         "<div><h3>" + escapeHtml(t("report.section.status")) + "</h3>" +
         "<p>" + t("report.instructionStatusLine", { status: statusHtml(instructionStatus) }) + "<br>" +
         t("report.evaluationLine", { status: statusHtml(vo.evaluateStatus) }) + "<br>" +
@@ -247,9 +245,6 @@ function renderSummaryReport(project) {
     const totalClaimed = rows.reduce((s, r) => s + r.claimed, 0);
     const totalAssessed = rows.reduce((s, r) => s + r.assessed, 0);
     const totalCertified = rows.reduce((s, r) => s + (r.certified || 0), 0);
-    const totalTimeImpact = vos
-        .filter(v => v.evaluateStatus === "Approved")
-        .reduce((s, v) => s + (Number(v.timeImpact) || 0), 0);
 
     const contractSum = Number((project && project.contractSum) || 0);
     const pctOfContract = contractSum > 0
@@ -257,7 +252,7 @@ function renderSummaryReport(project) {
         : null;
 
     const bodyRows = rows.length === 0
-        ? '<tr><td colspan="9" class="empty-state">' + escapeHtml(t("report.summary.empty")) + '</td></tr>'
+        ? '<tr><td colspan="8" class="empty-state">' + escapeHtml(t("report.summary.empty")) + '</td></tr>'
         : rows.map(r => "<tr>" +
             "<td><span class=\"item-code\">" + escapeHtml(voNoLabel(r.vo.no)) + "</span></td>" +
             "<td>" + escapeHtml(seedText(r.vo.description) || "—") + "</td>" +
@@ -267,7 +262,6 @@ function renderSummaryReport(project) {
             "<td>" + rm(r.claimed) + "</td>" +
             "<td>" + rm(r.assessed) + "</td>" +
             "<td>" + (r.certified === null ? "—" : rm(r.certified)) + "</td>" +
-            "<td>" + t("report.summary.dayUnit", { n: Number(r.vo.timeImpact) || 0 }) + "</td>" +
         "</tr>").join("");
 
     return '' +
@@ -290,15 +284,13 @@ function renderSummaryReport(project) {
         "</th><th>" + escapeHtml(t("report.summary.col.dateIssued")) + "</th><th>" + escapeHtml(t("report.summary.col.evaluateStatus")) + "</th>" +
         "<th>" + escapeHtml(t("report.summary.col.certifiedStatus")) + "</th><th>" + escapeHtml(t("report.summary.col.claimed")) +
         "</th><th>" + escapeHtml(t("report.summary.col.assessed")) + "</th><th>" + escapeHtml(t("report.summary.col.certified")) +
-        "</th><th>" + escapeHtml(t("report.summary.col.timeImpact")) + "</th>" +
+        "</th>" +
       "</tr></thead><tbody>" + bodyRows + "</tbody></table></div>" +
 
       '<div class="report-totals">' +
         "<div><small>" + escapeHtml(t("report.summary.totalClaimed")) + "</small><strong>" + rm(totalClaimed) + "</strong></div>" +
         "<div><small>" + escapeHtml(t("report.summary.totalAssessed")) + "</small><strong>" + rm(totalAssessed) + "</strong></div>" +
         "<div><small>" + escapeHtml(t("report.summary.totalCertified")) + "</small><strong>" + rm(totalCertified) + "</strong></div>" +
-        "<div><small>" + escapeHtml(t("report.summary.totalTimeImpact")) + "</small><strong>" +
-            t("report.summary.dayUnit", { n: totalTimeImpact }) + "</strong></div>" +
       "</div>" +
 
       (pctOfContract ? '<p class="rate-detail"><strong>' +

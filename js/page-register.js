@@ -65,8 +65,6 @@ const COLUMNS = [
       render: v => rm(assessedTotal(v)) },
     { field: "rateCheck",         label: "RATE CROSS-CHECK", labelKey: "register.col.rateCheck",
       render: (v, p) => rateFlags(v, p) },
-    { field: "timeImpact",        label: "TIME IMPACT",      labelKey: "register.col.timeImpact",
-      render: v => t("register.dayUnit", { n: Number(v.timeImpact) || 0 }) },
     /* where the VO is: the step it has reached, and how it stands there */
     { field: "step", compact: true,              label: "STAGE",            labelKey: "register.col.step",
       render: v => stepCell(v) },

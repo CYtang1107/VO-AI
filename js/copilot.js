@@ -176,7 +176,6 @@ function projectData(project, todayIso, role) {
             "amount assessed by the consultant QS": rm(assessedTotal(v)),
             /* the rule engine's own difference, so the AI never subtracts */
             "assessed minus claimed": (assessedTotal(v) - contractorTotal(v) < 0 ? "−" : "") + rm(Math.abs(assessedTotal(v) - contractorTotal(v))),
-            "time impact (days)": Number(v.timeImpact) || 0,
             "contract agent verdict": check.verdict,
             "rate check": { "rows at the BQ rate": rates.same, "rows priced differently from the BQ": rates.different, "rows with no BQ item (star rates)": rates.star },
             "measurement": (v.measurement || []).slice(0, 12).map(r => ({

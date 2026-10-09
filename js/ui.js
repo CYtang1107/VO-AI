@@ -464,7 +464,7 @@ function renderStatCards(stats, role) {
         { icon: "✓", cls: "green",  label: t("dashboard.stat.approved"),       value: stats.approved,
           note: t("dashboard.stat.approvedNote", { n: stats.certified }) },
         { icon: "RM", cls: "purple", label: t("dashboard.stat.value"), value: money(stats.value),
-          note: t("dashboard.stat.valueNote", { n: stats.timeImpact }) }
+          note: t("dashboard.stat.valueNoteCount", { n: stats.total }) }
     ];
 
     return cards.map(c =>

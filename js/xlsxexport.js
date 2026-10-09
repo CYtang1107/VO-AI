@@ -256,7 +256,7 @@ function registerSheet(project, todayIso) {
     var vos = project.vos || [];
     var bq = project.bq || [];
     var headers = ["no", "description", "dateIssued", "dueDate", "dueBasis", "type", "instructionNo",
-                   "claimed", "assessed", "variance", "rateCheck", "timeImpact",
+                   "claimed", "assessed", "variance", "rateCheck",
                    "evaluateStatus", "certifiedStatus", "certified"].map(function (k) { return t("export.col." + k); });
     var H = 4; /* header row */
     var rows = [
@@ -278,10 +278,10 @@ function registerSheet(project, todayIso) {
             cells: [voNoLabel(vo.no), seedText(vo.description) || "", { d: vo.dateIssued }, due.date ? { d: due.date } : null, due.basis,
                     xlsxInstructionType(vo.typeOfInstruction), vo.instructionNo || "",
                     claimed, assessed, { f: "I" + r + "-H" + r, v: assessed - claimed },
-                    rateText, xlsxBlankable(vo.timeImpact),
+                    rateText,
                     xlsxStatus(vo.evaluateStatus), xlsxStatus(vo.certifiedStatus), xlsxCertifiedValue(vo)],
             styles: [XS.text, XS.wrap, XS.date, XS.date, XS.text, XS.text, XS.text,
-                     XS.money, XS.money, XS.money, XS.wrap, XS.int, XS.text, XS.text, XS.money]
+                     XS.money, XS.money, XS.money, XS.wrap, XS.text, XS.text, XS.money]
         });
     });
     var first = H + 1, last = H + vos.length;
@@ -294,14 +294,14 @@ function registerSheet(project, todayIso) {
             cells: [t("export.total"), "", "", "", "", "", "",
                     sum("H", claimedAll), sum("I", assessedAll),
                     sum("J", assessedAll.map(function (a, i) { return a - claimedAll[i]; })),
-                    "", "", "", "", sum("O", vos.map(xlsxCertifiedValue))],
+                    "", "", "", sum("N", vos.map(xlsxCertifiedValue))],
             styles: [XS.totalLabel, XS.totalLabel, XS.totalLabel, XS.totalLabel, XS.totalLabel, XS.totalLabel, XS.totalLabel,
-                     XS.totalMoney, XS.totalMoney, XS.totalMoney, XS.totalLabel, XS.totalLabel, XS.totalLabel, XS.totalLabel, XS.totalMoney]
+                     XS.totalMoney, XS.totalMoney, XS.totalMoney, XS.totalLabel, XS.totalLabel, XS.totalLabel, XS.totalMoney]
         });
     }
     return xlsxSheetXml(rows, {
-        widths: [10, 46, 15, 15, 12, 24, 14, 18, 18, 16, 28, 14, 12, 12, 18],
-        headerRow: H, lastCol: 14, lastDataRow: Math.max(last, H)
+        widths: [10, 46, 15, 15, 12, 24, 14, 18, 18, 16, 28, 12, 12, 18],
+        headerRow: H, lastCol: 13, lastDataRow: Math.max(last, H)
     });
 }
 

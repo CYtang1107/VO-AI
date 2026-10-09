@@ -1211,6 +1211,28 @@ if (typeof document !== "undefined") {
                 k: el.dataset.k, value: el.value, numeric: el.dataset.t === "n" }));
         });
         buPanel.addEventListener("click", e => {
+            /* 🛒: link a material to an online shop's product or order page
+               and take its price (typed from the page: shops do not let
+               another site read their prices) */
+            const shopBtn = e.target.closest(".bu-shop");
+            if (shopBtn) {
+                const sec = shopBtn.dataset.sec, i = Number(shopBtn.dataset.i);
+                const line = ((currentBuildUp(voNow()).sections || {})[sec] || [])[i] || {};
+                const url = window.prompt(t("buildup.shop.askUrl"), (line.shop && line.shop.url) || "");
+                if (url === null) return;
+                const clean = url.trim();
+                if (clean && !/^https?:\/\//i.test(clean)) { toast(t("buildup.shop.badUrl"), "error"); return; }
+                let price;
+                if (clean) {
+                    const p = window.prompt(t("buildup.shop.askPrice", { unit: line.unit || "" }), line.price === undefined ? "" : String(line.price));
+                    if (p === null) return;
+                    price = p.replace(/^(RM|MYR)\s*/i, "").replace(/[,\s]/g, "");
+                    if (price !== "" && !(Number(price) >= 0)) { toast(t("buildup.shop.badPrice"), "error"); return; }
+                    if (price === "") price = undefined;
+                }
+                saveBuildUp(b => editBuildUp(b, { op: "shop", sec: sec, i: i, url: clean, price: price, at: today() }));
+                return;
+            }
             const rem = e.target.closest(".bu-remove, .bu-up");
             if (rem) {
                 saveBuildUp(b => editBuildUp(b, { op: rem.classList.contains("bu-up") ? "up" : "remove", sec: rem.dataset.sec, i: Number(rem.dataset.i),

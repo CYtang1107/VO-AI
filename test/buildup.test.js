@@ -229,3 +229,14 @@ test("paint measured a metre run: the m² build-up × the girth (300mm unless th
     assert.strictEqual(bu.girthOf("Enamel paint to 200mm pipe"), 0.628);
     assert.strictEqual(bu.girthOf("Paint to skirting, 225mm girth"), 0.225);
 });
+
+test("a material can be linked to an online shop and take its price", () => {
+    const { editBuildUp, shopHost } = require("../js/buildup.js");
+    const b = { sections: { material: [{ type: "item", name: "Marble tile", qty: 1, unit: "m2", price: 180, source: "reference" }], machinery: [], labour: [], profit: [] } };
+    editBuildUp(b, { op: "shop", sec: "material", i: 0, url: "https://shopee.com.my/marble-i.1.2", price: "165.5", at: "2026-10-09" });
+    const l = b.sections.material[0];
+    assert.deepStrictEqual([l.price, l.source, l.shop.url, l.shop.at], [165.5, "shop", "https://shopee.com.my/marble-i.1.2", "2026-10-09"]);
+    assert.strictEqual(shopHost(l.shop.url), "shopee.com.my");
+    editBuildUp(b, { op: "shop", sec: "material", i: 0, url: "" });
+    assert.ok(!l.shop && l.source === "manual" && l.price === 165.5);
+});
