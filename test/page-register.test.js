@@ -6,10 +6,10 @@ const { seedDB } = require("../js/store.js");
 
 const project = seedDB().projects[0];
 
-test("every role sees every column — the client reads everything", () => {
+test("the client reads every column but the stage", () => {
     const contractorCols = columnsForRole("contractor").map(c => c.field);
     const clientCols = columnsForRole("client").map(c => c.field);
-    assert.deepStrictEqual(contractorCols, clientCols);
+    assert.deepStrictEqual(contractorCols.filter(f => f !== "step"), clientCols);
     assert.ok(clientCols.includes("finalPrice"));
     assert.ok(clientCols.includes("measurement"));
 });
@@ -119,4 +119,11 @@ test("the register shows the step a VO has reached and one status", () => {
     assert.deepStrictEqual([voStep(done), voState(done)], [6, "approved"]);
     assert.strictEqual(filterVos([base, done], { state: "approved" }).length, 1);
     assert.strictEqual(filterVos([base, done], { step: "1" }).length, 1);
+});
+
+test("the client's register has no stage column, only the status", () => {
+    const head = renderRegisterHead("client");
+    assert.ok(!/STAGE|阶段/.test(head));
+    assert.ok(/STATUS|状态/.test(head));
+    assert.ok(/STAGE|阶段/.test(renderRegisterHead("consultant")));
 });
