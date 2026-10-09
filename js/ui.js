@@ -132,7 +132,7 @@ function renderSidebar(active, session, project) {
     return '' +
         '<div class="logo">' +
             '<div class="logo-icon">' + logoMark(40) + '</div>' +
-            "<div><h2>" + escapeHtml(t("app.name")) + "</h2><span>" + escapeHtml(t("app.tagline")) + "</span></div>" +
+            "<div><h2>" + escapeHtml(t("app.brand")) + "</h2><span>" + escapeHtml(t("app.tagline")) + "</span></div>" +
         "</div>" +
         projectBox +
         "<nav>" + items + "</nav>" +
