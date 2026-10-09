@@ -33,7 +33,7 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { claimCheck } = require("./claimcheck.js");
     var { waitingFor, stepMessage } = require("./notify.js");
     var { deadlinesFor } = require("./deadlines.js");
-    var { costOverview, earnedValue, costOverviewVisible } = require("./costplan.js");
+    var { costOverview, earnedValue, costOverviewVisible, projectForRole } = require("./costplan.js");
     var { suggestPastRate, pastRateSources } = require("./ratehistory.js");
     var { escapeHtml, seedText } = require("./ui.js");
 }
@@ -61,7 +61,9 @@ function voLine(vo, text) { return { vo: vo, text: text }; }
 
 /* The answer for one intent: { intent, title, lines: [{text, vo?}], source } */
 function answerFromData(intent, ctx) {
-    const p = ctx.project, role = ctx.role, today = ctx.today;
+    const role = ctx.role, today = ctx.today;
+    /* cost figures from this side's own cash flow (js/costplan.js) */
+    const p = typeof projectForRole === "function" ? projectForRole(ctx.project, role) : ctx.project;
     const vos = (p && p.vos) || [];
     const lines = [];
     if (intent === "overview") {
@@ -152,6 +154,7 @@ function answerFromData(intent, ctx) {
    figures. Amounts are formatted as on screen, so the answer quotes them
    as the reader sees them. */
 function projectData(project, todayIso, role) {
+    if (typeof projectForRole === "function") project = projectForRole(project, role);
     const o = costOverview(project), e = earnedValue(project, todayIso);
     const cut = (s, n) => { const v = String(s || ""); return v.length > n ? v.slice(0, n) + "…" : v; };
     /* keys are written as plain words: the model quotes them, so they read

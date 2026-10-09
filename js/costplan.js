@@ -357,6 +357,16 @@ function costOverviewEditable(role) { return role === "administrator" || role ==
    contractor's, who often keeps the project's cash-flow forecast. */
 function cashflowEditable(role) { return costOverviewEditable(role) || role === "contractor"; }
 
+/* Each side plans and forecasts its own cash flow: the contractor's
+   (project.contractorCashflow) and the employer's, kept by the design
+   team and the client (project.cashflow). What has been certified
+   (actual) is the same for both. */
+function cashflowField(role) { return role === "contractor" ? "contractorCashflow" : "cashflow"; }
+function projectForRole(project, role) {
+    if (!project || role !== "contractor") return project;
+    return Object.assign({}, project, { cashflow: project.contractorCashflow });
+}
+
 /* ---------- render ---------- */
 
 function money(n) {
@@ -637,8 +647,9 @@ function renderCostDetail(project, todayIso, opts) {
                     escapeHtml(shortMonth(p.date) + " " + t("costplan.series." + k)) + '"></td>'
                 : '<td class="cd-cell' + (mine ? " cd-own" : "") + '">' + rm(p[k]) + "</td>";
         };
-        const source = cf.source ? t("costplan.cf.source", { name: cf.source.name || "—", date: cf.source.at || "" }) :
-            Object.keys(own).length ? t("costplan.cf.edited") : t(editable ? "costplan.cf.model" : "costplan.cf.modelReadOnly");
+        const side = opts && opts.side ? t("costplan.cf.side." + opts.side) + " " : "";
+        const source = side + (cf.source ? t("costplan.cf.source", { name: cf.source.name || "—", date: cf.source.at || "" }) :
+            Object.keys(own).length ? t("costplan.cf.edited") : t(editable ? "costplan.cf.model" : "costplan.cf.modelReadOnly"));
         body = '<div class="cd-cf-bar">' +
                 '<span class="rate-detail">' + escapeHtml(source) + "</span>" +
                 (editable ? '<span class="cd-cf-actions">' +
@@ -759,5 +770,5 @@ function mountCostChart(host, full) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { costOverviewVisible, costOverviewEditable, cashflowEditable, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, earnedSchedule, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep, readCashflowSheet, cfMonthKey };
+    module.exports = { costOverviewVisible, costOverviewEditable, cashflowEditable, cashflowField, projectForRole, viewCurve, EAC_METHODS, voValue, costOverview, sFraction, sCurve, earnedValue, earnedSchedule, renderEarnedValue, renderCostOverview, renderCostDetail, COST_TABS, renderSCurveSvg, zoomCurve, niceStep, readCashflowSheet, cfMonthKey };
 }

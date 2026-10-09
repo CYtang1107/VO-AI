@@ -134,7 +134,8 @@ if (typeof document !== "undefined") {
         const dashGrid = document.querySelector(".dash-grid");
         function drawCost() {
             if (!costHost || typeof renderCostOverview !== "function") return;
-            const p = getProject(project.id) || project;
+            /* the contractor's own plan and forecast, or the employer's */
+            const p = projectForRole(getProject(project.id) || project, session.role);
             keepFolds(() => { costHost.innerHTML = renderCostOverview(p, today(), { editable: costEditable, width: costHost.clientWidth, height: chartHeight(), range: costRange, detailHref: "costplan.html" }); });
             mountCostChart(costHost, viewCurve(sCurve(p, today()), costRange));
         }
