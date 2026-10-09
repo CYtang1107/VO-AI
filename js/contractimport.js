@@ -67,7 +67,9 @@ function knowledgeFromText(docName, text) {
         form: formFor(docName, text),
         method: split.method, listed: split.listed,
         clauses: split.clauses.length,
-        chunks: chunks.map(c => ({ no: c.no, title: c.title || "", part: c.part, text: c.text }))
+        /* a heading with its sub-clauses under it ("11. Variations", then
+           11.1…) has no words of its own: its title stands for it */
+        chunks: chunks.map(c => ({ no: c.no, title: c.title || "", part: c.part, text: String(c.text || "").trim() || c.title || c.no }))
     };
 }
 
