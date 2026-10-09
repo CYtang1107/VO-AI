@@ -4232,3 +4232,10 @@ details[data-fold="evm-detail"] { margin-top: 8px; }
     /* the unit, quantity, rate and amounts each on one line */
     .report-sec-long td:nth-child(n+3):nth-child(-n+7), .report-sec-long th { white-space: nowrap; }
 }
+
+/* printing a VO report: the sheet fills the A4 page, the spare height
+   shared out between the sections (a long one simply runs on) */
+@media print {
+    .report-sheet:has(.report-close) { min-height: 268mm; display: flex; flex-direction: column; justify-content: space-between; }
+    .report-sheet:has(.report-close) > * { flex: 0 0 auto; }
+}
