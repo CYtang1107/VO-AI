@@ -9,6 +9,12 @@ if (typeof require !== "undefined" && typeof module !== "undefined") {
     var { t, voNoLabel } = require("./i18n.js");
 }
 
+/* under each signature: a name and a date to write in by hand */
+function sigFill() {
+    return '<p class="sig-fill">' + escapeHtml(t("report.sig.name")) + "<i></i></p>" +
+        '<p class="sig-fill">' + escapeHtml(t("report.sig.date")) + "<i></i></p>";
+}
+
 /* -----------------------------------------------------------
    Small shared builders
 ----------------------------------------------------------- */
@@ -209,10 +215,10 @@ function renderReport(vo, project, role) {
         escapeHtml(seedText(vo.consultantRemark)) + "</p>" : "") +
 
       '<div class="signatures">' +
-        "<div><span></span><small>" + escapeHtml(t("report.sig.contractor")) + "</small></div>" +
-        "<div><span></span><small>" + escapeHtml(t("report.sig.administrator")) + "</small></div>" +
-        "<div><span></span><small>" + escapeHtml(t("report.sig.consultant")) + "</small></div>" +
-        "<div><span></span><small>" + escapeHtml(t("report.sig.client")) + "</small></div>" +
+        "<div><span></span><small>" + escapeHtml(t("report.sig.contractor")) + "</small>" + sigFill() + "</div>" +
+        "<div><span></span><small>" + escapeHtml(t("report.sig.administrator")) + "</small>" + sigFill() + "</div>" +
+        "<div><span></span><small>" + escapeHtml(t("report.sig.consultant")) + "</small>" + sigFill() + "</div>" +
+        "<div><span></span><small>" + escapeHtml(t("report.sig.client")) + "</small>" + sigFill() + "</div>" +
       "</div>" +
 
       '<div class="disclaimer"><strong>' + escapeHtml(t("report.disclaimer.title")) + '</strong>' +
