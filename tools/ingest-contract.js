@@ -10,8 +10,11 @@
          [--dry-run]         print the clauses; no embedding, no upload
          [--out chunks.json] also write the chunks to a file
 
-   Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and DASHSCOPE_API_KEY in the
-   environment (never in the repo). Re-running for the same doc name and
+   Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and an AI key in the
+   environment (never in the repo): AI_API_KEY with AI_BASE_URL and
+   EMBED_MODEL for another provider, as the Edge Functions use (e.g. Gemini:
+   https://generativelanguage.googleapis.com/v1beta/openai and
+   gemini-embedding-001), else DASHSCOPE_API_KEY. Re-running for the same doc name and
    project replaces that document's chunks.
 
    The contract text is the team's own copy of a copyrighted form: it goes
@@ -34,10 +37,21 @@ const { execFileSync } = require("child_process");
 const { contractFileText } = require("../js/contractread.js");
 const { chunkClauses, contractClauses, embedText, contentsEntries, headPattern, clausesFromContents, cleanTitle } = require("../js/kbsplit.js");
 
-const EMBED_MODEL = "text-embedding-v4";
+const EMBED_MODEL = process.env.EMBED_MODEL || "text-embedding-v4";
 const EMBED_DIM = 1024;
 const EMBED_BATCH = 10;
-const DASHSCOPE_BASE = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+const DASHSCOPE_BASE = (process.env.AI_BASE_URL || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
+const AI_KEY = process.env.AI_API_KEY || process.env.DASHSCOPE_API_KEY;
+
+/* The stored vectors are EMBED_DIM long: a longer one (Gemini's 3072) is
+   cut to its first EMBED_DIM numbers and scaled back to length 1, as the
+   Edge Functions do. */
+function fitDim(v) {
+    if (v.length === EMBED_DIM) return v;
+    const cut = v.slice(0, EMBED_DIM);
+    const n = Math.sqrt(cut.reduce((s, x) => s + x * x, 0)) || 1;
+    return cut.map(x => x / n);
+}
 
 /* ---------------- I/O ---------------- */
 
@@ -71,12 +85,13 @@ function ocrPdf(file) {
 async function embed(texts) {
     const res = await fetch(DASHSCOPE_BASE + "/embeddings", {
         method: "POST",
-        headers: { "Authorization": "Bearer " + process.env.DASHSCOPE_API_KEY, "Content-Type": "application/json" },
+        headers: { "Authorization": "Bearer " + AI_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({ model: EMBED_MODEL, input: texts, dimensions: EMBED_DIM, encoding_format: "float" })
     });
-    const body = await res.json();
-    if (!res.ok) throw new Error("DashScope: " + ((body.error && body.error.message) || res.status));
-    return body.data.sort((a, b) => a.index - b.index).map(d => d.embedding);
+    const body = await res.json().catch(() => ({}));
+    const err = (Array.isArray(body) ? body[0] : body).error;
+    if (!res.ok) throw new Error(new URL(DASHSCOPE_BASE).host + ": " + ((err && err.message) || res.status));
+    return body.data.sort((a, b) => a.index - b.index).map(d => fitDim(d.embedding));
 }
 
 async function rest(method, pathAndQuery, body) {
@@ -123,9 +138,10 @@ async function main() {
         chunks.forEach(c => console.log(`${c.no}${c.part > 1 ? " (" + c.part + ")" : ""}\t${c.title}\t${c.text.slice(0, 80)}`));
         return;
     }
-    for (const k of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "DASHSCOPE_API_KEY"]) {
+    for (const k of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) {
         if (!process.env[k]) { console.error("Missing " + k + " in the environment."); process.exit(1); }
     }
+    if (!AI_KEY) { console.error("Missing AI_API_KEY (or DASHSCOPE_API_KEY) in the environment."); process.exit(1); }
 
     const rows = [];
     for (let i = 0; i < chunks.length; i += EMBED_BATCH) {

@@ -126,3 +126,12 @@ test("an imported document's clauses can be read back, long clauses joined, and 
     assert.match(card, /kb-clause-search/);
     assert.ok(!/kb-remove-btn/.test(card), "a member who is not the consultant can read but not remove");
 });
+
+test("a clause heading with only sub-clauses under it is imported by its title, never empty", () => {
+    const { knowledgeFromText } = require("../js/contractimport.js");
+    const text = ["11. Variations", "11.1 Meaning", "A variation means a change.", "11.2 Instructions", "The Architect may instruct.",
+        "11.3 Valuation", "Valued by the QS.", "23. Extension of Time", "23.1 Notice", "Give notice within 28 days.", "23.2 Decision", "The Architect decides."].join("\n");
+    const kb = knowledgeFromText("c.pdf", text);
+    assert.ok(kb.chunks.every(c => c.text && c.text.length > 0));
+    assert.strictEqual(kb.chunks.find(c => c.no === "11").text, "Variations");
+});
