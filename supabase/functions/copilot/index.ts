@@ -30,6 +30,11 @@ import {
 // (AI_API_KEY); DashScope international and DASHSCOPE_API_KEY by default.
 const DASHSCOPE = (Deno.env.get("AI_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").trim().replace(/\/+$/, "");
 const AI_KEY = Deno.env.get("AI_API_KEY") || Deno.env.get("DASHSCOPE_API_KEY");
+// Embeddings may come from another provider than the chat and OCR models
+// (EMBED_BASE_URL, EMBED_API_KEY): the stored vectors only match the model
+// that made them, so moving chat elsewhere must not move the embeddings.
+const EMBED_BASE = (Deno.env.get("EMBED_BASE_URL") || DASHSCOPE).trim().replace(/\/+$/, "");
+const EMBED_KEY = Deno.env.get("EMBED_API_KEY") || AI_KEY;
 const GUEST_PROJECT = Deno.env.get("GUEST_PROJECT") || "PRJ-CADANGAN";
 const EMBED_MODEL = Deno.env.get("EMBED_MODEL") || "text-embedding-v4";
 const CHAT_MODELS = (Deno.env.get("COPILOT_MODELS") || Deno.env.get("ASK_MODELS") || "qwen-plus-latest,qwen-flash")
@@ -66,16 +71,18 @@ function reply(body: unknown, status = 200) {
 }
 
 async function dashscope(path: string, body: unknown) {
-    const res = await fetch(DASHSCOPE + path, {
+    const embeds = path === "/embeddings";
+    const base = embeds ? EMBED_BASE : DASHSCOPE;
+    const res = await fetch(base + path, {
         method: "POST",
-        headers: { "Authorization": "Bearer " + AI_KEY, "Content-Type": "application/json" },
+        headers: { "Authorization": "Bearer " + (embeds ? EMBED_KEY : AI_KEY), "Content-Type": "application/json" },
         body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
         // Gemini wraps its error in a list: [{ error: {…} }]
         const detail = (Array.isArray(json) ? json[0] : json)?.error?.message;
-        const err = new Error(new URL(DASHSCOPE).host + " " + res.status + ": " + (detail || res.statusText));
+        const err = new Error(new URL(base).host + " " + res.status + ": " + (detail || res.statusText));
         (err as Error & { status?: number }).status = res.status;
         throw err;
     }
